@@ -27,7 +27,7 @@ This skill is **agent-agnostic**. It uses standard tools (Bash, Read, WebFetch) 
 | Claude Code | Tested |
 | gemini-cli | Compatible |
 | Cursor | Compatible |
-| Any OpenClaw-compatible agent | Compatible |
+| OpenClaw | Tested |
 
 **Network requirements:** outbound HTTPS to `api.kaggle.com`, `www.kaggle.com`, and `storage.googleapis.com`.
 
