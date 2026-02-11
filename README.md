@@ -2,7 +2,7 @@
 
 An [OpenClaw-compatible](https://github.com/openclaw) skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions.
 
-Works with **any LLM or agentic coding system** that supports the OpenClaw skill format — including [Claude Code](https://claude.com/claude-code), [gemini-cli](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), and others — so long as `api.kaggle.com`, `www.kaggle.com`, and `storage.googleapis.com` are network-reachable.
+Works with **any LLM or agentic coding system** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [gemini-cli](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), and others — so long as `api.kaggle.com`, `www.kaggle.com`, and `storage.googleapis.com` are network-reachable.
 
 Merges four individual skills into a single self-contained package:
 - **Registration** — Account creation, API key generation, credential storage
