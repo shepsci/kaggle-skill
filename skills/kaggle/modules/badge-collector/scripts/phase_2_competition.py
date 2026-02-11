@@ -1,3 +1,4 @@
+from typing import Optional
 """Phase 2: Competition badges (~7 badges).
 
 Earns badges by submitting to various competition types:
@@ -22,7 +23,7 @@ from utils import (
 )
 
 
-def _find_competition_by_category(category: str) -> str | None:
+def _find_competition_by_category(category: str) -> Optional[str]:
     """Find an active competition by category.
 
     kaggle CLI v1.8+ outputs full URLs in the ref column:

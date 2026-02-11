@@ -1,3 +1,4 @@
+from typing import Optional
 """Badge progress tracker with JSON persistence.
 
 Tracks each badge's status: pending, attempting, earned, failed, skipped.
@@ -40,7 +41,7 @@ def save_progress(data: dict) -> None:
     PROGRESS_FILE.write_text(json.dumps(data, indent=2) + "\n")
 
 
-def set_status(badge_id: str, status: str, details: str | None = None) -> None:
+def set_status(badge_id: str, status: str, details: Optional[str] = None) -> None:
     """Update a badge's status."""
     data = load_progress()
     if badge_id not in data:

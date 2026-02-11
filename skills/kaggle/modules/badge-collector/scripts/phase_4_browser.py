@@ -1,3 +1,4 @@
+from typing import Optional
 """Phase 4: Browser badges (~8 badges).
 
 Earns badges that require browser interaction via Playwright:
@@ -23,7 +24,7 @@ from badge_tracker import set_status, should_attempt
 from utils import get_username
 
 
-def _get_kaggle_cookies() -> dict | None:
+def _get_kaggle_cookies() -> Optional[dict]:
     """Try to get Kaggle session cookies from environment or kaggle.json."""
     username = os.getenv("KAGGLE_USERNAME", "")
     key = os.getenv("KAGGLE_KEY", "")
