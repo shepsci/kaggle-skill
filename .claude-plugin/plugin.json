@@ -16,5 +16,7 @@
     "notebooks",
     "machine-learning",
     "data-science"
-  ]
+  ],
+  "skills": ["./skills/kaggle"],
+  "privacyPolicy": "https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md"
 }
