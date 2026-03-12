@@ -2,7 +2,7 @@
 
 > Official source: https://github.com/Kaggle/kagglehub
 > PyPI: https://pypi.org/project/kagglehub/
-> Current version: 0.4.3 (Feb 2026). Requires Python >= 3.10.
+> Current version: 1.0.0 (Feb 2026). Requires Python >= 3.10.
 
 ## Installation
 

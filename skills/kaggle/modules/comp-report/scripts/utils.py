@@ -11,9 +11,8 @@ from pathlib import Path
 # Rate limiting: seconds between API calls
 API_DELAY = 3
 
-# Root of the repo (five levels up from this file:
-# skills/kaggle/modules/comp-report/scripts/utils.py)
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
+# Skill root: 3 levels up from modules/comp-report/scripts/utils.py
+SKILL_ROOT = Path(__file__).resolve().parent.parent.parent
 
 
 def get_api():
@@ -51,19 +50,27 @@ def get_kaggle_cli() -> str:
 
 def check_credentials() -> bool:
     """Verify Kaggle credentials are configured and API authenticates."""
-    # Check if kaggle.json exists
+    # Check credential sources in priority order
+    access_token = Path.home() / ".kaggle" / "access_token"
     kaggle_json = Path.home() / ".kaggle" / "kaggle.json"
-    if not kaggle_json.exists():
-        if not (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY")):
-            print("ERROR: No Kaggle credentials found.")
-            print("  Set KAGGLE_USERNAME + KAGGLE_KEY env vars, or create ~/.kaggle/kaggle.json")
-            return False
+    has_creds = (
+        access_token.exists()
+        or os.getenv("KAGGLE_API_TOKEN")
+        or (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))
+        or kaggle_json.exists()
+    )
+    if not has_creds:
+        print("ERROR: No Kaggle credentials found.")
+        print("  Generate a token at: https://www.kaggle.com/settings")
+        print("  → API Tokens (Recommended) → Generate New Token")
+        print("  Save as ~/.kaggle/access_token or set KAGGLE_API_TOKEN env var")
+        return False
 
     # Try to authenticate
     try:
         api = get_api()
         # Quick check: list competitions to verify auth works
-        result = api.competitions_list(page=1, page_size=1)
+        result = api.competitions_list(page=1)
         comps = unwrap_response(result, "competitions")
         username = get_username()
         print(f"OK: Kaggle API authenticated as '{username}'")

@@ -10,9 +10,9 @@ from datetime import datetime, timezone
 from pathlib import Path
 
 from badge_registry import ALL_BADGES, Badge, get_badge_by_id
-from utils import REPO_ROOT
+from utils import SKILL_ROOT
 
-PROGRESS_FILE = REPO_ROOT / "badge-progress.json"
+PROGRESS_FILE = SKILL_ROOT / "badge-progress.json"
 
 
 def _now() -> str:

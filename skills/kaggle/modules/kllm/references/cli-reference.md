@@ -33,7 +33,7 @@ kaggle competitions download COMPETITION
   -f FILE  -p PATH  -w  -o (force)  -q
 
 kaggle competitions submit COMPETITION -f FILE -m MESSAGE
-  -k KERNEL  -v VERSION  -q
+  -k KERNEL  -v VERSION  -q  --sandbox
 
 kaggle competitions submissions COMPETITION
   -v (csv)  -q

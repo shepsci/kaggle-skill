@@ -13,13 +13,13 @@ Protocol: Streamable HTTP (MCP standard).
 
 ## Authentication
 
-Pass your Kaggle API key as a Bearer token:
+Pass your Kaggle API token as a Bearer token:
 
 ```
-Authorization: Bearer <your_kaggle_api_key>
+Authorization: Bearer <your_api_token>
 ```
 
-The API key is the `key` field from `~/.kaggle/kaggle.json` or your `KAGGLE_API_TOKEN`.
+Use the API token from "Generate New Token" at [kaggle.com/settings](https://www.kaggle.com/settings). Legacy API keys from `kaggle.json` also work but are deprecated.
 
 ## Client Configuration
 
@@ -75,7 +75,7 @@ curl -s -X POST https://www.kaggle.com/mcp \
 # Python requests example
 import os, requests, json
 
-KAGGLE_KEY = os.environ["KAGGLE_API_TOKEN"]  # Use KGAT_ token, not legacy key
+KAGGLE_KEY = os.environ["KAGGLE_API_TOKEN"]  # API token from "Generate New Token"
 URL = "https://www.kaggle.com/mcp"
 HEADERS = {"Authorization": f"Bearer {KAGGLE_KEY}", "Content-Type": "application/json"}
 

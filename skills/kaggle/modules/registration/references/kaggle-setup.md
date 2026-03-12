@@ -27,49 +27,60 @@ To verify:
 
 ## 2. Generate Your API Credentials
 
-You need **three** credential values for full compatibility with all Kaggle tools:
+### Primary: API Token (Recommended)
 
-| Credential | Variable | Format | How to Get |
-|-----------|----------|--------|------------|
-| Username | `KAGGLE_USERNAME` | Your Kaggle handle | From account creation |
-| Legacy API Key | `KAGGLE_KEY` | 32-char hex string | "Create New Token" button |
-| KGAT Token | `KAGGLE_API_TOKEN` | `KGAT_`-prefixed string | "Create API Token" button |
-
-### Step A: Legacy API Key (Create New Token)
+| Credential | Variable | How to Get |
+|-----------|----------|------------|
+| API Token | `KAGGLE_API_TOKEN` | "Generate New Token" button under "API Tokens (Recommended)" |
 
 1. Go to [https://www.kaggle.com/settings](https://www.kaggle.com/settings)
 2. Scroll to the **API** section
-3. Click **Create New Token**
-4. A file called `kaggle.json` will download automatically
-5. The file contains:
-   ```json
-   {"username":"your_username","key":"your_32_char_hex_key"}
-   ```
+3. Under **API Tokens (Recommended)**, click **Generate New Token**
+4. Name the token (e.g., "claude-code") and copy the generated value
+5. This single token works with kaggle CLI (>= 1.8.0), kagglehub (>= 0.4.1), and MCP Server
 
-This legacy key works with **all tools**: kaggle-cli, kagglehub, and most MCP Server endpoints.
+**Note:** Creating a new token does not expire existing tokens or legacy keys. You can create multiple named tokens for different tools/projects.
 
-### Step B: KGAT Scoped Token (Create API Token)
+### Optional: Legacy API Key
+
+| Credential | Variables | How to Get |
+|-----------|-----------|------------|
+| Legacy Key | `KAGGLE_USERNAME` + `KAGGLE_KEY` | "Create Legacy API Key" under "Legacy API Credentials" |
+
+Only needed for older tool versions (kaggle CLI < 1.8.0, kagglehub < 0.4.1):
 
 1. Go to [https://www.kaggle.com/settings](https://www.kaggle.com/settings)
-2. Scroll to the **API** section
-3. Click **Create API Token** (note: this is a *different* button from "Create New Token")
-4. When prompted for scopes, enable: **Competitions**, **Datasets**, **Notebooks/Kernels**, **Models**
-5. Copy the generated `KGAT_`-prefixed token
+2. Under **Legacy API Credentials**, click **Create Legacy API Key**
+3. A `kaggle.json` file downloads containing `{"username":"...","key":"..."}`
 
-**Why both?** Some MCP Server endpoints reject legacy keys and require a KGAT token. These include competition search, notebook search, and dataset status endpoints. Having both token types ensures full compatibility.
-
-**Warning**: KGAT tokens have scoped permissions. If you get 403/401 errors, regenerate the token with broader scopes at [https://www.kaggle.com/settings](https://www.kaggle.com/settings).
+**Warning:** Creating a legacy key expires any existing legacy keys.
 
 ## 3. Install Your Credentials
 
-### Method 1: .env File (Recommended for Projects)
+### Method 1: Access Token File (Recommended)
+
+Save your API token to the Kaggle config directory:
+
+```bash
+mkdir -p ~/.kaggle
+echo '<your_token>' > ~/.kaggle/access_token
+chmod 600 ~/.kaggle/access_token
+```
+
+### Method 2: Environment Variable
+
+```bash
+export KAGGLE_API_TOKEN='<your_token>'
+```
+
+Or add to your shell profile (`~/.zshrc`, `~/.bashrc`) for persistence.
+
+### Method 3: .env File (Project-Level)
 
 Create a `.env` file in your project root:
 
 ```
-KAGGLE_USERNAME=your_username
-KAGGLE_KEY=your_32_char_hex_key
-KAGGLE_API_TOKEN=KGAT_your_scoped_token
+KAGGLE_API_TOKEN=<your_token>
 ```
 
 **Important**: Add `.env` to your `.gitignore`:
@@ -82,9 +93,9 @@ Secure the file:
 chmod 600 .env
 ```
 
-### Method 2: kaggle.json File
+### Method 4: kaggle.json File (Legacy)
 
-Place the downloaded `kaggle.json` in the Kaggle config directory:
+If you created a legacy API key, place the downloaded `kaggle.json`:
 
 ```bash
 mkdir -p ~/.kaggle
@@ -92,44 +103,29 @@ mv ~/Downloads/kaggle.json ~/.kaggle/kaggle.json
 chmod 600 ~/.kaggle/kaggle.json
 ```
 
-Note: `kaggle.json` only stores username + legacy key. For the KGAT token, also set it as an environment variable or in `.env`.
-
-### Method 3: Shell Environment Variables
-
-Add to your shell profile (`~/.zshrc`, `~/.bashrc`):
-
-```bash
-export KAGGLE_USERNAME="your_username"
-export KAGGLE_KEY="your_32_char_hex_key"
-export KAGGLE_API_TOKEN="KGAT_your_scoped_token"
-```
-
-Then reload:
-```bash
-source ~/.zshrc  # or source ~/.bashrc
-```
+Note: `kaggle.json` only stores username + legacy key. For the API token, use Methods 1-3.
 
 ## 4. Verify Your Setup
 
 ### Using the Registration Checker
 
 ```bash
-python3 skills/kaggle/modules/registration/scripts/check_registration.py
+python3 modules/registration/scripts/check_registration.py
 ```
 
-Expected output when all credentials are configured:
+Expected output when credentials are configured:
 ```
-[OK] KAGGLE_USERNAME: your_username (from env)
-[OK] KAGGLE_KEY: ****abcd (from env)
-[OK] KAGGLE_API_TOKEN: KGAT_****wxyz (from env)
+[OK] KAGGLE_API_TOKEN: ****abcd (from access_token file)
+[OK] KAGGLE_USERNAME: your_username (from kaggle.json)
+[OK] KAGGLE_KEY: ****wxyz (from kaggle.json) [legacy]
 
-All 3 Kaggle credentials found. You're ready to go!
+All credentials found. You're ready to go!
 ```
 
 ### Manual Verification
 
 ```bash
-# Test legacy key with kaggle CLI
+# Test with kaggle CLI
 kaggle datasets list --search "titanic" --page-size 1
 
 # Test with kagglehub
@@ -142,19 +138,21 @@ When multiple credential sources exist, they are checked in this order:
 
 | Priority | Source | Used By |
 |----------|--------|----------|
-| 1 | `KAGGLE_API_TOKEN` env var | CLI, kagglehub |
+| 1 | `KAGGLE_API_TOKEN` env var | CLI, kagglehub, MCP |
 | 2 | `~/.kaggle/access_token` file | CLI, kagglehub |
-| 3 | `KAGGLE_USERNAME` + `KAGGLE_KEY` env vars | CLI, kagglehub |
-| 4 | `~/.kaggle/kaggle.json` file | CLI, kagglehub, MCP |
+| 3 | Google Colab secret `KAGGLE_API_TOKEN` | kagglehub |
+| 4 | `KAGGLE_USERNAME` + `KAGGLE_KEY` env vars | CLI, kagglehub (legacy) |
+| 5 | `~/.kaggle/kaggle.json` file | CLI, kagglehub (legacy) |
 
 ## 6. Common Misconfigurations
 
-| Variable Set | Problem | Fix |
-|-------------|---------|-----|
-| `KAGGLE_TOKEN` instead of `KAGGLE_KEY` | kaggle-cli won't find credentials | Rename to `KAGGLE_KEY` |
-| Only `KAGGLE_API_TOKEN` (KGAT) | Some CLI operations fail due to scopes | Also set `KAGGLE_KEY` with legacy key |
-| Only `KAGGLE_KEY` (legacy) | Some MCP endpoints return "Unauthenticated" | Also set `KAGGLE_API_TOKEN` with KGAT |
-| Credentials in env but no `kaggle.json` | Some tools only read `kaggle.json` | Run `setup_env.sh` to auto-create |
+| Issue | Fix |
+|-------|-----|
+| `KAGGLE_TOKEN` set instead of `KAGGLE_API_TOKEN` | Rename to `KAGGLE_API_TOKEN` |
+| Only legacy `kaggle.json` (no API token) | Generate a new token at kaggle.com/settings |
+| Credentials in env but no file | Run `setup_env.sh` to auto-create access_token/kaggle.json |
+| Old kaggle CLI (< 1.8.0) doesn't recognize new tokens | Upgrade: `pip install --upgrade kaggle` or use legacy key |
+| Old kagglehub (< 0.4.1) doesn't recognize new tokens | Upgrade: `pip install --upgrade kagglehub` or use legacy key |
 
 ## Troubleshooting
 
@@ -165,7 +163,5 @@ When multiple credential sources exist, they are checked in this order:
 | `403 Forbidden` on competition | Accept competition rules at kaggle.com |
 | `403 Forbidden` on model | Accept model license at kaggle.com |
 | `kaggle.json permissions warning` | Run `chmod 600 ~/.kaggle/kaggle.json` |
-| KGAT token doesn't work for CLI | KGAT tokens have scoped permissions; use legacy key for CLI |
-| MCP "Unauthenticated" on some endpoints | Use KGAT token for those endpoints |
-| `dataset_load()` returns 404 | Known bug in kagglehub v0.4.3; use `dataset_download()` + `pd.read_csv()` |
-| `competitions download` no `--unzip` | kaggle CLI v1.8+ removed `--unzip` for competitions; unzip manually |
+| MCP "Unauthenticated" | Use API token (from "Generate New Token") as Bearer token |
+| `HTTP 429 Too Many Requests` | Dynamic rate limiting — wait a few minutes and retry |

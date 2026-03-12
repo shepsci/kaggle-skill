@@ -244,9 +244,37 @@ pip install kaggle    # Requires Python 3.11+
 
 ### Authentication
 
-1. **Env var:** `export KAGGLE_API_TOKEN=xxx` (new style) or `KAGGLE_USERNAME`/`KAGGLE_KEY` (legacy).
-2. **Token file:** `~/.kaggle/access_token`.
+1. **Env var:** `export KAGGLE_API_TOKEN=xxx` (recommended) or `KAGGLE_USERNAME`/`KAGGLE_KEY` (legacy).
+2. **Token file:** `~/.kaggle/access_token` (recommended file-based method).
 3. **Legacy JSON:** `~/.kaggle/kaggle.json` with `{"username":"...","key":"..."}`. Must be `chmod 600`.
+
+Generate tokens at [kaggle.com/settings](https://www.kaggle.com/settings):
+- **"Generate New Token"** under "API Tokens (Recommended)" → creates named Access tokens.
+- **"Create Legacy API Key"** under "Legacy API Credentials" → downloads `kaggle.json` (deprecated).
+
+### Rate Limits
+
+Kaggle uses dynamic rate limiting on both the API and website. If you get HTTP 429
+("Too many requests"), wait a few minutes and retry. Check your code for unintended
+loops or redundant calls.
+
+### OAuth 2.0 Provider API
+
+Kaggle implements OAuth 2.0 Authorization Code flow with PKCE for third-party apps:
+
+**Endpoints:**
+- Discovery: `GET https://www.kaggle.com/.well-known/oauth-authorization-server`
+- Authorization: `GET https://www.kaggle.com/api/v1/oauth2/authorize`
+- Token: `POST https://www.kaggle.com/api/v1/oauth2/token`
+- Introspection: `POST https://www.kaggle.com/api/v1/oauth2/introspect`
+
+**Token formats:** Access tokens use `kagat_` prefix (3-hour expiry). Refresh tokens use `kagrt_` prefix.
+
+**Scopes:** `datasets.get:*`, `datasets.create:*`, `datasets.update:*`, `models.get:*`, `models.download:*`, `kernels.list:*`, `kernels.pull:*`, `kernels.push:*`, `competitions.list:*`, `competitions.submit:*`.
+
+**Roles (bundle permissions):** `datasets.viewer`, `datasets.editor`, `models.viewer`, `resources.admin`.
+
+**Client types:** Public clients (PKCE required, localhost redirect only) and Organization clients (`org:<slug>`, HTTPS redirect allowed). Contact Kaggle team to register clients.
 
 ### Command Groups
 
@@ -285,7 +313,7 @@ NvidiaTeslaP100, NvidiaTeslaT4, NvidiaTeslaT4Highmem, NvidiaTeslaA100, NvidiaL4,
 https://www.kaggle.com/mcp
 ```
 
-Protocol: Streamable HTTP (MCP standard). Auth: KGAT token via `Authorization: Bearer <api_key>`.
+Protocol: Streamable HTTP (MCP standard). Auth: API token via `Authorization: Bearer <api_token>` (use token from "Generate New Token" at kaggle.com/settings).
 
 ### Client Configuration
 
@@ -333,7 +361,7 @@ pip install kagglehub[polars-datasets]          # + Polars adapter
 pip install kagglehub[hf-datasets]              # + Hugging Face adapter
 ```
 
-Current version: 0.4.3 (Feb 2026). Requires Python ≥ 3.10.
+Current version: 1.0.0 (Feb 2026). Requires Python ≥ 3.10.
 
 ### Authentication
 

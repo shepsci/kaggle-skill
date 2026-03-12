@@ -22,10 +22,9 @@ API_DELAY = 5
 # Prefix for all created resources
 RESOURCE_PREFIX = "badge-collector-"
 
-# Root of the repo (five levels up from this file:
-# skills/kaggle/modules/badge-collector/scripts/utils.py)
-REPO_ROOT = Path(__file__).resolve().parent.parent.parent.parent.parent.parent
-KLLM_SCRIPTS = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "scripts"
+# Skill root: 3 levels up from modules/badge-collector/scripts/utils.py
+SKILL_ROOT = Path(__file__).resolve().parent.parent.parent
+KLLM_SCRIPTS = SKILL_ROOT / "modules" / "kllm" / "scripts"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 
 
@@ -69,7 +68,7 @@ def run_kaggle_cli(args: list[str], check: bool = True, timeout: int = 120) -> s
 
 def make_temp_dir(suffix: str = "") -> Path:
     """Create a temporary directory under badge-tmp/."""
-    tmp_base = REPO_ROOT / "badge-tmp"
+    tmp_base = SKILL_ROOT / "badge-tmp"
     tmp_base.mkdir(exist_ok=True)
     return Path(tempfile.mkdtemp(prefix=RESOURCE_PREFIX, suffix=suffix, dir=tmp_base))
 
@@ -85,7 +84,10 @@ def check_credentials() -> bool:
         )
         print(result.stdout.strip())
         return result.returncode == 0
-    # Fallback: check env vars directly
+    # Fallback: check credential sources directly (priority order)
+    access_token = Path.home() / ".kaggle" / "access_token"
+    if access_token.exists():
+        return True
     if os.getenv("KAGGLE_API_TOKEN"):
         return True
     if os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"):

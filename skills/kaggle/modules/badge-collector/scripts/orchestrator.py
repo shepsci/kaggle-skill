@@ -52,26 +52,20 @@ def run_phase(phase: int, username: str) -> tuple[int, int]:
     print(f"  Phase {phase}: Attempting {len(actionable)} badge(s)")
     print(f"{'='*60}\n")
 
-    # Import the phase module dynamically
-    try:
-        module = __import__(f"phase_{phase}_{'instant_api' if phase == 1 else ['', 'instant_api', 'competition', 'pipeline', 'browser', 'streaks'][phase]}")
-    except ImportError:
-        # Fallback to explicit imports
-        if phase == 1:
-            from phase_1_instant_api import run as phase_run
-        elif phase == 2:
-            from phase_2_competition import run as phase_run
-        elif phase == 3:
-            from phase_3_pipeline import run as phase_run
-        elif phase == 4:
-            from phase_4_browser import run as phase_run
-        elif phase == 5:
-            from phase_5_streaks import run as phase_run
-        else:
-            print(f"  Unknown phase: {phase}")
-            return 0, 0
+    # Import the phase module (explicit imports for security auditability)
+    if phase == 1:
+        from phase_1_instant_api import run as phase_run
+    elif phase == 2:
+        from phase_2_competition import run as phase_run
+    elif phase == 3:
+        from phase_3_pipeline import run as phase_run
+    elif phase == 4:
+        from phase_4_browser import run as phase_run
+    elif phase == 5:
+        from phase_5_streaks import run as phase_run
     else:
-        phase_run = module.run
+        print(f"  Unknown phase: {phase}")
+        return 0, 0
 
     attempted, succeeded = phase_run(username)
     print(f"\n  Phase {phase} complete: {succeeded}/{attempted} badges earned\n")

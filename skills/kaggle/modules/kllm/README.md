@@ -18,8 +18,9 @@ verify and auto-configure credentials.
 For kaggle-cli: same env vars or `~/.kaggle/kaggle.json`.
 For MCP Server: pass API key as `Authorization: Bearer <token>` header.
 
-**Important:** `KGAT_`-prefixed API tokens (generated at kaggle.com/settings) have
-scoped permissions. Ensure the token has the required scopes for your operations.
+**Important:** API tokens generated at kaggle.com/settings (under "API Tokens
+(Recommended)" → "Generate New Token") are the recommended auth method. Legacy
+`KGAT_`-prefixed tokens still work but the new token format is preferred.
 
 ## Four Methods of Interaction
 
@@ -51,20 +52,21 @@ scoped permissions. Ensure the token has the required scopes for your operations
 
 ## Known Issues
 
-- **`dataset_load()` broken in kagglehub v0.4.3**: Returns 404 on `DownloadDataset` endpoint.
-  Workaround: use `dataset_download()` then `pd.read_csv()` on the cached files.
+- **`dataset_load()` issues**: Was broken in kagglehub v0.4.3 (404 on `DownloadDataset`).
+  May be fixed in kagglehub 1.0.0. If issues persist, use `dataset_download()` then
+  `pd.read_csv()` on the cached files.
 - **`competitions download` does not support `--unzip`** in kaggle CLI >= 1.8. Only
   `datasets download` supports `--unzip`. Unzip competition data manually after download.
 - **Competition-linked datasets** (e.g., `titanic/titanic`) return 403 even with valid
   credentials. Use standalone dataset copies or download via `competitions download`.
-- **`competition_download()` 401 in kagglehub** (v0.3.13 and earlier): Returns 401
-  even with valid credentials and accepted rules. The kaggle CLI `competitions download`
-  works fine with the same credentials. Workaround: use `kaggle competitions download`
-  CLI instead of kagglehub for competition data. If you get a genuine "rules not accepted"
-  error, navigate to `https://www.kaggle.com/competitions/<slug>/rules` in the browser
-  (use profile="chrome" in OpenClaw) and click "I Understand and Accept".
-- **MCP Server partial auth**: `search_competitions` and `search_notebooks` may return
-  "Unauthenticated" with legacy API keys. Use `KAGGLE_API_TOKEN` (KGAT_ prefix) instead.
+- **`competition_download()` 401 in kagglehub** (older versions): May be fixed in
+  kagglehub 1.0.0. If issues persist, use `kaggle competitions download` CLI instead.
+  For "rules not accepted" errors, navigate to
+  `https://www.kaggle.com/competitions/<slug>/rules` in the browser and click accept.
+- **MCP Server auth**: Use API tokens from "Generate New Token" at kaggle.com/settings.
+  Legacy API keys may not work with all MCP endpoints.
+- **Rate limiting**: Kaggle uses dynamic rate limiting. If you get HTTP 429, wait a few
+  minutes and retry. Check code for unintended loops or redundant API calls.
 
 ## Task Workflows
 

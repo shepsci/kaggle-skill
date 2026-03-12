@@ -1,0 +1,20 @@
+{
+  "name": "kaggle-skill",
+  "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, submissions, and badge collection.",
+  "version": "2.0.0",
+  "author": {
+    "name": "shepsci"
+  },
+  "homepage": "https://github.com/shepsci/kaggle-skill",
+  "repository": "https://github.com/shepsci/kaggle-skill",
+  "license": "MIT",
+  "keywords": [
+    "kaggle",
+    "competitions",
+    "datasets",
+    "models",
+    "notebooks",
+    "machine-learning",
+    "data-science"
+  ]
+}
