@@ -1,6 +1,7 @@
 ---
 name: kaggle
 description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, GPUs, TPUs, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions."
+license: MIT
 allowed-tools: Bash Read WebFetch Grep Glob
 ---
 
