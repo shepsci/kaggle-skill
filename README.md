@@ -1,13 +1,21 @@
 # kaggle-skill
 
+[![skills.sh](https://img.shields.io/badge/skills.sh-kaggle--skill-blue)](https://skills.sh/shepsci/kaggle-skill/kaggle)
+[![ClawHub](https://img.shields.io/badge/ClawHub-kaggle-green)](https://clawhub.ai/skills/kaggle)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/github/stars/shepsci/kaggle-skill?style=social)](https://github.com/shepsci/kaggle-skill)
 
-A Claude Code plugin (and agent skill) for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions.
+An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions.
 
-Works with **Claude Code** (CLI, VS Code, JetBrains, Desktop) and other agentic systems that support the SKILL format (gemini-cli, Cursor, etc.).
+Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
-**Bundled Kaggle MCP Server:** This plugin automatically configures the [official Kaggle MCP server](https://www.kaggle.com/docs/mcp), giving Claude direct access to 40+ Kaggle tools (search competitions, download datasets, push notebooks, etc.).
+## Available On
+
+| Platform | Link | Install Command |
+|----------|------|-----------------|
+| **skills.sh** | [skills.sh/shepsci/kaggle-skill](https://skills.sh/shepsci/kaggle-skill/kaggle) | `npx skills add shepsci/kaggle-skill` |
+| **ClawHub** | [clawhub.ai/skills/kaggle](https://clawhub.ai/skills/kaggle) | `clawhub install kaggle` |
+| **Claude Code Marketplace** | [Kaggle Skill Plugin](https://claude.ai/plugins/kaggle-skill) | `/plugin install kaggle-skill` |
 
 ## Modules
 
@@ -18,20 +26,29 @@ Works with **Claude Code** (CLI, VS Code, JetBrains, Desktop) and other agentic 
 
 ## Installation
 
-### Claude Code Plugin (recommended)
+### Via skills.sh (all agents)
 
-```bash
-# Install from marketplace
-/plugin install kaggle-skill
-
-# Or install from GitHub directly
-claude --plugin-dir /path/to/kaggle-skill
-```
-
-### Via skills.sh (OpenClaw)
+Installs to Claude Code, OpenClaw, Codex, Cursor, Gemini CLI, and 35+ other agents:
 
 ```bash
 npx skills add shepsci/kaggle-skill
+```
+
+### Via ClawHub (OpenClaw)
+
+```bash
+clawhub install kaggle
+```
+
+### Via Claude Code Plugin Marketplace
+
+```bash
+/plugin install kaggle-skill
+```
+
+Or load directly from a local clone:
+```bash
+claude --plugin-dir /path/to/kaggle-skill
 ```
 
 ### Manual
@@ -40,6 +57,8 @@ npx skills add shepsci/kaggle-skill
 git clone https://github.com/shepsci/kaggle-skill.git
 pip install kagglehub kaggle python-dotenv requests
 ```
+
+Then copy `skills/kaggle/` into your agent's skills directory.
 
 ## Prerequisites
 
@@ -65,14 +84,14 @@ Or set the environment variable:
 export KAGGLE_API_TOKEN=YOUR_TOKEN
 ```
 
-The plugin also supports legacy credentials (`~/.kaggle/kaggle.json`). Run the credential checker for details:
+Legacy credentials (`~/.kaggle/kaggle.json`) are also supported. Run the credential checker for details:
 ```bash
 python3 shared/check_all_credentials.py
 ```
 
 ## Usage
 
-Once installed, Claude automatically detects the skill when you mention anything Kaggle-related:
+Once installed, your agent automatically detects the skill when you mention anything Kaggle-related:
 
 - "Set up my Kaggle credentials"
 - "Generate a Kaggle competition report"
@@ -81,9 +100,9 @@ Once installed, Claude automatically detects the skill when you mention anything
 - "Enter a Kaggle competition"
 - "What competitions are running right now?"
 
-## Bundled MCP Server
+## Bundled MCP Server (Claude Code)
 
-This plugin includes a `.mcp.json` that configures the official Kaggle MCP server. When installed, Claude Code can directly call Kaggle MCP tools for:
+When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to 40+ Kaggle tools:
 
 - Searching and listing competitions, datasets, models, notebooks
 - Downloading competition data and datasets
@@ -105,9 +124,10 @@ The MCP server requires `KAGGLE_API_TOKEN` to be set.
 ```
 kaggle-skill/
 ├── .claude-plugin/plugin.json    # Claude Code plugin manifest
-├── .mcp.json                     # Bundled Kaggle MCP server
+├── .mcp.json                     # Bundled Kaggle MCP server (Claude Code)
+├── PRIVACY.md                    # Privacy policy
 ├── skills/kaggle/
-│   ├── SKILL.md                  # Main skill definition
+│   ├── SKILL.md                  # Main skill definition (all agents)
 │   ├── shared/                   # Unified credential checker
 │   └── modules/
 │       ├── registration/         # Account & credential setup
@@ -121,13 +141,22 @@ kaggle-skill/
 
 | Platform | Status |
 |----------|--------|
-| Claude Code (CLI, VS Code, JetBrains) | Tested |
-| gemini-cli | Compatible |
-| Cursor | Compatible |
-| OpenClaw | Tested |
+| **Claude Code** (CLI, VS Code, JetBrains, Desktop) | Tested |
+| **OpenClaw** | Tested |
+| **Codex** | Compatible |
+| **Gemini CLI** | Compatible |
+| **Cursor** | Compatible |
+| **GitHub Copilot** | Compatible |
+| **Cline** | Compatible |
+| **Amp** | Compatible |
+| 35+ agents via skills.sh | Compatible |
 
 **Network requirements:** outbound HTTPS to `api.kaggle.com`, `www.kaggle.com`, and `storage.googleapis.com`.
 
 ## License
 
-MIT
+MIT — see [LICENSE](LICENSE)
+
+## Privacy
+
+See [PRIVACY.md](PRIVACY.md) — this skill collects no data. All credentials and processing remain local.
