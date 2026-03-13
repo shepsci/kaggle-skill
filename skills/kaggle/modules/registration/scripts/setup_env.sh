@@ -61,9 +61,9 @@ elif [ -n "$KEY" ]; then
     if [ ! -f "$KAGGLE_JSON" ]; then
         mkdir -p "$KAGGLE_DIR"
         if [ -n "$USERNAME" ]; then
-            echo "{\"username\":\"${USERNAME}\",\"key\":\"${KEY}\"}" > "$KAGGLE_JSON"
+            printf '{"username":"%s","key":"%s"}\n' "$USERNAME" "$KEY" > "$KAGGLE_JSON"
         else
-            echo "{\"key\":\"${KEY}\"}" > "$KAGGLE_JSON"
+            printf '{"key":"%s"}\n' "$KEY" > "$KAGGLE_JSON"
         fi
         chmod 600 "$KAGGLE_JSON"
         echo "[OK] Created ${KAGGLE_JSON}"
