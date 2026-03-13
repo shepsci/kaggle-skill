@@ -34,7 +34,7 @@ if [ -f "$ACCESS_TOKEN_FILE" ]; then
     # Also install dependencies if needed
     if ! python3 -c "import kagglehub" 2>/dev/null; then
         echo "[INFO] Installing kagglehub..."
-        pip install -q kagglehub kaggle 2>/dev/null || true
+        pip install --user -q kagglehub kaggle 2>/dev/null || true
     fi
     echo "[OK] Kaggle environment ready"
     exit 0
@@ -75,9 +75,9 @@ elif [ -n "$KEY" ]; then
     if [ ! -f "$KAGGLE_JSON" ]; then
         mkdir -p "$KAGGLE_DIR"
         if [ -n "$USERNAME" ]; then
-            echo "{\"username\":\"${USERNAME}\",\"key\":\"${KEY}\"}" > "$KAGGLE_JSON"
+            printf '{"username":"%s","key":"%s"}\n' "$USERNAME" "$KEY" > "$KAGGLE_JSON"
         else
-            echo "{\"key\":\"${KEY}\"}" > "$KAGGLE_JSON"
+            printf '{"key":"%s"}\n' "$KEY" > "$KAGGLE_JSON"
         fi
         chmod 600 "$KAGGLE_JSON"
         echo "[OK] Created ${KAGGLE_JSON}"
@@ -98,7 +98,7 @@ fi
 # Install dependencies if not present
 if ! python3 -c "import kagglehub" 2>/dev/null; then
     echo "[INFO] Installing kagglehub..."
-    pip install -q kagglehub kaggle 2>/dev/null || true
+    pip install --user -q kagglehub kaggle 2>/dev/null || true
 fi
 
 echo "[OK] Kaggle environment ready"
