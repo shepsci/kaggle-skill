@@ -93,15 +93,27 @@ print(mcp_call("tools/list"))
 print(mcp_call("tools/call", {"name": "search_datasets", "arguments": {"search": "titanic"}}))
 ```
 
-## Tool Inventory (66 live tools as of 2026-04-22)
+## Tool Inventory (66 live tools as of 2026-04-22, verified 2026-05-04)
 
 Source: `tools/list` against `https://www.kaggle.com/mcp`, cross-referenced
 against [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools)
 `data/endpoints.md`. Use `tools/list` to confirm against the current server.
 
+**Status flag changes since the 2026-04-22 audit** (verified by
+`tests/integration/test_mcp_live.py` on 2026-05-04):
+
+- `get_hackathon_write_up` — was KNOWN_FAIL, **now PASS**. Kaggle shipped a fix.
+- `get_benchmark_leaderboard` — was BLOCKED (permission-gated), **now PASS**
+  for ordinary KGAT tokens.
+- `get_competition` for classic competitions (titanic, playground-series-s6e2)
+  — was KNOWN_FAIL, **now PASS**.
+
+The hackathon module's `fetch_writeup.py` fallback chain (`get_writeup` →
+`get_writeup_by_topic` → `get_writeup_by_slug`) is retained as defensive
+plumbing but is no longer required to work around server bugs.
+
 Status legend:
-- ✅ verified PASS
-- ⚠️  KNOWN_FAIL (documented backend bug — use the noted fallback)
+- ✅ verified PASS (as of 2026-05-04)
 - 🔒 BLOCKED by role/permission (host or judge required)
 - 🔬 BAD_PROBE (test infra issue, tool may still work)
 
@@ -110,7 +122,7 @@ Status legend:
 - ✅ `get_user_profile` — Fetch a public user profile
 
 ### Competition
-- ⚠️  `get_competition` — Backend bug for "classic" competitions (`titanic`, `playground-series-s6e2`); works for hackathons (`kaggle-measuring-agi`, `spaceship-titanic`)
+- ✅ `get_competition` — Backend bug for classic competitions (titanic, playground-series-s6e2) was fixed between 2026-04-22 and 2026-05-04
 - ✅ `search_competitions`
 - ✅ `get_competition_data_files_summary`
 - ✅ `get_competition_leaderboard`
@@ -172,7 +184,7 @@ Status legend:
 - ✅ `get_hackathon_overview` — rules, eligibility, rubric, prizes
 - ✅ `list_hackathon_write_ups` — submission roster (paginated)
 - ✅ `list_hackathon_tracks` — resolve track id → title
-- ⚠️  `get_hackathon_write_up` — generic invocation error even for known-good ids; **use `get_writeup` instead**
+- ✅ `get_hackathon_write_up` — generic invocation error fixed between 2026-04-22 and 2026-05-04; `get_writeup` remains the simpler interface (no `competitionName` arg needed)
 - ⚠️  `download_hackathon_write_ups` — host-only; may return CSV header only
 
 ### Writeup
@@ -183,7 +195,7 @@ Status legend:
 
 ### Benchmark
 - ✅ `create_benchmark_task_from_prompt`
-- 🔒 `get_benchmark_leaderboard` — permission-gated
+- ✅ `get_benchmark_leaderboard` — permission gate lifted between 2026-04-22 and 2026-05-04 (now responds to ordinary KGAT tokens)
 
 ### Episode (simulation/agent evaluation)
 - 🔬 `get_episode_agent_logs`

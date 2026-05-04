@@ -64,17 +64,23 @@ TOOL_PROBES: list[tuple[str, dict, tuple[str, ...]]] = [
     ("get_hackathon_overview", {"request": {"competitionName": "kaggle-measuring-agi"}}, ("ok",)),
     ("list_hackathon_write_ups", {"request": {"competitionName": "kaggle-measuring-agi", "pageSize": 2}}, ("ok",)),
     ("list_hackathon_tracks", {"request": {"competitionName": "kaggle-measuring-agi"}}, ("ok", "empty")),
+    # As of 2026-05-04 retest, these endpoints — degraded in the kmcp-tools
+    # 2026-04-22 audit — now return ok. Kaggle appears to have shipped fixes.
+    # The hackathon module's fallback chain (get_writeup over get_hackathon_write_up)
+    # remains defensive but is no longer load-bearing.
+    ("get_hackathon_write_up", {"request": {"competitionName": "kaggle-measuring-agi", "hackathonWriteUpId": 1}}, ("ok", "empty", "error: not found", "error: invalid")),
+    ("get_benchmark_leaderboard", {"request": {"benchmarkSlug": "x", "ownerSlug": "y"}}, ("ok", "empty", "error: not found")),
+    ("get_competition", {"request": {"competitionName": "titanic"}}, ("ok",)),
 
     # ── Search ──
     ("search_content", {"request": {"search": "titanic", "pageSize": 2, "hasPageSize": True}}, ("ok",)),
 ]
 
-# Tools the audit shows are KNOWN_FAIL or BLOCKED — record but don't fail the suite.
-KNOWN_DEGRADED: list[tuple[str, dict, str]] = [
-    ("get_hackathon_write_up", {"request": {"competitionName": "kaggle-measuring-agi", "hackathonWriteUpId": 1}}, "documented FAIL — generic invocation error"),
-    ("get_benchmark_leaderboard", {"request": {"benchmarkSlug": "x", "ownerSlug": "y"}}, "documented BLOCKED — permission-gated"),
-    ("get_competition", {"request": {"competitionName": "titanic"}}, "documented FAIL for classic competitions"),
-]
+# Tools the audit shows are KNOWN_FAIL or BLOCKED — record but don't fail the
+# suite. Empty as of the 2026-05-04 retest because Kaggle fixed everything
+# kmcp-tools had documented as degraded. Keep the parametrize machinery in
+# place so future degradations can be flagged with one entry here.
+KNOWN_DEGRADED: list[tuple[str, dict, str]] = []
 
 
 @pytest.mark.parametrize("tool,args,expected", TOOL_PROBES, ids=[t[0] for t in TOOL_PROBES])
