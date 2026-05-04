@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Error: permission denied — endpoint requires host or judge role for this hackathon"
+      }
+    ]
+  }
+}

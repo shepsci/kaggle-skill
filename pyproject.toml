@@ -1,7 +1,7 @@
 [project]
 name = "kaggle-skill"
-version = "1.0.0"
-description = "Unified Kaggle skill for any LLM/agentic system — account setup, competition reports, datasets, models, notebooks, badges"
+version = "2.1.0"
+description = "Unified Kaggle skill for any LLM/agentic system — account setup, competition reports, datasets, models, notebooks, hackathons, badges"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
@@ -33,3 +33,11 @@ line-length = 100
 
 [tool.ruff.lint]
 select = ["E", "F", "I", "W"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+markers = [
+    "live: requires KAGGLE_API_TOKEN, hits the real Kaggle MCP server",
+    "destructive: writes to or modifies a Kaggle account",
+    "manual: requires human action (browser, Claude Code session)",
+]

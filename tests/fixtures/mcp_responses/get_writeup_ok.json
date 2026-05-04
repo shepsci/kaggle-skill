@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"id\": 5001, \"topic_id\": 9001, \"title\": \"Team Alpha\", \"subtitle\": \"Our approach\", \"message\": {\"raw_markdown\": \"# Team Alpha\\n\\nFull writeup body here.\"}}"
+      }
+    ]
+  }
+}

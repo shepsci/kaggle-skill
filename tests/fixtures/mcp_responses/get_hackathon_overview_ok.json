@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"pages\": [{\"name\": \"overview\", \"content\": \"Welcome to the hackathon\"}, {\"name\": \"rules\", \"content\": \"Official Competition Rules: ...\"}, {\"name\": \"eligibility\", \"content\": \"Open to all over 18\"}, {\"name\": \"rubric\", \"content\": \"Judging criteria: novelty 30%, impact 30%, execution 40%\"}]}"
+      }
+    ]
+  }
+}

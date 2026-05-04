@@ -93,57 +93,105 @@ print(mcp_call("tools/list"))
 print(mcp_call("tools/call", {"name": "search_datasets", "arguments": {"search": "titanic"}}))
 ```
 
-## Tool Categories
+## Tool Inventory (66 live tools as of 2026-04-22)
 
-Use `tools/list` for exact tool names. The server provides tools across these categories:
+Source: `tools/list` against `https://www.kaggle.com/mcp`, cross-referenced
+against [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools)
+`data/endpoints.md`. Use `tools/list` to confirm against the current server.
 
-### Authentication
-- `authenticate` — Set Kaggle credentials (username + key)
+Status legend:
+- ✅ verified PASS
+- ⚠️  KNOWN_FAIL (documented backend bug — use the noted fallback)
+- 🔒 BLOCKED by role/permission (host or judge required)
+- 🔬 BAD_PROBE (test infra issue, tool may still work)
 
-### Competition Tools
-- List available competitions (with search, category, sort, page filters)
-- Get competition details (evaluation metric, tags, kernel submission settings)
-- Download competition files (specific file or all, with path option)
-- List competition files (names, sizes, dates)
-- Submit predictions (file path + message)
-- List your submissions (scores, status)
-- Get leaderboard (team rankings, scores)
+### Auth
+- ✅ `authorize` — Check whether the client can authorize with Kaggle
+- ✅ `get_user_profile` — Fetch a public user profile
 
-### Dataset Tools
-- List/search datasets (search, user, license, file type, tags, sort, size filters)
-- List files in a dataset
-- Download dataset files (to specified path or temp dir)
-- Get dataset metadata (JSON format)
-- Create new dataset (title, files dir, license, description, private flag)
-- Create new version (version notes, convert-to-csv flag, delete-old flag)
-- Check dataset status (creation progress, errors)
-- Initialize dataset metadata file
-- Update dataset metadata
+### Competition
+- ⚠️  `get_competition` — Backend bug for "classic" competitions (`titanic`, `playground-series-s6e2`); works for hackathons (`kaggle-measuring-agi`, `spaceship-titanic`)
+- ✅ `search_competitions`
+- ✅ `get_competition_data_files_summary`
+- ✅ `get_competition_leaderboard`
+- ✅ `get_competition_submission`
+- ✅ `search_competition_submissions`
+- ✅ `list_competition_data_files`
+- ✅ `list_competition_data_tree_files`
+- ✅ `list_competition_pages`
+- ✅ `download_competition_data_file`
+- ✅ `download_competition_data_files`
+- ✅ `download_competition_leaderboard`
+- ✅ `start_competition_submission_upload`
+- ✅ `submit_to_competition`
+- 🔒 `create_code_competition_submission` — kernel→competition; permission-gated
 
-### Kernel/Notebook Tools
-- List kernels (search, user, language, type, output type, sort, page)
-- List kernel files
-- Download kernel output (to specified path)
-- Pull kernel code (with optional metadata generation)
-- Get kernel status (ref, title, status, error message, has output)
-- Initialize kernel metadata (notebook/script, python/r)
-- Push kernel (from folder with code + metadata — triggers KKB execution)
+### Dataset
+- ✅ `search_datasets`
+- ✅ `get_dataset_info`
+- ✅ `get_dataset_metadata`
+- ✅ `get_dataset_status`
+- ✅ `get_dataset_files_summary`
+- ✅ `list_dataset_files`
+- ✅ `list_dataset_tree_files`
+- ✅ `download_dataset`
+- ✅ `update_dataset_metadata`
+- ✅ `upload_dataset_file`
 
-### Model Tools
-- List models (search, sort, owner, page)
-- Get model details
-- Initialize model metadata
-- Create new model
-- Update model
-- Delete model
-- Get/create/update/delete model instance (variation)
-- List model instance files
-- Create/download/delete/list-files for model instance version
+### Notebook
+- ✅ `search_notebooks`
+- ✅ `get_notebook_info`
+- ✅ `get_notebook_session_status`
+- ✅ `create_notebook_session`
+- ✅ `cancel_notebook_session`
+- ✅ `download_notebook_output`
+- ✅ `download_notebook_output_zip`
+- ✅ `list_notebook_files`
+- ✅ `list_notebook_session_output`
+- ✅ `save_notebook`
 
-### Config Tools
-- View current config
-- Set config value (competition, path, proxy)
-- Unset config value
+### Model
+- ✅ `list_models`
+- ✅ `get_model`
+- ✅ `create_model`
+- ✅ `update_model`
+- ✅ `list_model_variations`
+- ✅ `get_model_variation`
+- ✅ `update_model_variation`
+- ✅ `list_model_variation_versions`
+- ✅ `list_model_variation_version_files`
+- ✅ `download_model_variation_version`
+
+### Forum
+- ✅ `list_forums`
+- ✅ `list_forum_topics`
+- ✅ `get_forum`
+- ✅ `get_forum_topic`
+
+### Hackathon (newer surface — see `modules/hackathon/`)
+- ✅ `get_hackathon_overview` — rules, eligibility, rubric, prizes
+- ✅ `list_hackathon_write_ups` — submission roster (paginated)
+- ✅ `list_hackathon_tracks` — resolve track id → title
+- ⚠️  `get_hackathon_write_up` — generic invocation error even for known-good ids; **use `get_writeup` instead**
+- ⚠️  `download_hackathon_write_ups` — host-only; may return CSV header only
+
+### Writeup
+- ✅ `get_writeup` — preferred full-body fetch (use over `get_hackathon_write_up`)
+- ✅ `get_writeup_by_slug`
+- ✅ `get_writeup_by_topic`
+- ⚠️  `get_resolved_writeup_links` — host context returns `{}`; participants get role-gated denial
+
+### Benchmark
+- ✅ `create_benchmark_task_from_prompt`
+- 🔒 `get_benchmark_leaderboard` — permission-gated
+
+### Episode (simulation/agent evaluation)
+- 🔬 `get_episode_agent_logs`
+- 🔬 `get_episode_replay`
+- ✅ `list_submission_episodes`
+
+### Search
+- ✅ `search_content` — generic content search
 
 ## Usage Patterns
 
@@ -166,6 +214,17 @@ Create private dataset with title and license → upload files → verify
 ```
 Push notebook code → poll status → retrieve output when complete
 ```
+
+### Hackathon Writeup Retrieval
+```
+get_hackathon_overview (rules/rubric) → list_hackathon_tracks (id→title) →
+list_hackathon_write_ups (roster) → get_writeup per submission →
+get_resolved_writeup_links (host/judge only)
+```
+
+Avoid `get_hackathon_write_up` — it returns a generic invocation error even for
+valid ids. The `modules/hackathon/scripts/fetch_writeup.py` script encodes the
+correct fallback chain (`get_writeup` → `get_writeup_by_topic` → `get_writeup_by_slug`).
 
 ## Official Documentation
 

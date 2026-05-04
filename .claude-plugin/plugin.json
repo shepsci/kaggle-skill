@@ -1,7 +1,7 @@
 {
   "name": "kaggle-skill",
-  "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, submissions, and badge collection.",
-  "version": "2.0.0",
+  "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, submissions, hackathon writeup retrieval, and badge collection.",
+  "version": "2.1.0",
   "author": {
     "name": "shepsci"
   },
@@ -14,6 +14,8 @@
     "datasets",
     "models",
     "notebooks",
+    "hackathons",
+    "writeups",
     "machine-learning",
     "data-science"
   ],

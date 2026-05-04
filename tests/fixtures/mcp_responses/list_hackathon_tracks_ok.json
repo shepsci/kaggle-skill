@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"tracks\": [{\"id\": 363, \"title\": \"Clinical Workflow Automation\", \"description\": \"...\"}, {\"id\": 364, \"title\": \"Medical Documentation & NLP\"}, {\"id\": 365, \"title\": \"Health Data Analytics\"}]}"
+      }
+    ]
+  }
+}

@@ -1,10 +1,10 @@
 ---
 name: kaggle
-description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, GPUs, TPUs, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions."
+description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, GPUs, TPUs, hackathons, writeups, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, hackathon writeup retrieval and grading, badge collection, and general Kaggle questions."
 license: MIT
-compatibility: "Python 3.9+, pip packages kagglehub, kaggle, requests, python-dotenv. Optional: playwright for browser badges. Playwright MCP tools for competition reports."
+compatibility: "Python 3.11+, pip packages kagglehub, kaggle, requests, python-dotenv. Optional: playwright for browser badges. Playwright MCP tools for competition reports."
 homepage: https://github.com/shepsci/kaggle-skill
-metadata: {"author": "shepsci", "version": "1.0.2", "primaryEnv": "KAGGLE_KEY", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN"]}}}
+metadata: {"author": "shepsci", "version": "2.1.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN"]}}}
 allowed-tools: Bash Read WebFetch Grep Glob
 ---
 
@@ -12,11 +12,9 @@ allowed-tools: Bash Read WebFetch Grep Glob
 
 Complete Kaggle integration for any LLM or agentic coding system (Claude Code,
 gemini-cli, Cursor, etc.): account setup, competition reports, dataset/model
-downloads, notebook execution, competition submissions, badge collection, and
-general Kaggle questions. Four integrated modules working together.
-
-> **Overlap guard:** For hackathon grading evaluation and alignment analysis,
-> use the **kaggle-hackathon-grading** skill instead.
+downloads, notebook execution, competition submissions, hackathon writeup
+retrieval, badge collection, and general Kaggle questions. Five integrated
+modules working together.
 
 **Network requirements:** outbound HTTPS to `api.kaggle.com`, `www.kaggle.com`,
 and `storage.googleapis.com`.
@@ -28,6 +26,7 @@ and `storage.googleapis.com`.
 | **registration** | Account creation, API key generation, credential storage |
 | **comp-report** | Competition landscape reports with Playwright scraping |
 | **kllm** | Core Kaggle interaction (kagglehub, CLI, MCP, UI) |
+| **hackathon** | Hackathon writeup retrieval, overview/rubric extraction, role-aware grading |
 | **badge-collector** | Systematic badge earning across 5 phases |
 
 ## Credential Setup
@@ -119,6 +118,34 @@ Capability matrix:
 - Competition-linked datasets return 403 — use standalone copies
 
 `Read modules/kllm/README.md` for full details and all task workflows.
+
+## Module: Hackathon
+
+Retrieves hackathon writeups, rules, and judging rubrics from Kaggle's MCP
+hackathon endpoints. Built around the documented endpoint order from the
+2026-04-22 audit:
+
+1. `get_hackathon_overview` — rules, eligibility, rubric, prizes
+2. `list_hackathon_write_ups` — submission roster (paginated, with track ids)
+3. `list_hackathon_tracks` — resolve numeric track ids to titles
+4. `get_writeup` — preferred full-body fetch (more reliable than the broken
+   `get_hackathon_write_up` wrapper)
+5. `get_writeup_by_topic` / `get_writeup_by_slug` — fallbacks when id missing
+6. `get_resolved_writeup_links` — host/judge-gated link enrichment
+
+```bash
+python3 modules/hackathon/scripts/hackathon_overview.py --competition kaggle-measuring-agi
+python3 modules/hackathon/scripts/list_writeups.py --competition kaggle-measuring-agi
+python3 modules/hackathon/scripts/fetch_writeup.py --writeup-id 123456
+```
+
+**Known live-server issues** (documented and worked around):
+- `get_hackathon_write_up` returns generic invocation error — module never calls it.
+- `download_hackathon_write_ups` may return CSV header only in some host contexts.
+- `get_resolved_writeup_links` is role-gated; participants get an explicit denial.
+
+`Read modules/hackathon/README.md` for the full retrieval workflow, role-specific
+guidance (host/judge vs. participant), and grading bundle shape.
 
 ## Module: Badge Collector
 
@@ -232,6 +259,7 @@ configure scheduling if desired.
 
 **Shared:**
 - `shared/check_all_credentials.py` — Unified credential checker (API token + legacy)
+- `shared/mcp_client.py` — MCP JSON-RPC client (used by tests and hackathon module)
 
 **Registration:**
 - `modules/registration/scripts/check_registration.py` — Check credential configuration
@@ -254,6 +282,11 @@ configure scheduling if desired.
 - `modules/kllm/scripts/kagglehub_download.py` — Download via kagglehub
 - `modules/kllm/scripts/kagglehub_publish.py` — Publish via kagglehub
 
+**Hackathon:**
+- `modules/hackathon/scripts/hackathon_overview.py` — Fetch rules, rubric, eligibility
+- `modules/hackathon/scripts/list_writeups.py` — Enumerate submissions with track resolution
+- `modules/hackathon/scripts/fetch_writeup.py` — Full body retrieval with fallback chain
+
 **Badge Collector:**
 - `modules/badge-collector/scripts/orchestrator.py` — Main entry point
 - `modules/badge-collector/scripts/badge_registry.py` — 59 badge definitions
@@ -272,5 +305,8 @@ configure scheduling if desired.
 - `modules/kllm/references/kaggle-knowledge.md` — Comprehensive Kaggle platform knowledge
 - `modules/kllm/references/kagglehub-reference.md` — Full kagglehub Python API reference
 - `modules/kllm/references/cli-reference.md` — Complete kaggle-cli command reference
-- `modules/kllm/references/mcp-reference.md` — Kaggle MCP server reference
+- `modules/kllm/references/mcp-reference.md` — Kaggle MCP server reference (66 tools)
+- `modules/hackathon/references/hackathon-endpoints.md` — Hackathon writeup retrieval
+- `modules/hackathon/references/benchmark-endpoints.md` — Benchmark task creation and leaderboard
+- `modules/hackathon/references/episode-endpoints.md` — Simulation episode logs and replays
 - `modules/badge-collector/references/badge-catalog.md` — Complete 59-badge catalog

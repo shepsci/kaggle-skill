@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/github/stars/shepsci/kaggle-skill?style=social)](https://github.com/shepsci/kaggle-skill)
 
-An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, badge collection, and general Kaggle questions.
+An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **hackathon writeup retrieval and grading**, badge collection, and general Kaggle questions.
 
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
@@ -15,13 +15,14 @@ Works with **any AI coding agent** that supports the SKILL format — including 
 |----------|------|-----------------|
 | **skills.sh** | [skills.sh/shepsci/kaggle-skill](https://skills.sh/shepsci/kaggle-skill/kaggle) | `npx skills add shepsci/kaggle-skill` |
 | **ClawHub** | [clawhub.ai/skills/kaggle](https://clawhub.ai/skills/kaggle) | `clawhub install kaggle` |
-| **Claude Code Marketplace** | [Kaggle Skill Plugin](https://claude.ai/plugins/kaggle-skill) | `/plugin install kaggle-skill` |
+| **Claude Code Marketplace** | [shepsci/claude-marketplace](https://github.com/shepsci/claude-marketplace) | `/plugin marketplace add shepsci/claude-marketplace` then `/plugin install kaggle-skill@shepsci` |
 
 ## Modules
 
 - **Registration** — Account creation, API token generation, credential storage
 - **Competition Reports** — Landscape reports with API + Playwright scraping
-- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server, UI workflows
+- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows
+- **Hackathon** — Writeup retrieval, overview/rubric extraction, role-aware grading bundles
 - **Badge Collector** — Systematic badge earning across 5 phases (~38 automatable)
 
 ## Installation
@@ -42,8 +43,11 @@ clawhub install kaggle
 
 ### Via Claude Code Plugin Marketplace
 
+Add the catalog once, then install:
+
 ```bash
-/plugin install kaggle-skill
+/plugin marketplace add shepsci/claude-marketplace
+/plugin install kaggle-skill@shepsci
 ```
 
 Or load directly from a local clone:
@@ -62,7 +66,7 @@ Then copy `skills/kaggle/` into your agent's skills directory.
 
 ## Prerequisites
 
-- Python 3.9+
+- Python 3.11+
 - `pip install kagglehub kaggle python-dotenv requests`
 - Kaggle API token (the skill walks you through setup)
 - Optional: Playwright for browser badges and competition report scraping
@@ -102,13 +106,18 @@ Once installed, your agent automatically detects the skill when you mention anyt
 
 ## Bundled MCP Server (Claude Code)
 
-When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to 40+ Kaggle tools:
+When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to **66 Kaggle tools** (verified against the live server in the [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools) 2026-04-22 audit):
 
 - Searching and listing competitions, datasets, models, notebooks
 - Downloading competition data and datasets
 - Submitting predictions to competitions
 - Pushing and executing notebooks on Kaggle Kernels
 - Publishing datasets and models
+- **Hackathon writeup retrieval** — overview pages, submission rosters, full writeup bodies
+- **Benchmark task creation** — `create_benchmark_task_from_prompt`
+- **Episode/simulation data** — agent logs, replays, per-submission episode listings
+
+See [`skills/kaggle/modules/kllm/references/mcp-reference.md`](skills/kaggle/modules/kllm/references/mcp-reference.md) for the full inventory with status flags (PASS / KNOWN_FAIL / role-gated).
 
 The MCP server requires `KAGGLE_API_TOKEN` to be set.
 

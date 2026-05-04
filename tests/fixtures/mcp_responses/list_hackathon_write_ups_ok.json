@@ -1,0 +1,12 @@
+{
+  "jsonrpc": "2.0",
+  "id": 1,
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"hackathon_write_ups\": [{\"id\": 1001, \"write_up\": {\"id\": 5001, \"topic_id\": 9001, \"slug\": \"team-alpha-writeup\", \"title\": \"Team Alpha\", \"subtitle\": \"Our approach\", \"collaborators\": [{\"user_id\": 42, \"user_name\": \"alice\"}]}, \"hackathon_track_ids\": [363], \"competition_id\": 7777}], \"total_count\": 1, \"next_page_token\": null}"
+      }
+    ]
+  }
+}
