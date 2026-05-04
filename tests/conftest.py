@@ -70,10 +70,20 @@ def tmp_kaggle_home(tmp_path, monkeypatch) -> Path:
 
 @pytest.fixture
 def kgat_token() -> str:
-    """KGAT token from env, or skip if absent."""
-    tok = os.getenv("KAGGLE_MCP_TOKEN") or os.getenv("KAGGLE_API_TOKEN", "")
+    """KGAT token from env, ~/.kaggle/access_token, or skip if absent.
+
+    Mirrors the credential-discovery order in shared.mcp_client.resolve_token:
+    explicit MCP override → KGAT env → access_token file. Env vars never need
+    to be set for tests if the token lives in the documented file location.
+    """
+    from shared.mcp_client import resolve_token  # noqa: WPS433
+
+    tok = resolve_token()
     if not tok.startswith("KGAT_"):
-        pytest.skip("KAGGLE_API_TOKEN (KGAT_-prefixed) not set")
+        pytest.skip(
+            "KGAT_-prefixed token not found in KAGGLE_MCP_TOKEN, "
+            "KAGGLE_API_TOKEN, or ~/.kaggle/access_token"
+        )
     return tok
 
 

@@ -139,8 +139,10 @@ python3 modules/hackathon/scripts/list_writeups.py --competition kaggle-measurin
 python3 modules/hackathon/scripts/fetch_writeup.py --writeup-id 123456
 ```
 
-**Known live-server issues** (documented and worked around):
-- `get_hackathon_write_up` returns generic invocation error — module never calls it.
+**Live-server status** (verified 2026-05-04):
+- `get_hackathon_write_up` — was broken in the 2026-04-22 audit, **now works**.
+  The module's `fetch_writeup.py` still uses `get_writeup` first (simpler args)
+  but the wrapper endpoint is also viable.
 - `download_hackathon_write_ups` may return CSV header only in some host contexts.
 - `get_resolved_writeup_links` is role-gated; participants get an explicit denial.
 
