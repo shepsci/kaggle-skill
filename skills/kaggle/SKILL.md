@@ -25,7 +25,7 @@ and `storage.googleapis.com`.
 |--------|---------|
 | **registration** | Account creation, API key generation, credential storage |
 | **comp-report** | Competition landscape reports (Python API + optional Playwright via host agent) |
-| **kllm** | Core Kaggle interaction (kagglehub, CLI, MCP) — includes the `hackathon/` submodule for writeup retrieval, overview/rubric extraction, and grading-bundle preparation (the agent grades — the module does not score) |
+| **kllm** | Core Kaggle interaction (kagglehub, CLI, MCP) — includes the `hackathon/` submodule for writeup retrieval and overview/rubric extraction |
 | **badge-collector** | Systematic badge earning across 5 phases |
 
 ## Credential Setup
@@ -152,7 +152,7 @@ python3 modules/kllm/hackathon/scripts/fetch_writeup.py --writeup-id 123456
 
 `Read modules/kllm/hackathon/README.md` for the full retrieval workflow,
 role-specific guidance (host/judge vs. participant), and the bundle shape
-the host agent should consume to do the actual grading.
+returned to the agent.
 
 ## Module: Badge Collector
 

@@ -1,8 +1,8 @@
 # Episode Endpoints — Simulation & Agent Evaluation
 
 Three MCP tools for retrieving simulation episode data — agent logs, replays,
-and per-submission episode listings. Useful when grading agent-based hackathon
-submissions or auditing simulation runs.
+and per-submission episode listings. Useful when evaluating agent-based
+hackathon submissions or auditing simulation runs.
 
 ## `list_submission_episodes` — ✅ PASS
 

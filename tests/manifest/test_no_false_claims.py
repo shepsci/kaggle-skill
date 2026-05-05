@@ -65,25 +65,35 @@ PUBLIC_CLAIM_FILES = [
 
 @pytest.mark.parametrize("doc", PUBLIC_CLAIM_FILES, ids=lambda p: str(p.relative_to(REPO_ROOT)))
 def test_no_grading_claim_in_public_surface(doc: Path):
-    """The skill prepares grading bundles; it does not grade.
+    """The skill does not grade and we don't talk about grading in public surfaces.
 
-    Phrases like 'hackathon writeup retrieval and grading' overstate the
-    capability. The agent grades — the skill produces the bundle. This test
-    flags the bare phrase 'and grading' (and equivalents) anywhere a user
-    or marketplace reviewer would read.
+    Per maintainer policy (2026-05-05): no mentions of 'grading', 'grade', or
+    'grader' in the README, SKILL.md, plugin.json, or pyproject.toml. The agent
+    grades; the skill retrieves. Public copy should describe what the skill
+    does, not what the agent does with the skill's output.
     """
-    text = doc.read_text()
-    forbidden_phrases = [
+    text = doc.read_text().lower()
+    # Word-boundary matches on stem 'grad' would also catch 'upgrade' / 'gradient',
+    # so use the explicit forbidden surface forms.
+    forbidden_substrings = [
+        "grading",
+        "grader",
+        "grade only",
+        "grade against",
         "writeup retrieval and grading",
         "retrieval and grading",
         "grading and retrieval",
-        "role-aware grading bundles",  # the v2.1.0 phrasing
+        "role-aware grading bundles",
+        "grading bundle",
+        "grading-ready bundle",
+        "grading-bundle preparation",
     ]
-    for phrase in forbidden_phrases:
-        assert phrase.lower() not in text.lower(), (
+    for phrase in forbidden_substrings:
+        assert phrase not in text, (
             f"{doc.relative_to(REPO_ROOT)}: contains forbidden claim {phrase!r}. "
-            "The skill does not grade — the agent does. Use 'retrieval' or "
-            "'grading-bundle preparation' instead."
+            "Public surfaces must not mention grading — the skill retrieves, "
+            "the agent grades. Use neutral language like 'retrieval' or "
+            "'evaluation-input preparation'."
         )
 
 
@@ -175,21 +185,35 @@ def test_hackathon_is_under_kllm_not_top_level_module():
 
 # ── OpenClaw status in compatibility table ───────────────────────────────────
 
-def test_openclaw_status_is_not_overclaimed():
-    """Until tests/e2e/ has an OpenClaw artifact, status must say 'Compatible',
-    not 'Tested'. The audit found 'Tested' was unsupported."""
+def test_platform_tested_status_is_attested():
+    """Every platform marked 'Tested' in the README compatibility table must
+    appear in tests/e2e/INSTALL_CHECKLIST.md as either an automated section or
+    a maintainer-attestation entry.
+
+    'Tested' without anything backing it is the kind of overclaim the
+    truthfulness audit was designed to catch. Maintainer attestation
+    (running the install on a separate machine each release) is acceptable
+    evidence as long as it's documented in the checklist."""
     readme = (REPO_ROOT / "README.md").read_text()
-    if "OpenClaw" not in readme:
-        return
-    # Find the OpenClaw row in the compatibility table
-    for line in readme.splitlines():
-        if "OpenClaw" in line and "|" in line:
-            # If this line says "Tested" verify there's evidence
-            if "Tested" in line:
-                e2e_dir = REPO_ROOT / "tests" / "e2e"
-                openclaw_evidence = list(e2e_dir.glob("*[Oo]pen*[Cc]law*")) if e2e_dir.exists() else []
-                assert openclaw_evidence, (
-                    f"README line claims OpenClaw 'Tested' but tests/e2e/ has no OpenClaw artifact: "
-                    f"{line.strip()!r}. Either commit an OpenClaw test/checklist or "
-                    "demote to 'Compatible'."
-                )
+    checklist = (REPO_ROOT / "tests" / "e2e" / "INSTALL_CHECKLIST.md").read_text()
+
+    # Pull every platform name in the compatibility table that's marked Tested.
+    # The table format is `| **Platform Name** ... | Tested |`.
+    pattern = re.compile(r"^\|\s*\*\*([^*|]+)\*\*[^|]*\|\s*Tested\s*\|", re.MULTILINE)
+    tested_platforms = [m.group(1).strip() for m in pattern.finditer(readme)]
+    if not tested_platforms:
+        pytest.skip("no platforms marked Tested; nothing to attest")
+
+    checklist_lower = checklist.lower()
+    missing = []
+    for platform in tested_platforms:
+        # Strip parenthetical clarifiers ("(CLI, VS Code, ...)") — match on the bare name.
+        bare_name = re.sub(r"\s*\(.*\)$", "", platform).strip().lower()
+        if bare_name not in checklist_lower:
+            missing.append(platform)
+    assert not missing, (
+        f"README compatibility table marks {missing!r} as Tested but those platforms "
+        f"are not mentioned in tests/e2e/INSTALL_CHECKLIST.md. Add a row to the "
+        f"'Cross-platform testing (maintainer attestation)' section, or demote "
+        f"the README claim to 'Compatible'."
+    )
