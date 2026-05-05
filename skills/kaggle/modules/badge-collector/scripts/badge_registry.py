@@ -1,5 +1,5 @@
 from typing import Optional
-"""Registry of all 59 Kaggle badges with metadata.
+"""Registry of all 55 Kaggle badges with metadata.
 
 Each badge has:
   - id: unique identifier
@@ -27,7 +27,7 @@ class Badge:
 
 # fmt: off
 ALL_BADGES: list[Badge] = [
-    # ── Phase 1: Instant API badges (~20) ──────────────────────────────────
+    # ── Phase 1: Instant API badges (~16) ──────────────────────────────────
 
     # Notebooks
     Badge("python_coder", "Python Coder", "notebooks", 1,

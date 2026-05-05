@@ -180,7 +180,7 @@ Status legend:
 - ✅ `get_forum`
 - ✅ `get_forum_topic`
 
-### Hackathon (newer surface — see `modules/hackathon/`)
+### Hackathon (newer surface — see `modules/kllm/hackathon/`)
 - ✅ `get_hackathon_overview` — rules, eligibility, rubric, prizes
 - ✅ `list_hackathon_write_ups` — submission roster (paginated)
 - ✅ `list_hackathon_tracks` — resolve track id → title
@@ -235,7 +235,7 @@ get_resolved_writeup_links (host/judge only)
 ```
 
 Avoid `get_hackathon_write_up` — it returns a generic invocation error even for
-valid ids. The `modules/hackathon/scripts/fetch_writeup.py` script encodes the
+valid ids. The `modules/kllm/hackathon/scripts/fetch_writeup.py` script encodes the
 correct fallback chain (`get_writeup` → `get_writeup_by_topic` → `get_writeup_by_slug`).
 
 ## Official Documentation

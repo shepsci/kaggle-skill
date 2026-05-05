@@ -17,9 +17,9 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 # Scripts that emit Kaggle-supplied text content to stdout. Each MUST wrap
 # its output in <untrusted-content>...</untrusted-content> boundary markers.
 WRAPPED_SCRIPTS = [
-    "skills/kaggle/modules/hackathon/scripts/hackathon_overview.py",
-    "skills/kaggle/modules/hackathon/scripts/list_writeups.py",
-    "skills/kaggle/modules/hackathon/scripts/fetch_writeup.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py",
     "skills/kaggle/modules/kllm/scripts/list_competition_pages.py",
 ]
 

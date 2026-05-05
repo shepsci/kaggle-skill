@@ -1,7 +1,7 @@
 {
   "name": "kaggle-skill",
   "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, submissions, hackathon writeup retrieval, and badge collection.",
-  "version": "2.2.0",
+  "version": "2.3.0",
   "author": {
     "name": "shepsci"
   },

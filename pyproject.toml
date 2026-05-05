@@ -1,6 +1,6 @@
 [project]
 name = "kaggle-skill"
-version = "2.2.0"
+version = "2.3.0"
 description = "Unified Kaggle skill for any LLM/agentic system — account setup, competition reports, datasets, models, notebooks, hackathons, badges"
 readme = "README.md"
 requires-python = ">=3.11"
