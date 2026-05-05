@@ -13,7 +13,7 @@ Reach for this module when:
 - The user asks about a Kaggle hackathon, AGI/cognitive evaluation, or writeup
   collection (e.g., `kaggle-measuring-agi`, `meta-kaggle-hackathon`).
 - You need rules / eligibility / rubric extracted from the hackathon overview.
-- You need a complete roster of submissions for grading or analysis.
+- You need a complete roster of submissions for downstream evaluation or analysis.
 - You need full writeup bodies with project links resolved.
 
 ## Prerequisites

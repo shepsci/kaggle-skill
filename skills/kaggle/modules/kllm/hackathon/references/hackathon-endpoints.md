@@ -46,13 +46,13 @@ because it has a simpler arg shape (just `writeUpId`, no `competitionName`).
   and eligibility.
 - Use `list_hackathon_write_ups` as the source of truth for the submission
   roster. Persist every field listed above.
-- Use `list_hackathon_tracks` before grading if the competition uses tracks —
+- Use `list_hackathon_tracks` before downstream evaluation if the competition uses tracks —
   listing rows may only expose numeric `hackathon_track_ids`.
 - Use `get_writeup` as the primary full-body retrieval endpoint.
 - Use `get_writeup_by_topic` or `get_writeup_by_slug` when a writeup id is
   missing but a topic id or slug is available.
 - Treat `download_hackathon_write_ups` as a helpful bulk artifact, not the
-  canonical grading source.
+  canonical evaluation-input source.
 - Treat `get_resolved_writeup_links` as a secondary enrichment pass only.
   Even with host access, the resolver may succeed but return `{}`.
 - Run `get_hackathon_write_up` only as a regression check. Do not build the
@@ -73,7 +73,7 @@ because it has a simpler arg shape (just `writeUpId`, no `competitionName`).
 - Do not assume winner filters will work before finalization; the server may
   return an explicit message instead of a row set.
 
-## Why the export is not the canonical grading source
+## Why the export is not the canonical evaluation-input source
 
 The live export is not complete enough to stand alone. In the 2026-04-22
 host-context run, `download_hackathon_write_ups` returned the CSV schema only
@@ -85,7 +85,7 @@ usernames, license objects, image metadata, post metadata from `message`,
 `message.raw_markdown`, structured `write_up_links`, and `message.attachments`.
 
 Use the export as a convenience index or audit artifact only. The canonical
-grading bundle should come from:
+evaluation bundle should come from:
 
 - `get_hackathon_overview` for rules and rubric
 - `list_hackathon_write_ups` for the master submission roster
@@ -106,7 +106,7 @@ and page content together — do not flatten.
 Search overview `pages` for sections named `rules`, `eligibility`, `entry`, or
 `official competition rules`. Extract paragraphs covering who may enter,
 account limits, geography or age restrictions, and submission-eligibility
-conditions. Keep anchor text or heading names so later grading can cite the
+conditions. Keep anchor text or heading names so later evaluation can cite the
 right subsection.
 
 ### 3. Extract the rubric from the overview
@@ -128,7 +128,7 @@ track ids, publish time.
 If hosting a closed competition, call `download_hackathon_write_ups`. If the
 endpoint returns inline `csv_content`, persist exactly as returned. Still
 fetch each individual writeup — the export may not contain all resolved
-attachment details needed for grading.
+attachment details needed for evaluation.
 
 ### 6. Retrieve each writeup
 
@@ -184,22 +184,22 @@ discovered project links, all discovered YouTube links. Reconcile by
 broken link-resolution passes, or permission-gated artifacts explicitly — do
 not silently drop them.
 
-### 10. Hand off for grading
+### 10. Hand off for downstream evaluation
 
 Bundle has three layers: hackathon rules and rubric; normalized writeup
 content for every submission; resolved artifact inventory for each submission.
 Keep citations back to the overview page and each writeup so a later audit can
-trace every grading input to a recorded MCP artifact. Grade only against the
+trace every evaluation input to a recorded MCP artifact. Evaluate only against the
 extracted rubric and documented eligibility rules.
 
 ## Anti-patterns
 
-- Do not rely on `download_hackathon_write_ups` alone for final grading inputs.
+- Do not rely on `download_hackathon_write_ups` alone for final evaluation inputs.
 - Do not assume a populated CSV schema means the export contains submission rows.
 - Do not assume `get_hackathon_write_up` is reliable if `get_writeup` succeeds for the same id.
 - Do not assume a successful `get_resolved_writeup_links` call returned useful link-resolution data.
 - Do not assume participant access includes export or resolved-link privileges.
 - Do not ignore `write_up_links` and `message.attachments` when present — they can be the only visible project-link surface.
-- Do not grade before extracting eligibility rules and rubric from the overview.
+- Do not evaluate before extracting eligibility rules and rubric from the overview.
 - Do not discard unresolved or permission-gated links — flag for follow-up.
 - Do not collapse all attachments into one blob; keep notebooks, datasets, models, files, videos as separate evidence types.

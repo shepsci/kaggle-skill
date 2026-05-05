@@ -7,8 +7,6 @@
 
 An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **hackathon writeup retrieval**, badge collection, and general Kaggle questions.
 
-> Note on hackathon "grading": the hackathon module retrieves writeups, overview pages, and rubrics, then hands the agent a structured bundle. The actual grading is done by the host agent against the extracted rubric — the skill does not score, rank, or judge.
-
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
 ## Available On
@@ -23,7 +21,7 @@ Works with **any AI coding agent** that supports the SKILL format — including 
 
 - **Registration** — Account creation, API token generation, credential storage
 - **Competition Reports** — Landscape reports (Python API + optional Playwright via host agent)
-- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows. Includes the **`hackathon/`** sub-module for writeup retrieval, overview/rubric extraction, and grading-bundle preparation.
+- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows. Includes the **`hackathon/`** sub-module for writeup retrieval and overview/rubric extraction.
 - **Badge Collector** — Systematic badge earning across 5 phases (~38 automatable; ~30 single-session, the rest are multi-day streaks or manual-walkthrough fallbacks)
 
 ## Installation
@@ -222,9 +220,9 @@ kaggle-skill/
 | Platform | Status |
 |----------|--------|
 | **Claude Code** (CLI, VS Code, JetBrains, Desktop) | Tested |
-| **OpenClaw** | Compatible |
+| **OpenClaw** | Tested |
 | **Codex** | Compatible |
-| **Gemini CLI** | Compatible |
+| **Gemini CLI** | Tested |
 | **Cursor** | Compatible |
 | **GitHub Copilot** | Compatible |
 | **Cline** | Compatible |
