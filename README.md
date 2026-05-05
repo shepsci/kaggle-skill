@@ -5,7 +5,9 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/github/stars/shepsci/kaggle-skill?style=social)](https://github.com/shepsci/kaggle-skill)
 
-An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **hackathon writeup retrieval and grading**, badge collection, and general Kaggle questions.
+An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **hackathon writeup retrieval**, badge collection, and general Kaggle questions.
+
+> Note on hackathon "grading": the hackathon module retrieves writeups, overview pages, and rubrics, then hands the agent a structured bundle. The actual grading is done by the host agent against the extracted rubric — the skill does not score, rank, or judge.
 
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
@@ -20,10 +22,9 @@ Works with **any AI coding agent** that supports the SKILL format — including 
 ## Modules
 
 - **Registration** — Account creation, API token generation, credential storage
-- **Competition Reports** — Landscape reports with API + Playwright scraping
-- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows
-- **Hackathon** — Writeup retrieval, overview/rubric extraction, role-aware grading bundles
-- **Badge Collector** — Systematic badge earning across 5 phases (~38 automatable)
+- **Competition Reports** — Landscape reports (Python API + optional Playwright via host agent)
+- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows. Includes the **`hackathon/`** sub-module for writeup retrieval, overview/rubric extraction, and grading-bundle preparation.
+- **Badge Collector** — Systematic badge earning across 5 phases (~38 automatable; ~30 single-session, the rest are multi-day streaks or manual-walkthrough fallbacks)
 
 ## Installation
 
@@ -90,7 +91,7 @@ export KAGGLE_API_TOKEN=YOUR_TOKEN
 
 Legacy credentials (`~/.kaggle/kaggle.json`) are also supported. Run the credential checker for details:
 ```bash
-python3 shared/check_all_credentials.py
+python3 skills/kaggle/shared/check_all_credentials.py
 ```
 
 ## Usage
@@ -123,7 +124,7 @@ python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
 #### Enumerate every writeup in a hackathon
 
 ```bash
-python3 skills/kaggle/modules/hackathon/scripts/list_writeups.py \
+python3 skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py \
     --competition kaggle-measuring-agi --array | jq '.total_count'
 # → 1069
 ```
@@ -131,7 +132,7 @@ python3 skills/kaggle/modules/hackathon/scripts/list_writeups.py \
 #### Fetch a specific writeup body with the safe fallback chain
 
 ```bash
-python3 skills/kaggle/modules/hackathon/scripts/fetch_writeup.py --writeup-id 71617
+python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py --writeup-id 71617
 # → tries get_writeup → get_writeup_by_topic → get_writeup_by_slug; first wins
 ```
 
@@ -150,7 +151,7 @@ treats it as data, not directives. Enforced by
 
 ## Bundled MCP Server (Claude Code)
 
-When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to **66 Kaggle tools** (verified against the live server in the [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools) 2026-04-22 audit):
+When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to **66 Kaggle tools** (verified live on 2026-05-04 in `tests/integration/test_mcp_live.py`; baseline inventory comes from the [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools) 2026-04-22 audit):
 
 - Searching and listing competitions, datasets, models, notebooks
 - Downloading competition data and datasets
@@ -201,9 +202,12 @@ kaggle-skill/
 │       ├── registration/          # Account & credential setup
 │       ├── comp-report/           # Competition landscape reports
 │       ├── kllm/                  # Core Kaggle interaction (66-tool MCP, kagglehub, CLI)
-│       │   └── references/
-│       │       └── competition-overview.md   # list_competition_pages reference
-│       ├── hackathon/             # Writeup retrieval + grading bundles (v2.1.0+)
+│       │   ├── references/
+│       │   │   └── competition-overview.md   # list_competition_pages reference
+│       │   └── hackathon/         # MCP-driven hackathon workflows (sub-module of kllm)
+│       │       ├── README.md
+│       │       ├── references/    # hackathon-endpoints / benchmark-endpoints / episode-endpoints
+│       │       └── scripts/       # list_writeups, fetch_writeup, hackathon_overview
 │       └── badge-collector/       # Badge earning automation
 └── tests/
     ├── unit/                      # Mock-backed unit tests (no network)
@@ -218,7 +222,7 @@ kaggle-skill/
 | Platform | Status |
 |----------|--------|
 | **Claude Code** (CLI, VS Code, JetBrains, Desktop) | Tested |
-| **OpenClaw** | Tested |
+| **OpenClaw** | Compatible |
 | **Codex** | Compatible |
 | **Gemini CLI** | Compatible |
 | **Cursor** | Compatible |

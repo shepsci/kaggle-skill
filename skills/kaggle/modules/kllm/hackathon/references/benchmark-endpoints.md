@@ -22,7 +22,7 @@ resp = mcp_call("create_benchmark_task_from_prompt", {
 }, token=token)
 ```
 
-## `get_benchmark_leaderboard` — 🔒 BLOCKED (permission-gated)
+## `get_benchmark_leaderboard` — ✅ PASS (was 🔒 BLOCKED)
 
 Read the leaderboard for an existing benchmark.
 
@@ -30,17 +30,16 @@ Read the leaderboard for an existing benchmark.
 - `benchmarkSlug` (string)
 - `ownerSlug` (string)
 
-**Auth:** Returns a permission-denied error in standard auth contexts. The
-endpoint exists and is documented but requires elevated access (likely benchmark
-ownership or hackathon judge role). When you hit the denial, capture the exact
-error text as evidence and surface it; do not silently fall back to scraping.
+**Auth:** Was permission-gated in the 2026-04-22 audit. Verified **PASS** in
+the 2026-05-04 retest with an ordinary KGAT token — no elevated access needed.
+A non-existent benchmark/owner pair returns a not-found error rather than a
+permission denial; treat both as data-not-available and surface the response.
 
 ```python
 resp = mcp_call("get_benchmark_leaderboard", {
     "benchmarkSlug": "some-benchmark",
     "ownerSlug": "owner-handle",
 }, token=token)
-# Expect: error with permission-related message
 ```
 
 ## When to use which
@@ -49,5 +48,6 @@ resp = mcp_call("get_benchmark_leaderboard", {
   Returns a `kernel_url` — keep it; that's how downstream submissions reference
   the task.
 - **Reading leaderboard data for a hackathon writeup that links to a benchmark**
-  → `get_benchmark_leaderboard`. Expect a permission denial unless authenticated
-  as the benchmark owner / hackathon host. Document the denial as evidence.
+  → `get_benchmark_leaderboard`. Works with an ordinary KGAT token as of
+  2026-05-04. If the response is empty / not-found, surface that as evidence
+  rather than silently falling back to scraping.

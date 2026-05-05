@@ -43,10 +43,12 @@ full taxonomy of which endpoints succeed, which fail, and why.
 5. `get_writeup_by_topic` / `get_writeup_by_slug` — fallbacks when id missing
 6. `get_resolved_writeup_links` — host-only enrichment pass
 
-**Do not call `get_hackathon_write_up`.** It returns a generic invocation error
-even for known-good ids in both host and participant contexts (confirmed in the
-2026-04-22 retest). The fallback chain in `fetch_writeup.py` uses `get_writeup`
-instead.
+`get_hackathon_write_up` was broken in the 2026-04-22 audit (generic
+invocation error in both host and participant contexts) and verified
+**recovered** in the 2026-05-04 retest. `fetch_writeup.py` still uses
+`get_writeup` first because it has a simpler arg shape (just `writeUpId`,
+no `competitionName` required) — but the wrapper endpoint is now also viable
+if you have both args.
 
 ## Scripts
 

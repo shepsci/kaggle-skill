@@ -14,18 +14,19 @@ behavior.
 5. `get_writeup_by_topic` or `get_writeup_by_slug`
 6. `get_resolved_writeup_links`
 
-Skip `get_hackathon_write_up` — it returns a generic invocation error for
-known-good ids in both host/judge and participant contexts. Use `get_writeup`
-instead.
+`get_hackathon_write_up` was broken in the 2026-04-22 audit and is verified
+**recovered** as of 2026-05-04. The module still calls `get_writeup` first
+because it has a simpler arg shape (just `writeUpId`, no `competitionName`).
 
-## Live findings (2026-04-22)
+## Live findings (2026-04-22, retested 2026-05-04)
 
 - `list_hackathon_write_ups` is the canonical roster source. Page until
   exhausted; persist `total_count`, row id, `write_up.id`, `topic_id`, slug,
   collaborators, track ids, publish time.
 - `get_writeup` is the most reliable full-body fetch. `get_writeup_by_topic`
   and `get_writeup_by_slug` are solid alternates.
-- `get_hackathon_write_up` failed in both host/judge and participant contexts.
+- `get_hackathon_write_up` was failing in both host/judge and participant
+  contexts (2026-04-22) and verified **PASS** in the 2026-05-04 retest.
 - `download_hackathon_write_ups` worked in host context but the live payload
   contained only the CSV header row and no submission rows in the sampled run.
   Treat it as a convenience artifact, not the canonical source.

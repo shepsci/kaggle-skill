@@ -23,9 +23,9 @@ ARGPARSE_SCRIPTS = [
     "skills/kaggle/modules/comp-report/scripts/competition_details.py",
     "skills/kaggle/modules/kllm/scripts/kagglehub_download.py",
     "skills/kaggle/modules/kllm/scripts/list_competition_pages.py",
-    "skills/kaggle/modules/hackathon/scripts/hackathon_overview.py",
-    "skills/kaggle/modules/hackathon/scripts/list_writeups.py",
-    "skills/kaggle/modules/hackathon/scripts/fetch_writeup.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py",
+    "skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py",
     "skills/kaggle/modules/badge-collector/scripts/orchestrator.py",
 ]
 

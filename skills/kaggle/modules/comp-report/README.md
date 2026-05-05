@@ -1,8 +1,22 @@
 # Competition Landscape Report
 
 Generates a comprehensive summary of recent Kaggle competition activity using a
-hybrid approach: Python API for structured metadata + Playwright MCP tools for
-rendered SPA content (problem statements, evaluation details, writeups).
+hybrid approach: Python API for structured metadata + (optionally) Playwright
+MCP tools for rendered SPA content (problem statements, evaluation details,
+writeups).
+
+> **What this module ships:** Python scripts that drive the Kaggle Python API
+> (`list_competitions.py`, `competition_details.py`, `utils.py`).
+>
+> **What this module does NOT ship:** a Playwright runner. Step 4 below assumes
+> the host agent provides Playwright MCP tools (`browser_navigate`,
+> `browser_snapshot`, `browser_run_code`). If those tools are not available,
+> skip Step 4 — the structured-metadata workflow (Steps 1–3, 5–6) still
+> produces a useful report, just without the SPA-only content.
+>
+> Modern alternative: for many competitions, `list_competition_pages` (in the
+> kllm module) returns the same overview pages without needing Playwright at
+> all. Prefer that when it covers what you need.
 
 ## Workflow
 
@@ -53,9 +67,15 @@ This retrieves file listings, top leaderboard entries (for completed), and top
 kernels by votes. It also identifies potential solution writeup kernels by
 pattern-matching titles.
 
-### Step 4: Scrape Rich Content via Playwright MCP
+### Step 4: Scrape Rich Content via Playwright MCP (host agent provides Playwright)
 
-This is the critical step. For each competition, use Playwright MCP tools:
+**Skip this step entirely** if your agent does not have Playwright MCP tools.
+The structured-metadata report from Steps 1–3 is still useful on its own, and
+`list_competition_pages` (kllm module) covers most overview content without
+Playwright. Use Step 4 only when you need rendered SPA content that the API
+does not expose.
+
+Assuming the host agent provides Playwright MCP tools, for each competition:
 
 1. **Problem statement**: `browser_navigate` to
    `https://www.kaggle.com/competitions/{slug}/overview` then `browser_snapshot`

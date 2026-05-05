@@ -18,7 +18,7 @@ import json
 import sys
 from pathlib import Path
 
-REPO_ROOT = Path(__file__).resolve().parents[5]
+REPO_ROOT = Path(__file__).resolve().parents[6]
 sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle"))
 
 from shared.mcp_client import (  # noqa: E402

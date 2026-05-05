@@ -1,4 +1,4 @@
-"""Unit tests for skills/kaggle/modules/hackathon/scripts/fetch_writeup.py."""
+"""Unit tests for skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py."""
 
 from __future__ import annotations
 
@@ -11,7 +11,7 @@ from unittest.mock import patch
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle"))
 
-SCRIPT = REPO_ROOT / "skills" / "kaggle" / "modules" / "hackathon" / "scripts" / "fetch_writeup.py"
+SCRIPT = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "hackathon" / "scripts" / "fetch_writeup.py"
 
 
 def _load_module():

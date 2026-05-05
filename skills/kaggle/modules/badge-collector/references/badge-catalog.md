@@ -1,4 +1,4 @@
-# Kaggle Badge Catalog (59 badges)
+# Kaggle Badge Catalog (55 badges)
 
 Complete reference of all Kaggle badges with earning criteria and automation status.
 

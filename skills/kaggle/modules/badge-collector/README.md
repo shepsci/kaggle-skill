@@ -30,12 +30,12 @@ python3 modules/badge-collector/scripts/orchestrator.py --phase all
 | 1 | Instant API | ~16 | 5-10 min |
 | 2 | Competition | ~7 | 10-15 min |
 | 3 | Pipeline | ~3 | 15-30 min |
-| 4 | Browser | ~8 | 5-10 min |
-| 5 | Streaks | ~4 | Setup only (runs daily) |
+| 4 | Browser | ~8 (3 automated via Playwright, 5 print manual instructions) | 5-10 min |
+| 5 | Streaks | ~4 (script generation only — actual badge earn requires multi-day scheduling) | Setup only (runs daily) |
 
 ## Prerequisites
 
-- Kaggle credentials configured (KAGGLE_USERNAME + KAGGLE_KEY)
+- Kaggle credentials configured (`KAGGLE_API_TOKEN` recommended; legacy `KAGGLE_USERNAME` + `KAGGLE_KEY` also supported)
 - `pip install kagglehub kaggle requests`
 - For Phase 4: `pip install playwright && playwright install chromium`
 - For Phase 2: Must accept competition rules at kaggle.com first
@@ -62,7 +62,7 @@ Use `--status` to view progress or `--resume` to continue from where you left of
 ## Scripts
 
 - `scripts/orchestrator.py` — Main entry point
-- `scripts/badge_registry.py` — All 59 badge definitions
+- `scripts/badge_registry.py` — All 55 badge definitions
 - `scripts/badge_tracker.py` — JSON progress persistence
 - `scripts/phase_1_instant_api.py` — Instant API badges
 - `scripts/phase_2_competition.py` — Competition badges
@@ -73,4 +73,4 @@ Use `--status` to view progress or `--resume` to continue from where you left of
 
 ## References
 
-- [badge-catalog.md](references/badge-catalog.md) — Complete 59-badge catalog with earning criteria
+- [badge-catalog.md](references/badge-catalog.md) — Complete 55-badge catalog with earning criteria
