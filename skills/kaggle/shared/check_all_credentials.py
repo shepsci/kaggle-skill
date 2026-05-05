@@ -37,6 +37,22 @@ except ImportError:
     pass
 
 
+def _ensure_mode_600(path: Path) -> None:
+    """Auto-tighten file mode to 600 if anything else is set.
+
+    Credential files must never be group- or world-readable. Previously this
+    only warned and continued; now it self-heals because credentials in a
+    world-readable file are an active leak, not a future risk.
+    """
+    mode = path.stat().st_mode & 0o777
+    if mode != 0o600:
+        try:
+            path.chmod(0o600)
+            print(f"[INFO] Tightened {path} permissions from {oct(mode)[-3:]} to 600")
+        except OSError as e:
+            print(f"[WARN] {path} permissions are {oct(mode)[-3:]}, could not chmod 600: {e}")
+
+
 def _read_access_token() -> str:
     """Read ~/.kaggle/access_token if it exists."""
     access_token = Path.home() / ".kaggle" / "access_token"
@@ -44,10 +60,7 @@ def _read_access_token() -> str:
         return ""
     token = access_token.read_text().strip()
     if token:
-        mode = oct(access_token.stat().st_mode)[-3:]
-        if mode != "600":
-            print(f"[WARN] {access_token} permissions are {mode}, should be 600")
-            print(f"       Run: chmod 600 {access_token}")
+        _ensure_mode_600(access_token)
     return token
 
 
@@ -58,10 +71,7 @@ def _read_kaggle_json() -> dict:
         return {}
     try:
         creds = json.loads(kaggle_json.read_text())
-        mode = oct(kaggle_json.stat().st_mode)[-3:]
-        if mode != "600":
-            print(f"[WARN] {kaggle_json} permissions are {mode}, should be 600")
-            print(f"       Run: chmod 600 {kaggle_json}")
+        _ensure_mode_600(kaggle_json)
         return creds
     except (json.JSONDecodeError, KeyError):
         print(f"[WARN] {kaggle_json} exists but is malformed")

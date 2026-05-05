@@ -96,8 +96,10 @@ def main() -> int:
         attempts.append(("get_writeup", resp))
         if status == "ok":
             payload = extract_json(resp) or {}
+            print('<untrusted-content source="kaggle-mcp" tool="get_writeup">')
             print(json.dumps({"endpoint": "get_writeup", "data": payload},
                              indent=2 if args.pretty else None))
+            print("</untrusted-content>")
             return 0
 
     if args.topic_id:
@@ -105,8 +107,10 @@ def main() -> int:
         attempts.append(("get_writeup_by_topic", resp))
         if status == "ok":
             payload = extract_json(resp) or {}
+            print('<untrusted-content source="kaggle-mcp" tool="get_writeup_by_topic">')
             print(json.dumps({"endpoint": "get_writeup_by_topic", "data": payload},
                              indent=2 if args.pretty else None))
+            print("</untrusted-content>")
             return 0
 
     if args.competition and args.slug:
@@ -114,8 +118,10 @@ def main() -> int:
         attempts.append(("get_writeup_by_slug", resp))
         if status == "ok":
             payload = extract_json(resp) or {}
+            print('<untrusted-content source="kaggle-mcp" tool="get_writeup_by_slug">')
             print(json.dumps({"endpoint": "get_writeup_by_slug", "data": payload},
                              indent=2 if args.pretty else None))
+            print("</untrusted-content>")
             return 0
 
     last_endpoint, last_resp = attempts[-1]

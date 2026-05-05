@@ -16,11 +16,16 @@
 
 set -euo pipefail
 
-# Load .env if present (merged from registration module)
-if [ -f ".env" ]; then
+# Load .env only from the directory containing this script (the plugin/skill
+# root), never from the current working directory. Sourcing $CWD/.env from a
+# SessionStart hook would let any directory the user opens Claude Code in
+# inject arbitrary env vars into the session.
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+PLUGIN_ROOT="$(cd "${SCRIPT_DIR}/../../../.." && pwd)"
+if [ -f "${PLUGIN_ROOT}/.env" ]; then
     set -a
     # shellcheck disable=SC1091
-    source .env
+    source "${PLUGIN_ROOT}/.env"
     set +a
 fi
 
@@ -31,10 +36,12 @@ KAGGLE_JSON="${KAGGLE_DIR}/kaggle.json"
 # Check if access_token file already exists
 if [ -f "$ACCESS_TOKEN_FILE" ]; then
     echo "[OK] access_token already exists at ${ACCESS_TOKEN_FILE}"
-    # Also install dependencies if needed
+    # Surface install instructions but never auto-install on SessionStart —
+    # silently mutating the user's Python environment without consent is a
+    # security smell. The user explicitly runs the install command if they
+    # want it.
     if ! python3 -c "import kagglehub" 2>/dev/null; then
-        echo "[INFO] Installing kagglehub..."
-        pip install --user -q kagglehub kaggle 2>/dev/null || true
+        echo "[INFO] kagglehub not installed. Run:  pip install --user kagglehub kaggle"
     fi
     echo "[OK] Kaggle environment ready"
     exit 0
@@ -95,10 +102,9 @@ else
     fi
 fi
 
-# Install dependencies if not present
+# Surface install instructions but never auto-install on SessionStart.
 if ! python3 -c "import kagglehub" 2>/dev/null; then
-    echo "[INFO] Installing kagglehub..."
-    pip install --user -q kagglehub kaggle 2>/dev/null || true
+    echo "[INFO] kagglehub not installed. Run:  pip install --user kagglehub kaggle"
 fi
 
 echo "[OK] Kaggle environment ready"

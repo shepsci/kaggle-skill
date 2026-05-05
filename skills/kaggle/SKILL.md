@@ -4,7 +4,7 @@ description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.co
 license: MIT
 compatibility: "Python 3.11+, pip packages kagglehub, kaggle, requests, python-dotenv. Optional: playwright for browser badges. Playwright MCP tools for competition reports."
 homepage: https://github.com/shepsci/kaggle-skill
-metadata: {"author": "shepsci", "version": "2.1.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN"]}}}
+metadata: {"author": "shepsci", "version": "2.2.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_USERNAME", "KAGGLE_KEY", "KAGGLE_API_TOKEN"]}}}
 allowed-tools: Bash Read WebFetch Grep Glob
 ---
 
@@ -283,6 +283,7 @@ configure scheduling if desired.
 - `modules/kllm/scripts/poll_kernel.sh` — Poll kernel status and download output
 - `modules/kllm/scripts/kagglehub_download.py` — Download via kagglehub
 - `modules/kllm/scripts/kagglehub_publish.py` — Publish via kagglehub
+- `modules/kllm/scripts/list_competition_pages.py` — Fetch competition overview pages (rules / evaluation / data-description / FAQ / prizes / timeline) via MCP
 
 **Hackathon:**
 - `modules/hackathon/scripts/hackathon_overview.py` — Fetch rules, rubric, eligibility
@@ -308,6 +309,7 @@ configure scheduling if desired.
 - `modules/kllm/references/kagglehub-reference.md` — Full kagglehub Python API reference
 - `modules/kllm/references/cli-reference.md` — Complete kaggle-cli command reference
 - `modules/kllm/references/mcp-reference.md` — Kaggle MCP server reference (66 tools)
+- `modules/kllm/references/competition-overview.md` — `list_competition_pages` endpoint, page-name conventions, briefing patterns
 - `modules/hackathon/references/hackathon-endpoints.md` — Hackathon writeup retrieval
 - `modules/hackathon/references/benchmark-endpoints.md` — Benchmark task creation and leaderboard
 - `modules/hackathon/references/episode-endpoints.md` — Simulation episode logs and replays
