@@ -9,6 +9,12 @@ An agent skill for everything Kaggle: account setup, competition landscape repor
 
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
+## Demo
+
+[![asciicast](https://asciinema.org/a/PLACEHOLDER.svg)](https://asciinema.org/a/PLACEHOLDER)
+
+> _90-second walkthrough: install → set up credentials → ask Claude to summarize a competition → pull every writeup from a hackathon. Re-record with `bash docs/demo/record.sh` (asciinema) or `vhs docs/demo/demo.tape` (vhs)._
+
 ## Available On
 
 | Platform | Link | Install Command |
@@ -98,11 +104,55 @@ python3 shared/check_all_credentials.py
 Once installed, your agent automatically detects the skill when you mention anything Kaggle-related:
 
 - "Set up my Kaggle credentials"
-- "Generate a Kaggle competition report"
+- "Summarize the rules and evaluation metric for the titanic competition"
+- "Generate a Kaggle competition landscape report for the last 30 days"
 - "Download the Titanic dataset"
-- "Earn Kaggle badges"
-- "Enter a Kaggle competition"
+- "Pull every writeup from kaggle-measuring-agi and group by track"
+- "What badges can I still earn through API activity?"
+- "Push this notebook to Kaggle Kernels and tell me when it finishes"
 - "What competitions are running right now?"
+
+### Quick examples (run from the agent OR directly from a shell)
+
+#### Pull the rules + evaluation metric for any competition
+
+```bash
+python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+    --competition titanic --summary
+# → page count, key-page detection (rules / evaluation / data-description / timeline)
+
+python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+    --competition titanic --page evaluation
+# → just the evaluation page content (host-authored markdown/HTML)
+```
+
+#### Enumerate every writeup in a hackathon
+
+```bash
+python3 skills/kaggle/modules/hackathon/scripts/list_writeups.py \
+    --competition kaggle-measuring-agi --array | jq '.total_count'
+# → 1069
+```
+
+#### Fetch a specific writeup body with the safe fallback chain
+
+```bash
+python3 skills/kaggle/modules/hackathon/scripts/fetch_writeup.py --writeup-id 71617
+# → tries get_writeup → get_writeup_by_topic → get_writeup_by_slug; first wins
+```
+
+#### Verify all 66 MCP tools work against the live server
+
+```bash
+pytest tests/integration/test_mcp_live.py --run-live -v
+# → 33 endpoint probes + tool-inventory drift check
+```
+
+All script output that contains Kaggle-supplied text (overview pages, writeup
+bodies, submission rosters) is wrapped in
+`<untrusted-content source="kaggle-mcp" tool="...">` markers so the agent
+treats it as data, not directives. Enforced by
+`tests/security/test_untrusted_content_wrappers.py`.
 
 ## Bundled MCP Server (Claude Code)
 
@@ -123,27 +173,50 @@ The MCP server requires `KAGGLE_API_TOKEN` to be set.
 
 ## Security
 
-- **No automatic persistence**: No cron jobs or launchd plists are auto-installed
-- **No dynamic code execution**: All imports are explicit and static (no `__import__()`, `eval()`, `exec()`)
-- **Untrusted content handling**: Scraped content is wrapped in `<untrusted-content>` boundary markers
-- Credentials stored in `~/.kaggle/access_token` (chmod 600) — never logged or echoed
+Each property below is enforced by a test in `tests/security/` — claims that aren't tested are claims that drift.
+
+| Property | Enforced by |
+|---|---|
+| No `eval` / `exec` / `compile` / `__import__` in any script | `tests/security/test_no_dynamic_eval.py` |
+| Credentials never echoed to stdout / stderr / logs | `tests/security/test_no_credential_leakage.py` |
+| Kaggle-supplied text wrapped in `<untrusted-content>` boundaries (prompt-injection guard) | `tests/security/test_untrusted_content_wrappers.py` |
+| Zip archives extracted with path-traversal protection (no zip-slip) | `tests/security/test_zip_slip_protection.py` |
+| Dataset slugs validated against `owner/name` regex before shell use | `tests/security/test_dataset_slug_validation.py` |
+| `SessionStart` hook does not auto-`pip install` or source `.env` from CWD | `tests/security/test_session_start_hook_safety.py` |
+| `~/.kaggle/access_token` and `kaggle.json` auto-tightened to mode 0600 | `skills/kaggle/shared/check_all_credentials.py:_ensure_mode_600` |
+| `.mcp.json` uses HTTPS + env-var token substitution (no literal token) | `tests/manifest/test_mcp_json_valid.py` |
+| No Phase 5 cron job / launchd plist auto-installed | Phase 5 generates a script only; user opts in |
+
+Network egress: scripts only contact `*.kaggle.com`, `storage.googleapis.com`, `pypi.org`, `files.pythonhosted.org`, and `github.com`. Allowlist is in `.claude/settings.json`.
+
+Reviewed comprehensively in v2.2.0; all MEDIUM findings fixed (zip-slip, untrusted-content wrappers, SessionStart hook tightening). See PR description for details.
 
 ## Project Structure
 
 ```
 kaggle-skill/
-├── .claude-plugin/plugin.json    # Claude Code plugin manifest
-├── .mcp.json                     # Bundled Kaggle MCP server (Claude Code)
-├── PRIVACY.md                    # Privacy policy
+├── .claude-plugin/plugin.json     # Claude Code plugin manifest (v2.x)
+├── .claude/settings.json          # Per-plugin permissions + SessionStart hook
+├── .mcp.json                      # Bundled Kaggle MCP server (66 tools)
+├── PRIVACY.md                     # Privacy policy
+├── docs/demo/                     # Screencast script + vhs tape + asciinema recorder
 ├── skills/kaggle/
-│   ├── SKILL.md                  # Main skill definition (all agents)
-│   ├── shared/                   # Unified credential checker
+│   ├── SKILL.md                   # Main skill definition (all agents)
+│   ├── shared/                    # mcp_client.py + unified credential checker
 │   └── modules/
-│       ├── registration/         # Account & credential setup
-│       ├── comp-report/          # Competition landscape reports
-│       ├── kllm/                 # Core Kaggle interaction
-│       └── badge-collector/      # Badge earning automation
-└── README.md
+│       ├── registration/          # Account & credential setup
+│       ├── comp-report/           # Competition landscape reports
+│       ├── kllm/                  # Core Kaggle interaction (66-tool MCP, kagglehub, CLI)
+│       │   └── references/
+│       │       └── competition-overview.md   # list_competition_pages reference
+│       ├── hackathon/             # Writeup retrieval + grading bundles (v2.1.0+)
+│       └── badge-collector/       # Badge earning automation
+└── tests/
+    ├── unit/                      # Mock-backed unit tests (no network)
+    ├── manifest/                  # Plugin/skill metadata validation
+    ├── security/                  # Defensive guards (eval, leakage, zip-slip, etc.)
+    ├── integration/               # Live MCP probes (--run-live)
+    └── e2e/                       # Manual install round-trip checklist
 ```
 
 ## Compatibility

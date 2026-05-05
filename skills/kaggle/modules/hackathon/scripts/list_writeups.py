@@ -119,6 +119,10 @@ def main() -> int:
             break
         page_token = next_token
 
+    # Writeup titles, subtitles, and collaborator names are participant-supplied
+    # text — treat as untrusted to prevent prompt injection from row contents.
+    print(f'<untrusted-content source="kaggle-mcp" tool="list_hackathon_write_ups" '
+          f'competition="{args.competition}">')
     if args.array:
         print(json.dumps({
             "competition": args.competition,
@@ -129,6 +133,7 @@ def main() -> int:
         for row in all_rows:
             print(json.dumps(row))
         print(f"# fetched {len(all_rows)} writeups (total_count={total})", file=sys.stderr)
+    print("</untrusted-content>")
     return 0
 
 

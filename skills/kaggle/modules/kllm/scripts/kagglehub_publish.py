@@ -1,3 +1,4 @@
+#!/usr/bin/env python3
 """Publish private datasets and models to Kaggle using kagglehub.
 
 kagglehub supports:

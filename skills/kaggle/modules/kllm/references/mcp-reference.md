@@ -130,7 +130,7 @@ Status legend:
 - ✅ `search_competition_submissions`
 - ✅ `list_competition_data_files`
 - ✅ `list_competition_data_tree_files`
-- ✅ `list_competition_pages`
+- ✅ `list_competition_pages` — host-authored overview pages (rules, evaluation, data-description, FAQ, prizes, timeline). Universal: works for regular competitions, playgrounds, and hackathons. See [competition-overview.md](competition-overview.md) for the full reference and patterns. Wrapper script: `modules/kllm/scripts/list_competition_pages.py`.
 - ✅ `download_competition_data_file`
 - ✅ `download_competition_data_files`
 - ✅ `download_competition_leaderboard`

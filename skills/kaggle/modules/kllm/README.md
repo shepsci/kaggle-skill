@@ -100,6 +100,33 @@ kaggle competitions submit -c competition-name -f submission.csv -m "description
 
 See `modules/kllm/scripts/cli_competition.sh` for a complete competition workflow.
 
+### Read Competition Overview Pages
+
+Before joining or analyzing a competition, pull its overview pages (rules,
+evaluation, data description, FAQ, prizes, timeline) via the
+`list_competition_pages` MCP endpoint:
+
+```bash
+# Print every page as JSON
+python3 modules/kllm/scripts/list_competition_pages.py --competition titanic
+
+# One-line-per-page summary with key-page detection
+python3 modules/kllm/scripts/list_competition_pages.py --competition titanic --summary
+
+# Just the rules / evaluation page content
+python3 modules/kllm/scripts/list_competition_pages.py --competition titanic --page rules
+python3 modules/kllm/scripts/list_competition_pages.py --competition titanic --page evaluation
+```
+
+Works for regular competitions, playground series, AND hackathons. For
+hackathon-specific overview content (judge ids, track structure), prefer
+`hackathon_overview.py` from the hackathon module which calls
+`get_hackathon_overview` instead.
+
+See [references/competition-overview.md](references/competition-overview.md)
+for the full endpoint reference, page-name conventions, and recommended
+analysis patterns.
+
 ## Scripts
 
 - `scripts/setup_env.sh` — Auto-configure Kaggle credentials from env vars (creates kaggle.json)
@@ -112,6 +139,7 @@ See `modules/kllm/scripts/cli_competition.sh` for a complete competition workflo
 - `scripts/cli_publish.sh <dataset|notebook|model> <dir> [model-handle]` — Publish resources
 - `scripts/kagglehub_download.py` — Download datasets and models via kagglehub
 - `scripts/kagglehub_publish.py <dataset|model> <handle> <local-dir> [version-notes]` — Publish via kagglehub
+- `scripts/list_competition_pages.py --competition <slug> [--summary|--page NAME|--pretty]` — Fetch host-authored overview pages (rules, evaluation, data-description, FAQ, prizes, timeline) via the `list_competition_pages` MCP endpoint
 
 ## References
 
@@ -119,3 +147,4 @@ See `modules/kllm/scripts/cli_competition.sh` for a complete competition workflo
 - [kagglehub-reference.md](references/kagglehub-reference.md) — Full kagglehub Python API
 - [cli-reference.md](references/cli-reference.md) — Complete kaggle-cli command reference
 - [mcp-reference.md](references/mcp-reference.md) — Kaggle MCP server endpoint, auth, and tools
+- [competition-overview.md](references/competition-overview.md) — `list_competition_pages` endpoint, page-name conventions, briefing patterns

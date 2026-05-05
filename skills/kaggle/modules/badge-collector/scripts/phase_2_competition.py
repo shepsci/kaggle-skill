@@ -10,7 +10,9 @@ Uses pre-built submission_titanic.csv and finds active competitions via CLI.
 """
 
 import json
+import os
 import shutil
+import zipfile
 from pathlib import Path
 
 from badge_tracker import set_status, should_attempt
@@ -21,6 +23,24 @@ from utils import (
     resource_name,
     run_kaggle_cli,
 )
+
+
+def _safe_extract(zf_path: Path, dest: Path) -> None:
+    """Extract zf_path into dest with zip-slip protection.
+
+    Rejects any member whose resolved path escapes `dest`. Kaggle is treated
+    as untrusted in our threat model — a malicious or malformed competition
+    zip with `..` in member names must not write outside the temp dir.
+    """
+    dest_real = os.path.realpath(dest)
+    with zipfile.ZipFile(zf_path, "r") as z:
+        for member in z.namelist():
+            target = os.path.realpath(os.path.join(dest_real, member))
+            if not (target == dest_real or target.startswith(dest_real + os.sep)):
+                raise ValueError(
+                    f"refusing to extract {member!r} from {zf_path}: escapes {dest}"
+                )
+        z.extractall(dest)
 
 
 def _find_competition_by_category(category: str) -> Optional[str]:
@@ -121,11 +141,9 @@ def _submit_playground(username: str) -> bool:
             "--path", str(tmp),
         ], check=False)
 
-        # Find and unzip if needed
-        import zipfile
+        # Find and unzip if needed (zip-slip-safe)
         for zf in tmp.glob("*.zip"):
-            with zipfile.ZipFile(zf, "r") as z:
-                z.extractall(tmp)
+            _safe_extract(zf, tmp)
 
         # Find sample_submission
         submission_file = None
@@ -191,10 +209,8 @@ def _submit_community(username: str) -> bool:
         tmp = make_temp_dir("-community")
         run_kaggle_cli(["competitions", "download", comp, "--path", str(tmp)], check=False)
 
-        import zipfile
         for zf in tmp.glob("*.zip"):
-            with zipfile.ZipFile(zf, "r") as z:
-                z.extractall(tmp)
+            _safe_extract(zf, tmp)
 
         submission_file = None
         for pattern in ["sample_submission*.csv", "sample*.csv"]:

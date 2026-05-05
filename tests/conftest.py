@@ -11,6 +11,12 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parent.parent
 FIXTURES_DIR = Path(__file__).resolve().parent / "fixtures"
 
+# tests/test_mcp.py is the legacy CLI runner script — invoked as
+# `python3 tests/test_mcp.py [...flags]`, not via pytest. It defines
+# top-level functions named `test_*` that are not pytest-shaped, so
+# tell pytest to ignore the file at collection time.
+collect_ignore = ["test_mcp.py"]
+
 # Make `from shared.mcp_client import ...` work from tests
 import sys
 
