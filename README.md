@@ -9,12 +9,6 @@ An agent skill for everything Kaggle: account setup, competition landscape repor
 
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
-## Demo
-
-[![asciicast](https://asciinema.org/a/PLACEHOLDER.svg)](https://asciinema.org/a/PLACEHOLDER)
-
-> _90-second walkthrough: install → set up credentials → ask Claude to summarize a competition → pull every writeup from a hackathon. Re-record with `bash docs/demo/record.sh` (asciinema) or `vhs docs/demo/demo.tape` (vhs)._
-
 ## Available On
 
 | Platform | Link | Install Command |
