@@ -11,8 +11,8 @@ allowed-tools: Bash Read WebFetch Grep Glob
 # Kaggle — Unified Skill
 
 Complete Kaggle integration for any LLM or agentic coding system (Claude Code,
-Antigravity CLI (`agy`), Cursor, etc.): account setup, competition reports,
-dataset/model downloads, notebook execution, competition submissions,
+Antigravity CLI (`agy`), Hermes, Cursor, etc.): account setup, competition
+reports, dataset/model downloads, notebook execution, competition submissions,
 forum/discussion research, writeup retrieval, benchmark workflows, badge
 collection, and general Kaggle questions. Five integrated modules working
 together.

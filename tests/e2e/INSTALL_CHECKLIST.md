@@ -56,6 +56,8 @@ explicit process instead of a loose compatibility claim.
       `npx skills add shepsci/kaggle-skill`, then the same credential and
       Titanic summary smoke prompts. Prefer Antigravity CLI (`agy`) for new
       installs because it replaced Gemini CLI.
+- [x] Codex - covered by the temporary `CODEX_HOME` repo marketplace smoke in
+      Alternate Distributions and `tests/e2e/test_plugin_install_smoke.py`.
 
 If "Tested" is asserted for a platform, that platform needs a row in this list.
 `tests/manifest/test_no_false_claims.py::test_platform_tested_status_is_attested`
