@@ -1,6 +1,6 @@
 # Kaggle Account & API Setup Guide
 
-Step-by-step instructions for creating a Kaggle account, generating API credentials, and configuring them for use with any OpenClaw-compatible agent (Claude Code, gemini-cli, Cursor, etc.).
+Step-by-step instructions for creating a Kaggle account, generating API credentials, and configuring them for use with any OpenClaw-compatible agent (Claude Code, Antigravity CLI (`agy`), Cursor, etc.).
 
 ## 1. Create a Kaggle Account
 

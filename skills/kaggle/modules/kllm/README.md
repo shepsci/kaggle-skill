@@ -29,7 +29,7 @@ For MCP Server: pass API key as `Authorization: Bearer <token>` header.
 |--------|------|----------|
 | **kagglehub** | Python library (`pip install kagglehub`) | Quick dataset/model download in Python |
 | **kaggle-cli** | CLI (`pip install kaggle>=2.2.3`) | Full workflow scripting (competitions, notebooks, datasets, models, forums, benchmarks) |
-| **Kaggle MCP Server** | Remote endpoint `https://www.kaggle.com/mcp` | AI agent integration (Claude Code, gemini-cli, Cursor, etc.) |
+| **Kaggle MCP Server** | Remote endpoint `https://www.kaggle.com/mcp` | AI agent integration (Claude Code, Antigravity CLI (`agy`), Cursor, etc.) |
 | **Kaggle UI** | Browser via Open Claw Chrome extension | Account setup, verification, visual exploration |
 
 ## Capability Matrix

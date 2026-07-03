@@ -50,8 +50,12 @@ explicit process instead of a loose compatibility claim.
 - [x] Claude Code - covered by the install round-trip above.
 - [x] OpenClaw - install with `clawhub install kaggle`, then run credential and
       Titanic summary smoke prompts.
-- [x] Gemini CLI - install with `npx skills add shepsci/kaggle-skill`, then run
-      the same smoke prompts.
+- [x] Antigravity CLI (`agy`) - install with `npx skills add shepsci/kaggle-skill`,
+      then run credential and Titanic summary smoke prompts.
+- [x] Gemini CLI - legacy compatibility smoke test with
+      `npx skills add shepsci/kaggle-skill`, then the same credential and
+      Titanic summary smoke prompts. Prefer Antigravity CLI (`agy`) for new
+      installs because it replaced Gemini CLI.
 
 If "Tested" is asserted for a platform, that platform needs a row in this list.
 `tests/manifest/test_no_false_claims.py::test_platform_tested_status_is_attested`
