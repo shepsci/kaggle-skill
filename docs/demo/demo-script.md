@@ -30,7 +30,7 @@ If credentials are already present in `~/.kaggle/access_token` or
 These are the commands shown in the cast:
 
 ```bash
-claude plugin marketplace add shepsci/claude-marketplace --scope local
+claude plugin marketplace add shepsci/kaggle-skill --scope local
 claude plugin marketplace update shepsci
 claude plugin install kaggle@shepsci --scope local
 
@@ -69,9 +69,9 @@ Use the returned cast id in the README demo badge:
 [![asciicast](https://asciinema.org/a/<cast-id>.svg)](https://asciinema.org/a/<cast-id>)
 ```
 
-Use an authenticated asciinema CLI for a permanent public URL. Anonymous
-uploads may expire; the source `.cast` file should still be committed so the
-demo can be replayed or re-uploaded.
+Use an authenticated asciinema CLI for a permanent public URL. The source
+`.cast` file should still be committed so the demo can be replayed or
+re-uploaded.
 
 Before committing the cast, scan it for secrets:
 

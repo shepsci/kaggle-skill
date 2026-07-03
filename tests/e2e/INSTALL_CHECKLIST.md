@@ -12,7 +12,7 @@ than in the automated test suite.
 
 ## Marketplace Install
 
-- [ ] `/plugin marketplace add shepsci/claude-marketplace` returns success.
+- [ ] `/plugin marketplace add shepsci/kaggle-skill` returns success.
 - [ ] `/plugin marketplace list` shows the `shepsci` catalog.
 - [ ] `/plugin install kaggle@shepsci` returns success with no version mismatch warning.
 - [ ] `/plugin` Installed tab shows `kaggle` at version `2.3.0`, matching
