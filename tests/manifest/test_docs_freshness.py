@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import re
 from pathlib import Path
 
@@ -39,6 +40,7 @@ SECRET_PATTERNS = [
 
 MARKDOWN_LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
 ASCIINEMA_RE = re.compile(r"https://asciinema\.org/a/[A-Za-z0-9]+(?:\.svg)?")
+ANSI_ESCAPE_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 REMOVED_CATALOG_COMMAND = "plugin marketplace add shepsci/" + "claude-" + "marketplace"
 DIRECT_CLAUDE_MARKETPLACE_COMMAND = "plugin marketplace add shepsci/kaggle-skill"
 
@@ -63,17 +65,16 @@ def test_public_docs_do_not_contain_stale_strings(stale: str):
     assert not offenders, f"{stale!r} appears in stale public docs: {offenders}"
 
 
-def test_readme_demo_embed_matches_committed_cast_state():
+def test_readme_demo_links_to_committed_cast_source():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     cast = REPO_ROOT / "docs" / "demo" / "install-and-demo.cast"
-    urls = ASCIINEMA_RE.findall(readme)
 
-    if cast.exists():
-        assert urls, "README must embed the asciinema demo once the cast is committed"
-        assert any(url.endswith(".svg") for url in urls), "README demo needs an asciinema badge image"
-        assert any(not url.endswith(".svg") for url in urls), "README demo needs a clickable cast link"
-    else:
-        assert not urls, "README must not link to asciinema before the cast is committed"
+    assert cast.exists(), "README demo source cast must be committed"
+    assert "docs/demo/install-and-demo.cast" in readme
+    assert not ASCIINEMA_RE.findall(readme), (
+        "README must not link to public asciinema uploads unless the committed "
+        "cast has been freshly uploaded and visually verified"
+    )
 
 
 def test_claude_install_docs_use_kaggle_skill_marketplace():
@@ -97,6 +98,46 @@ def test_committed_asciinema_cast_contains_no_credentials(cast: Path):
     text = cast.read_text(encoding="utf-8")
     offenders = [pattern.pattern for pattern in SECRET_PATTERNS if pattern.search(text)]
     assert not offenders, f"credential-looking material found in cast: {offenders}"
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
+    lines = cast.read_text(encoding="utf-8").splitlines()
+    assert lines, f"{cast.relative_to(REPO_ROOT)} is empty"
+
+    header = json.loads(lines[0])
+    assert header["version"] == 2
+    assert header["width"] >= 80
+    assert header["height"] >= 20
+
+    previous_time = -1.0
+    duration = 0.0
+    event_count = 0
+    for line_number, line in enumerate(lines[1:], start=2):
+        event = json.loads(line)
+        assert isinstance(event, list) and len(event) == 3, (
+            f"{cast.relative_to(REPO_ROOT)}:{line_number} must be an asciinema v2 event"
+        )
+        timestamp, stream, data = event
+        assert stream in {"o", "i"}
+        assert timestamp >= previous_time
+        previous_time = timestamp
+        duration = timestamp
+        event_count += 1
+
+        assert "\x1b" not in data
+        assert not ANSI_ESCAPE_RE.search(data)
+        bad_controls = [
+            char for char in data if ord(char) < 32 and char not in {"\r", "\n", "\t"}
+        ]
+        assert not bad_controls, (
+            f"{cast.relative_to(REPO_ROOT)}:{line_number} contains terminal control characters"
+        )
+
+    assert event_count > 0
+    assert 4.0 <= duration <= 90.0, (
+        f"{cast.relative_to(REPO_ROOT)} duration should be readable and under 90 seconds"
+    )
 
 
 @pytest.mark.parametrize("doc", list(_iter_text_files([REPO_ROOT / "README.md", REPO_ROOT / "docs"])))

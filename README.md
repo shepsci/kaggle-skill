@@ -21,12 +21,10 @@ CLI remains tested for legacy compatibility.
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/SAR4LCKUTmWrASEL.svg)](https://asciinema.org/a/SAR4LCKUTmWrASEL)
-
 Terminal walkthrough: install `kaggle@shepsci`, verify Kaggle credentials
 without exposing secrets, summarize Titanic competition pages, and retrieve
-recent Kaggle writeup discussions. The source cast is committed at
-[docs/demo/install-and-demo.cast](docs/demo/install-and-demo.cast).
+recent Kaggle writeup discussions. Replay the committed clean source cast with
+`asciinema play docs/demo/install-and-demo.cast`.
 More task-focused local screencasts live in the [demo library](docs/demo/README.md).
 
 ## Available On
