@@ -42,12 +42,12 @@ python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
 export PATH="<kaggle-2.2.3-venv>/bin:$PATH"
 kaggle --version
 python3 skills/kaggle/modules/kllm/scripts/cli_forums.py forum-topics \
-  --category competition_write_ups --sort-by recent --page-size 3 --format json
+  --category competition_write_ups --sort-by recent --page-size 2 --format json
 ```
 
 Keep the terminal focused on confirmations, summaries, and short wrapped
-Kaggle-supplied snippets. Do not scroll through full forum/writeup bodies in
-the cast.
+Kaggle-supplied snippets. Do not scroll through full forum/writeup bodies,
+pagination tokens, or long live API payloads in the cast.
 
 ## Recording with asciinema
 
@@ -63,7 +63,8 @@ asciinema cat docs/demo/install-and-demo.cast
 asciinema upload docs/demo/install-and-demo.cast
 ```
 
-Use the returned cast id in the README demo badge:
+Only add the returned cast id to public docs after replaying the uploaded cast
+and confirming it is clean:
 
 ```markdown
 [![asciicast](https://asciinema.org/a/<cast-id>.svg)](https://asciinema.org/a/<cast-id>)
