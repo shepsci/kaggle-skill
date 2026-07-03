@@ -73,7 +73,6 @@ Validation:
 
 ```bash
 $HOME/.local/bin/claude plugin validate .
-$HOME/.local/bin/claude plugin validate <claude-marketplace-root>
 tmp=$(mktemp -d /tmp/kaggle-claude-direct.XXXXXX)
 HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/xdg" \
   claude plugin marketplace add shepsci/kaggle-skill --scope local
@@ -85,7 +84,7 @@ PATH="$HOME/.local/bin:$PATH" RUN_CLAUDE_PLUGIN_SMOKE=1 python3 -m pytest \
 
 Result: passed. The direct smoke adds `shepsci/kaggle-skill` as the Claude
 marketplace source, installs `kaggle@shepsci`, and verifies that the in-repo
-marketplace manifest works without going through the separate personal catalog.
+marketplace manifest is sufficient for installation.
 The pytest smoke also validates the plugin, adds this repository as a temporary
 local Claude marketplace, installs `kaggle@shepsci`, and verifies that Claude
 lists the installed plugin.

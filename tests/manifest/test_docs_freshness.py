@@ -20,11 +20,14 @@ STALE_STRINGS = [
     "PLACEHOLDER",
     "v2.1.0",
     "kaggle-skill@shepsci",
+    "shepsci/" + "claude-" + "marketplace",
+    "<claude-" + "marketplace-root>",
     "66 tools",
     "currently 2.2.0",
 ]
 
 SECRET_PATTERNS = [
+    re.compile(r"KGAT_"),
     re.compile(r"KGAT_[A-Za-z0-9_\-]{8,}"),
     re.compile(r"KAGGLE_API_TOKEN\s*="),
     re.compile(r"access_token\s*[:=]\s*['\"]?[A-Za-z0-9_\-]{12,}"),
@@ -36,7 +39,7 @@ SECRET_PATTERNS = [
 
 MARKDOWN_LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
 ASCIINEMA_RE = re.compile(r"https://asciinema\.org/a/[A-Za-z0-9]+(?:\.svg)?")
-OLD_CLAUDE_MARKETPLACE_COMMAND = "plugin marketplace add shepsci/claude-marketplace"
+REMOVED_CATALOG_COMMAND = "plugin marketplace add shepsci/" + "claude-" + "marketplace"
 DIRECT_CLAUDE_MARKETPLACE_COMMAND = "plugin marketplace add shepsci/kaggle-skill"
 
 
@@ -73,7 +76,7 @@ def test_readme_demo_embed_matches_committed_cast_state():
         assert not urls, "README must not link to asciinema before the cast is committed"
 
 
-def test_claude_install_docs_prefer_direct_repo_marketplace():
+def test_claude_install_docs_use_kaggle_skill_marketplace():
     primary_docs = [
         REPO_ROOT / "README.md",
         REPO_ROOT / "docs" / "README.md",
@@ -83,7 +86,7 @@ def test_claude_install_docs_prefer_direct_repo_marketplace():
     for path in primary_docs:
         text = path.read_text(encoding="utf-8")
         assert DIRECT_CLAUDE_MARKETPLACE_COMMAND in text
-        assert OLD_CLAUDE_MARKETPLACE_COMMAND not in text
+        assert REMOVED_CATALOG_COMMAND not in text
 
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))

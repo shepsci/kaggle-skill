@@ -27,7 +27,6 @@ package through one of the documented forms:
 - Public skill name: `kaggle`
 - Repository: https://github.com/shepsci/kaggle-skill
 - Primary marketplace source: https://github.com/shepsci/kaggle-skill
-- Optional aggregate marketplace: https://github.com/shepsci/claude-marketplace
 - License: MIT
 - Category: data-science
 - Version: 2.3.0
@@ -42,15 +41,9 @@ The in-repo Claude marketplace entry lives at:
 .claude-plugin/marketplace.json
 ```
 
-The synced personal marketplace entry lives at:
-
-```text
-<claude-marketplace-root>/.claude-plugin/marketplace.json
-```
-
 ## Install Path
 
-Preferred direct install:
+Install from this repository as the marketplace source:
 
 ```text
 /plugin marketplace add shepsci/kaggle-skill
@@ -63,17 +56,13 @@ This repository now contains that file directly, so `shepsci/kaggle-skill` can
 be added as the marketplace. The marketplace manifest name is still `shepsci`,
 so the install selector remains `kaggle@shepsci`.
 
-The separate `shepsci/claude-marketplace` repository remains useful as an
-aggregate personal catalog, but it is no longer the primary install path for
-this single plugin.
-
 Install selector:
 
 ```text
 kaggle@shepsci
 ```
 
-When submitting a separate catalog entry, use an HTTPS git URL source:
+For Claude community submission metadata, use an HTTPS git URL source:
 
 ```json
 {
@@ -120,7 +109,6 @@ Commands run before submission:
 
 ```bash
 $HOME/.local/bin/claude plugin validate .
-$HOME/.local/bin/claude plugin validate <claude-marketplace-root>
 tmp=$(mktemp -d /tmp/kaggle-claude-direct.XXXXXX)
 HOME="$tmp/home" XDG_CONFIG_HOME="$tmp/xdg" \
   claude plugin marketplace add shepsci/kaggle-skill --scope local
@@ -134,7 +122,6 @@ python3 -m pytest -q
 Current results:
 
 - `claude plugin validate .`: passed.
-- `claude plugin validate <claude-marketplace-root>`: passed.
 - Direct `shepsci/kaggle-skill` marketplace add/install smoke: passed.
 - Claude marketplace/install smoke: passed.
 - Full test suite: passed locally.

@@ -72,10 +72,8 @@ More screencasts live in the [demo library](docs/demo/README.md).
 ```
 
 Claude's `marketplace add` command adds a marketplace catalog, not an individual
-plugin. `shepsci/kaggle-skill` now contains its own `.claude-plugin/marketplace.json`,
-so it is the preferred marketplace source. The older
-`shepsci/claude-marketplace` catalog still works as an aggregate catalog, but it
-is no longer the shortest install path for this plugin.
+plugin. `shepsci/kaggle-skill` contains its own `.claude-plugin/marketplace.json`,
+so it is the canonical Claude marketplace source for `kaggle`.
 
 ### Codex
 
