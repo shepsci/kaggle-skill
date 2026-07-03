@@ -12,7 +12,9 @@ collection.
 
 The repository name is `kaggle-skill`; the public skill and plugin name is
 `kaggle`. It works with agents that support SKILL-style packages, including
-Claude Code, Codex, OpenClaw, Gemini CLI, Cursor, and 35+ agents via skills.sh.
+Claude Code, Codex, OpenClaw, Antigravity CLI (`agy`), Cursor, and 35+ agents
+via skills.sh. Antigravity CLI is recommended for new installs; Gemini CLI
+remains tested for legacy compatibility.
 
 ## Demo
 
@@ -240,8 +242,9 @@ Network egress is limited to Kaggle, Google storage, PyPI, and GitHub domains in
 |---|---|
 | Claude Code | Tested |
 | OpenClaw | Tested |
+| Antigravity CLI (`agy`) | Tested |
+| Gemini CLI (legacy) | Tested |
 | Codex | Compatible |
-| Gemini CLI | Tested |
 | Cursor | Compatible |
 | GitHub Copilot | Compatible |
 | Cline | Compatible |

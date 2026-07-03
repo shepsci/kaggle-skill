@@ -30,15 +30,31 @@ claude mcp add kaggle --transport http https://www.kaggle.com/mcp \
   --header "Authorization: Bearer YOUR_API_KEY"
 ```
 
-### gemini-cli
+### Antigravity CLI (`agy`)
 
-```bash
-# Add to your gemini-cli MCP config (see gemini-cli docs for exact syntax)
-# Endpoint: https://www.kaggle.com/mcp
-# Header: Authorization: Bearer YOUR_API_KEY
+Type `/mcp` inside `agy` to open the interactive MCP manager, or add the server
+to a config file directly:
+
+- Workspace config: `.agents/mcp_config.json`
+- Global config: `~/.gemini/config/mcp_config.json`
+
+```json
+{
+  "mcpServers": {
+    "kaggle": {
+      "serverUrl": "https://www.kaggle.com/mcp",
+      "headers": {
+        "Authorization": "Bearer YOUR_API_TOKEN"
+      }
+    }
+  }
+}
 ```
 
 ### Generic MCP Client (Claude Desktop, Cursor, etc.)
+
+Check your client docs for the exact remote-server key. Many clients use
+`url`; Antigravity CLI uses `serverUrl`.
 
 ```json
 {
@@ -46,7 +62,7 @@ claude mcp add kaggle --transport http https://www.kaggle.com/mcp \
     "kaggle": {
       "url": "https://www.kaggle.com/mcp",
       "headers": {
-        "Authorization": "Bearer YOUR_API_KEY"
+        "Authorization": "Bearer YOUR_API_TOKEN"
       }
     }
   }
