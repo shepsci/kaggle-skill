@@ -57,7 +57,7 @@ RUN_CODEX_PLUGIN_SMOKE=1 python3 -m pytest \
 Commands run before submission:
 
 ```bash
-python3 /Users/smallmacmini/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 "$CODEX_HOME/skills/.system/plugin-creator/scripts/validate_plugin.py" .
 RUN_CODEX_PLUGIN_SMOKE=1 python3 -m pytest \
   tests/e2e/test_plugin_install_smoke.py::test_codex_plugin_marketplace_smoke -q
 python3 -m pytest -q

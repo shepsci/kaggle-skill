@@ -1,74 +1,65 @@
 # Manual Install Round-Trip Checklist
 
-Run this once per release in a **fresh** Claude Code session (no kaggle-skill
-previously installed). Anything that requires a real `/plugin` slash command
-or a real Kaggle account interaction lives here — automated tests can't cover
-these surfaces.
+Run this once per release in a fresh Claude Code session. Anything that needs a
+real slash command, browser, or Kaggle account interaction lives here rather
+than in the automated test suite.
 
 ## Setup
 
-- [ ] Fresh Claude Code session (CLI, VS Code, JetBrains, or Desktop)
-- [ ] No `kaggle-skill` plugin currently installed (`/plugin` → Installed tab is clean)
-- [ ] `KAGGLE_API_TOKEN` available (env var or `~/.kaggle/access_token`) for the MCP step
+- [ ] Fresh Claude Code session.
+- [ ] No `kaggle` plugin currently installed (`/plugin` Installed tab is clean).
+- [ ] `KAGGLE_API_TOKEN` or `~/.kaggle/access_token` available for MCP checks.
 
-## Marketplace install
+## Marketplace Install
 
-- [ ] `/plugin marketplace add shepsci/claude-marketplace` — returns success
-- [ ] `/plugin marketplace list` — shows `shepsci` catalog
-- [ ] `/plugin install kaggle@shepsci` — returns success, no version mismatch warnings
-- [ ] `/plugin` Installed tab shows `kaggle-skill` at the version that matches
-      `.claude-plugin/plugin.json` and `pyproject.toml` (currently 2.2.0)
+- [ ] `/plugin marketplace add shepsci/claude-marketplace` returns success.
+- [ ] `/plugin marketplace list` shows the `shepsci` catalog.
+- [ ] `/plugin install kaggle@shepsci` returns success with no version mismatch warning.
+- [ ] `/plugin` Installed tab shows `kaggle` at version `2.3.0`, matching
+      `.claude-plugin/plugin.json` and `pyproject.toml`.
 
-## Bundled MCP server
+## Bundled MCP Server
 
-- [ ] In a chat, ask: "list the Kaggle MCP tools" — agent reports ~70 tools (sanity check)
-- [ ] Ask: "summarize the rules and evaluation metric for the titanic competition" —
-      agent calls `list_competition_pages`, returns rules + evaluation summary
-- [ ] Ask: "pull every writeup from kaggle-measuring-agi and group by track" —
-      agent calls `list_hackathon_tracks` + `list_hackathon_write_ups`,
-      returns roster grouped by track title
+- [ ] Ask: "list the Kaggle MCP tools" - agent reports about 70 tools.
+- [ ] Ask: "summarize the rules and evaluation metric for the titanic competition" -
+      agent calls `list_competition_pages` and returns rules plus evaluation summary.
+- [ ] Ask: "search recent Kaggle competition writeup discussions and show three useful results" -
+      agent uses the forum/topic or writeup workflow without exposing credentials.
 
-## SessionStart hook
+## SessionStart Hook
 
-- [ ] Open a new Claude Code session in the cloned repo. The
-      `setup_env.sh` SessionStart hook fires automatically.
-- [ ] Output includes "[OK] access_token already exists" or "[INFO] No Kaggle credentials found"
-- [ ] Output does NOT include any `pip install` activity (silent install was
-      removed in v2.2.0)
+- [ ] Open a new Claude Code session in the cloned repo. The `setup_env.sh`
+      SessionStart hook fires automatically.
+- [ ] Output includes `[OK] access_token already exists` or
+      `[INFO] No Kaggle credentials found`.
+- [ ] Output does not include `pip install` activity.
 
-## Skills.sh + ClawHub (alternate distributions)
+## Alternate Distributions
 
-- [ ] `npx skills add shepsci/kaggle-skill` succeeds in a separate temp dir
-- [ ] `clawhub install kaggle` succeeds (if you have ClawHub set up)
+- [ ] `npx skills add shepsci/kaggle-skill` succeeds in a separate temp dir.
+- [ ] `clawhub install kaggle` succeeds if ClawHub is available.
+- [ ] `codex plugin marketplace add shepsci/kaggle-skill --ref main` followed by
+      `codex plugin add kaggle@shepsci` succeeds in a temporary `CODEX_HOME`.
 
-## Cross-platform testing (maintainer attestation)
+## Cross-Platform Testing
 
 The "Tested" platforms in the README compatibility table are exercised by the
-maintainer on dedicated machines per release; the artifacts of those runs are
-not committed here, but the testing convention is recorded so the README's
-"Tested" claim is grounded in a documented practice rather than asserted
-without evidence.
+maintainer per release. These attestations keep the README grounded in an
+explicit process instead of a loose compatibility claim.
 
-- [x] **Claude Code** (CLI / VS Code / JetBrains / Desktop) — covered by the
-      install round-trip section above. Run on the maintainer's primary
-      machine before each release tag.
-- [x] **OpenClaw** — exercised on a separate machine via
-      `clawhub install kaggle` followed by a smoke prompt
-      ("set up my Kaggle credentials" + "summarize the rules for the titanic
-      competition") to confirm credential discovery and bundled MCP routing.
-- [x] **Gemini CLI** — exercised on a separate machine via the
-      `npx skills add shepsci/kaggle-skill` install, then asking the agent
-      to run the same smoke prompt. Confirms SKILL.md frontmatter is read and
-      that scripts are invokable through Gemini's tool-use loop.
+- [x] Claude Code - covered by the install round-trip above.
+- [x] OpenClaw - install with `clawhub install kaggle`, then run credential and
+      Titanic summary smoke prompts.
+- [x] Gemini CLI - install with `npx skills add shepsci/kaggle-skill`, then run
+      the same smoke prompts.
 
-If "Tested" is being asserted for a platform, that platform needs a row in
-this list. The `tests/manifest/test_no_false_claims.py::test_platform_tested_status_is_attested`
-test enforces this — if the README says "Tested" and the platform name does
-not appear in this checklist, the test goes red.
+If "Tested" is asserted for a platform, that platform needs a row in this list.
+`tests/manifest/test_no_false_claims.py::test_platform_tested_status_is_attested`
+enforces this.
 
 ## Cleanup
 
-- [ ] `/plugin uninstall kaggle@shepsci` — clean removal, no leftover files
+- [ ] `/plugin uninstall kaggle@shepsci` removes the plugin cleanly.
 
-If any check fails, open an issue with the failing step + the error output and
-the Claude Code version (`claude --version`).
+If any check fails, open an issue with the failing step, error output, and
+Claude Code version (`claude --version`).

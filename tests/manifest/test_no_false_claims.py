@@ -57,6 +57,8 @@ def test_badge_registry_count_matches_documented_count():
 
 PUBLIC_CLAIM_FILES = [
     REPO_ROOT / "README.md",
+    REPO_ROOT / "docs" / "README.md",
+    REPO_ROOT / "docs" / "demo" / "demo-script.md",
     REPO_ROOT / "skills" / "kaggle" / "SKILL.md",
     REPO_ROOT / ".claude-plugin" / "plugin.json",
     REPO_ROOT / ".codex-plugin" / "plugin.json",
