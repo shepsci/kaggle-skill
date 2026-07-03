@@ -47,7 +47,7 @@ Result: passed. The live server exposed 70 tools on 2026-07-03.
 Validation:
 
 ```bash
-python3 /Users/smallmacmini/.codex/skills/.system/plugin-creator/scripts/validate_plugin.py .
+python3 "$CODEX_HOME/skills/.system/plugin-creator/scripts/validate_plugin.py" .
 RUN_CODEX_PLUGIN_SMOKE=1 python3 -m pytest \
   tests/e2e/test_plugin_install_smoke.py::test_codex_plugin_marketplace_smoke -q
 ```
@@ -73,7 +73,7 @@ Validation:
 
 ```bash
 $HOME/.local/bin/claude plugin validate .
-$HOME/.local/bin/claude plugin validate /Users/smallmacmini/work/claude-marketplace
+$HOME/.local/bin/claude plugin validate <claude-marketplace-root>
 PATH="$HOME/.local/bin:$PATH" RUN_CLAUDE_PLUGIN_SMOKE=1 python3 -m pytest \
   tests/e2e/test_plugin_install_smoke.py::test_claude_plugin_install_smoke -q
 ```

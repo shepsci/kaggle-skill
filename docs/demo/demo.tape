@@ -1,4 +1,4 @@
-# vhs tape file for the kaggle-skill v2.1.0 README demo.
+# vhs tape file for the kaggle-skill v2.3.0 README demo.
 #
 # Renders to docs/demo/install-and-demo.gif when you run:
 #   vhs docs/demo/demo.tape
@@ -16,7 +16,7 @@ Set Theme "Catppuccin Mocha"
 Set TypingSpeed 60ms
 Set PlaybackSpeed 1.0
 
-# Open Claude Code (placeholder — actual recording happens inside a real session)
+# Open Claude Code. The asciinema recording is the canonical issue #7 artifact.
 Type "claude"
 Enter
 Sleep 2s
@@ -31,8 +31,8 @@ Type "/plugin install kaggle@shepsci"
 Enter
 Sleep 3s
 
-# Step 3: ask in plain English to set up credentials
-Type "set up my Kaggle credentials"
+# Step 3: ask in plain English to verify credentials without displaying secrets
+Type "set up my Kaggle credentials and verify them without showing any secrets"
 Enter
 Sleep 5s
 
@@ -41,8 +41,8 @@ Type "summarize the rules and evaluation metric for the titanic competition"
 Enter
 Sleep 8s
 
-# Step 5: hackathon demo
-Type "pull every writeup from kaggle-measuring-agi and group by track"
+# Step 5: forums/writeups demo
+Type "search recent Kaggle competition writeup discussions and show three useful results"
 Enter
 Sleep 8s
 

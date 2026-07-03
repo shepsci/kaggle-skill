@@ -44,7 +44,7 @@ The in-repo Claude marketplace entry lives at:
 The synced personal marketplace entry lives at:
 
 ```text
-/Users/smallmacmini/work/claude-marketplace/.claude-plugin/marketplace.json
+<claude-marketplace-root>/.claude-plugin/marketplace.json
 ```
 
 Install selector:
@@ -100,7 +100,7 @@ Commands run before submission:
 
 ```bash
 $HOME/.local/bin/claude plugin validate .
-$HOME/.local/bin/claude plugin validate /Users/smallmacmini/work/claude-marketplace
+$HOME/.local/bin/claude plugin validate <claude-marketplace-root>
 PATH="$HOME/.local/bin:$PATH" RUN_CLAUDE_PLUGIN_SMOKE=1 python3 -m pytest \
   tests/e2e/test_plugin_install_smoke.py::test_claude_plugin_install_smoke -q
 python3 -m pytest -q
@@ -109,6 +109,6 @@ python3 -m pytest -q
 Current results:
 
 - `claude plugin validate .`: passed.
-- `claude plugin validate /Users/smallmacmini/work/claude-marketplace`: passed.
+- `claude plugin validate <claude-marketplace-root>`: passed.
 - Claude marketplace/install smoke: passed.
 - Full test suite: passed locally.
