@@ -32,8 +32,8 @@ More task-focused local screencasts live in the [demo library](docs/demo/README.
 |---|---|---|
 | skills.sh | [skills.sh/shepsci/kaggle-skill](https://skills.sh/shepsci/kaggle-skill/kaggle) | `npx skills add shepsci/kaggle-skill` |
 | ClawHub | [clawhub.ai/skills/kaggle](https://clawhub.ai/skills/kaggle) | `clawhub install kaggle` |
-| Codex repo marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
-| Claude Code marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `/plugin marketplace add shepsci/kaggle-skill` then `/plugin install kaggle@shepsci` |
+| Codex self-hosted repo marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
+| Claude Code self-hosted marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `/plugin marketplace add shepsci/kaggle-skill` then `/plugin install kaggle@shepsci` |
 
 ## What You Can Ask
 
@@ -63,7 +63,7 @@ More task-focused local screencasts live in the [demo library](docs/demo/README.
 | Competition landscape reports | [Competition report module](skills/kaggle/modules/comp-report/README.md) |
 | Badge collection | [Badge collector module](skills/kaggle/modules/badge-collector/README.md) |
 | Troubleshooting | [Troubleshooting guide](docs/troubleshooting.md) |
-| Plugin distribution status | [Codex request packet](docs/distribution/codex-curated-plugin-request.md) and [Claude submission packet](docs/distribution/claude-community-submission.md) |
+| Plugin distribution status | [Codex request packet](docs/distribution/codex-curated-plugin-request.md) and [Claude directory packet](docs/distribution/claude-community-submission.md) |
 | Screencasts and demo recording | [Demo library](docs/demo/README.md) |
 
 ## Install
@@ -217,9 +217,26 @@ This repo includes:
 - `.claude-plugin/plugin.json` for Claude Code.
 - `.claude-plugin/marketplace.json` for in-repo Claude marketplace metadata.
 
-Codex curated plugins and Claude curated marketplace entries are separate
-review processes. This repo does not claim curated listing status unless those
-catalogs list it.
+Current status:
+
+- `kaggle-skill` is self-hosted and installable from this repository and from
+  third-party skill indexes such as skills.sh and ClawHub.
+- Claude plugin-directory submission is the first official-listing target.
+  Anthropic Verified is a separate discretionary review goal to pursue after
+  directory acceptance and usage evidence.
+- Codex curated listing depends on OpenAI's official publishing or partner
+  review path. The repo marketplace remains the supported Codex install path
+  until a curated listing is accepted.
+- This repository does not claim Claude official, Anthropic Verified, or
+  OpenAI-curated status unless those default catalogs list it.
+
+The plugin selector remains `kaggle@shepsci` for compatibility with existing
+installs. If a reviewer requires a less first-party-looking identifier, use the
+distribution packets to evaluate a future rename such as `kaggle-workflows`.
+
+The bundled `.mcp.json` configures Kaggle's remote MCP endpoint with a
+user-provided bearer token from `KAGGLE_API_TOKEN`. That is documented as a
+review consideration in the Claude and Codex distribution packets.
 
 ## Security
 
@@ -234,6 +251,9 @@ Security claims are backed by tests in `tests/security/` and `tests/manifest/`.
 | Dataset slugs are validated before shell use | `tests/security/test_dataset_slug_validation.py` |
 | SessionStart hook avoids auto-installing packages or sourcing CWD `.env` | `tests/security/test_session_start_hook_safety.py` |
 | MCP config uses HTTPS plus env-var token substitution | `tests/manifest/test_mcp_json_valid.py` |
+
+Report security issues through [SECURITY.md](SECURITY.md). General support and
+distribution questions can be filed as GitHub issues.
 
 Network egress is limited to Kaggle, Google storage, PyPI, and GitHub domains in
 `.claude/settings.json`.

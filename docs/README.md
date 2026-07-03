@@ -51,7 +51,7 @@ has the detailed credential walkthrough.
 |---|---|
 | Validate live Kaggle CLI, MCP, and plugin install paths | [Live validation notes](distribution/live-validation.md) |
 | Prepare Codex curated-plugin review material | [Codex request packet](distribution/codex-curated-plugin-request.md) |
-| Prepare Claude community marketplace material | [Claude submission packet](distribution/claude-community-submission.md) |
+| Prepare Claude directory submission material | [Claude directory packet](distribution/claude-community-submission.md) |
 | Run manual install checks | [Manual install checklist](../tests/e2e/INSTALL_CHECKLIST.md) |
 | Watch or record screencasts | [Demo library](demo/README.md) |
 
@@ -62,3 +62,7 @@ topics, writeup bodies, overview pages, leaderboard rosters, or submission
 lists wrap those outputs in `<untrusted-content>` markers. Credential redaction,
 zip extraction, dynamic import/eval avoidance, and manifest drift are enforced
 by tests under `tests/security/` and `tests/manifest/`.
+
+The repo marketplace install paths are self-hosted. Official Claude directory,
+Anthropic Verified, and OpenAI-curated Codex listings are separate review
+outcomes tracked in the distribution packets.

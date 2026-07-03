@@ -1,6 +1,6 @@
 ---
 name: kaggle
-description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, forums, discussions, benchmarks, GPUs, TPUs, hackathons, writeups, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, discussion and writeup retrieval, benchmark workflows, badge collection, and general Kaggle questions."
+description: "Unified Kaggle skill. Use when the user explicitly mentions Kaggle, kaggle.com, a Kaggle URL, Kaggle competitions, Kaggle datasets/models/notebooks, Kaggle forums/discussions/writeups, Kaggle benchmarks, hackathons hosted on Kaggle, Kaggle badges, or Kaggle account setup. Do not use for generic ML, GPU/TPU, notebook, dataset, benchmark, or data-science tasks unless the user clearly ties them to Kaggle."
 license: MIT
 compatibility: "Python 3.11+, pip packages kagglehub>=1.0.0, kaggle>=2.2.3, kagglesdk>=0.1.33,<1.0, requests, python-dotenv. Optional: playwright for browser badges; kaggle-benchmarks for local benchmark task authoring. The comp-report module's SPA-scraping steps assume Playwright MCP tools are provided by the host agent; the skill itself does not bundle them."
 homepage: https://github.com/shepsci/kaggle-skill
@@ -17,8 +17,27 @@ forum/discussion research, writeup retrieval, benchmark workflows, badge
 collection, and general Kaggle questions. Five integrated modules working
 together.
 
+Do not activate this skill for generic machine learning, GPU/TPU, notebook,
+dataset, model, benchmark, or data-science work unless the user clearly ties the
+task to Kaggle.
+
 **Network requirements:** outbound HTTPS to `api.kaggle.com`, `www.kaggle.com`,
 and `storage.googleapis.com`.
+
+## Sensitive Action Policy
+
+Default to read-only or dry-run workflows until the user clearly asks for an
+account-modifying action. Require explicit user intent before:
+
+- submitting predictions or notebooks to a competition;
+- creating, updating, or publishing datasets, models, notebooks, or benchmarks;
+- running badge-collection phases that modify account-visible state;
+- scheduling or generating recurring helper scripts for streak workflows.
+
+When a dry-run command exists, run it first and summarize what would happen
+before executing the real action. Never assume that a broad request such as
+"optimize my Kaggle workflow" authorizes submissions, publishing, or badge
+activity.
 
 ## Modules
 
@@ -197,6 +216,9 @@ python3 modules/badge-collector/scripts/orchestrator.py --phase 1
 python3 modules/badge-collector/scripts/orchestrator.py --status
 ```
 
+Always run `--dry-run` first and require explicit user intent before running
+badge phases, because badge activity can become profile-visible.
+
 `Read modules/badge-collector/README.md` for full details.
 
 ## Orchestration Workflow
@@ -282,6 +304,10 @@ This skill performs both read-only and write operations on kaggle.com.
 - Submit predictions to competitions
 - Push and execute notebooks on Kaggle Kernel Backend (KKB)
 - Earn badges through API activity (profile-visible)
+
+Before any write operation, state the account-visible effect, any quota or
+submission-slot impact, and the exact command to be run. Proceed only when the
+user has clearly asked for that write operation.
 
 **Phase 5 (Streaks)** generates a local shell script for daily execution but
 does **not** auto-install cron jobs or launchd plists. Users must manually
