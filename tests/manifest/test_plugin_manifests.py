@@ -52,3 +52,21 @@ def test_claude_plugin_and_in_repo_marketplace_use_public_name():
     assert entries[0]["version"] == plugin["version"]
     assert entries[0]["description"] == plugin["description"]
     assert entries[0]["source"] == "./"
+
+
+def test_public_plugin_metadata_has_affiliation_disclaimer():
+    disclaimer = "not affiliated with, endorsed by, or sponsored by kaggle or google"
+    codex = _json(".codex-plugin/plugin.json")
+    claude = _json(".claude-plugin/plugin.json")
+    claude_marketplace = _json(".claude-plugin/marketplace.json")
+
+    public_strings = [
+        codex["description"],
+        codex["interface"]["longDescription"],
+        claude["description"],
+        claude_marketplace["description"],
+        claude_marketplace["plugins"][0]["description"],
+    ]
+
+    for value in public_strings:
+        assert disclaimer in value.lower()

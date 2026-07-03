@@ -5,6 +5,10 @@ documentation and workflow guidance from the upstream projects below. Adapted
 material is limited to command references, workflow summaries, safety patterns,
 and marketplace packaging patterns.
 
+This is an independent, unofficial project. It is not affiliated with,
+endorsed by, or sponsored by Kaggle, Google, NVIDIA, or the upstream projects
+listed below.
+
 ## Kaggle CLI
 
 - Source: https://github.com/Kaggle/kaggle-cli

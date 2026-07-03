@@ -2,6 +2,8 @@
 
 This hub points to the shortest useful path for each Kaggle workflow. The
 repository is `kaggle-skill`; the public skill and plugin selector is `kaggle`.
+This is an independent, unofficial project. It is not affiliated with,
+endorsed by, or sponsored by Kaggle or Google.
 
 ## Start Here
 
