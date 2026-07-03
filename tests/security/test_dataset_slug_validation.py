@@ -13,7 +13,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CLI_DOWNLOAD = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "scripts" / "cli_download.sh"
+CLI_DOWNLOAD = REPO_ROOT / "skills" / "kaggle" / "modules" / "datasets" / "scripts" / "cli_download.sh"
 
 
 @pytest.mark.parametrize("bad_slug", [

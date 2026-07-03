@@ -59,10 +59,10 @@ RUN_CODEX_PLUGIN_SMOKE=1 python3 -m pytest \
 - `.agents/plugins/marketplace.json`
 - `.mcp.json`
 - `skills/kaggle/SKILL.md`
-- `skills/kaggle/modules/kllm/references/cli-reference.md`
-- `skills/kaggle/modules/kllm/references/forums-writeups.md`
-- `skills/kaggle/modules/kllm/references/benchmarks-cli.md`
-- `skills/kaggle/modules/kllm/references/competition-research.md`
+- `skills/kaggle/modules/references/cli-reference.md`
+- `skills/kaggle/modules/discussions/references/writeups.md`
+- `skills/kaggle/modules/benchmarks/references/benchmarks-cli.md`
+- `skills/kaggle/modules/competitions/references/competition-research.md`
 
 ## Validation Evidence
 

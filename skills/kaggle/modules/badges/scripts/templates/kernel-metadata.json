@@ -1,0 +1,16 @@
+{
+  "id": "USERNAME/kaggle-badges-notebook",
+  "title": "kaggle-badges-notebook",
+  "code_file": "notebook.ipynb",
+  "language": "python",
+  "kernel_type": "notebook",
+  "is_private": true,
+  "enable_gpu": false,
+  "enable_tpu": false,
+  "enable_internet": false,
+  "keywords": ["kaggle-badges", "automated"],
+  "dataset_sources": [],
+  "kernel_sources": [],
+  "competition_sources": [],
+  "model_sources": []
+}

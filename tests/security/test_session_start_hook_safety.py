@@ -11,7 +11,7 @@ from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
 SETTINGS = REPO_ROOT / ".claude" / "settings.json"
-SETUP_ENV = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "scripts" / "setup_env.sh"
+SETUP_ENV = REPO_ROOT / "skills" / "kaggle" / "modules" / "setup" / "scripts" / "setup_env.sh"
 
 
 def _hook_command() -> str:
@@ -57,7 +57,7 @@ def test_setup_env_does_not_source_env_from_cwd():
         if "source .env" in stripped or 'source "./.env"' in stripped or 'source "${PWD}' in stripped:
             raise AssertionError(
                 f"setup_env.sh:{line_no}: sources .env from CWD — must source from "
-                "PLUGIN_ROOT/.env or skip. Line: {line!r}"
+                "SKILL_ROOT/.env or skip. Line: {line!r}"
             )
 
 

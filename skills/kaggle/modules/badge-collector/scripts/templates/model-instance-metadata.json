@@ -1,9 +1,0 @@
-{
-  "ownerSlug": "USERNAME",
-  "modelSlug": "badge-collector-sample-model",
-  "instanceSlug": "default",
-  "framework": "other",
-  "overview": "Default instance of the badge collector sample model",
-  "licenseName": "Apache 2.0",
-  "fineTunable": false
-}

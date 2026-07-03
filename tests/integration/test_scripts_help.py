@@ -19,26 +19,28 @@ REPO_ROOT = Path(__file__).resolve().parents[2]
 
 # Scripts that use argparse and MUST accept --help with rc=0 + "usage" in output.
 ARGPARSE_SCRIPTS = [
-    "skills/kaggle/modules/comp-report/scripts/list_competitions.py",
-    "skills/kaggle/modules/comp-report/scripts/competition_details.py",
-    "skills/kaggle/modules/kllm/scripts/kagglehub_download.py",
-    "skills/kaggle/modules/kllm/scripts/kagglehub_publish.py",
-    "skills/kaggle/modules/kllm/scripts/list_competition_pages.py",
-    "skills/kaggle/modules/kllm/scripts/cli_forums.py",
-    "skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py",
-    "skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py",
-    "skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py",
-    "skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py",
-    "skills/kaggle/modules/badge-collector/scripts/orchestrator.py",
+    "skills/kaggle/modules/competitions/scripts/list_competitions.py",
+    "skills/kaggle/modules/competitions/scripts/competition_details.py",
+    "skills/kaggle/modules/datasets/scripts/kagglehub_download.py",
+    "skills/kaggle/modules/datasets/scripts/kagglehub_publish.py",
+    "skills/kaggle/modules/models/scripts/kagglehub_download.py",
+    "skills/kaggle/modules/models/scripts/kagglehub_publish.py",
+    "skills/kaggle/modules/competitions/scripts/competition_pages.py",
+    "skills/kaggle/modules/discussions/scripts/forums.py",
+    "skills/kaggle/modules/discussions/scripts/leaderboard_writeups.py",
+    "skills/kaggle/modules/competitions/hackathons/scripts/hackathon_overview.py",
+    "skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py",
+    "skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py",
+    "skills/kaggle/modules/badges/scripts/orchestrator.py",
 ]
 
 # Scripts that take no args (info/checker style) and print a Usage: block on
 # argv mismatch but don't go through argparse. We just verify they exist and
 # that asking for --help prints SOMETHING actionable.
 NO_ARGPARSE_SCRIPTS = [
-    "skills/kaggle/shared/check_all_credentials.py",
-    "skills/kaggle/modules/registration/scripts/check_registration.py",
-    "skills/kaggle/modules/kllm/scripts/check_credentials.py",
+    "skills/kaggle/modules/setup/scripts/check_all_credentials.py",
+    "skills/kaggle/modules/setup/scripts/check_registration.py",
+    "skills/kaggle/modules/setup/scripts/check_credentials.py",
 ]
 
 

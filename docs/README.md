@@ -16,11 +16,8 @@ endorsed by, or sponsored by Kaggle or Google.
 | OpenClaw | `clawhub install kaggle` |
 | Manual clone | install the dependencies in `pyproject.toml`, then copy `skills/kaggle/` into the agent skills directory |
 
-Antigravity CLI (`agy`) is the recommended terminal-first path for new Google
-agent CLI installs. Gemini CLI remains a legacy compatibility target.
-
 Before running Kaggle workflows, set `KAGGLE_API_TOKEN` or create
-`~/.kaggle/access_token`. The [registration module](../skills/kaggle/modules/registration/README.md)
+`~/.kaggle/access_token`. The [setup module](../skills/kaggle/modules/setup/README.md)
 has the detailed credential walkthrough.
 
 ## Choose A Path
@@ -28,6 +25,7 @@ has the detailed credential walkthrough.
 | Situation | Best First Stop |
 |---|---|
 | You know the task but not the module | [Workflow guide](workflows.md) |
+| You want the module map | [Modules guide](../skills/kaggle/modules/README.md) |
 | Something failed or returned empty data | [Troubleshooting guide](troubleshooting.md) |
 | You want to see the flows in motion | [Demo library](demo/README.md) |
 
@@ -35,17 +33,17 @@ has the detailed credential walkthrough.
 
 | Workflow | Reference |
 |---|---|
-| Check credentials | [Registration module](../skills/kaggle/modules/registration/README.md) |
-| Summarize rules, evaluation, data pages, and timelines | [KLLM task workflows](../skills/kaggle/modules/kllm/README.md) |
-| Generate competition landscape reports | [Competition report module](../skills/kaggle/modules/comp-report/README.md) |
-| Search forums and resource topics | [Forums/writeups reference](../skills/kaggle/modules/kllm/references/forums-writeups.md) |
-| Discover leaderboard solution writeup links | [Forums/writeups reference](../skills/kaggle/modules/kllm/references/forums-writeups.md) |
-| Retrieve hackathon writeups | [Hackathon workflow](../skills/kaggle/modules/kllm/hackathon/README.md) |
-| Use current Kaggle CLI commands | [CLI reference](../skills/kaggle/modules/kllm/references/cli-reference.md) |
-| Author and run benchmark tasks | [Benchmarks reference](../skills/kaggle/modules/kllm/references/benchmarks-cli.md) |
-| Inspect MCP tool coverage | [MCP reference](../skills/kaggle/modules/kllm/references/mcp-reference.md) |
-| Collect badges | [Badge collector module](../skills/kaggle/modules/badge-collector/README.md) |
-| Troubleshoot common failures | [Troubleshooting guide](troubleshooting.md) |
+| Check credentials | [Setup module](../skills/kaggle/modules/setup/README.md) |
+| Summarize rules, evaluation, data pages, and timelines | [Competitions module](../skills/kaggle/modules/competitions/README.md) |
+| Retrieve hackathon writeups | [Hackathon workflow](../skills/kaggle/modules/competitions/hackathons/README.md) |
+| Download or publish datasets | [Datasets module](../skills/kaggle/modules/datasets/README.md) |
+| Download or publish models | [Models module](../skills/kaggle/modules/models/README.md) |
+| Publish or run notebooks | [Notebooks module](../skills/kaggle/modules/notebooks/README.md) |
+| Search forums and resource topics | [Discussions module](../skills/kaggle/modules/discussions/README.md) |
+| Discover leaderboard solution writeup links | [Discussions module](../skills/kaggle/modules/discussions/README.md) |
+| Author and run benchmark tasks | [Benchmarks module](../skills/kaggle/modules/benchmarks/README.md) |
+| Inspect MCP tool coverage | [MCP reference](../skills/kaggle/modules/references/mcp-reference.md) |
+| Collect badges | [Badges module](../skills/kaggle/modules/badges/README.md) |
 
 ## Maintainer Docs
 

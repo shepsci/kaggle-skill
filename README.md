@@ -26,9 +26,13 @@ without exposing secrets, summarize Titanic competition pages, and retrieve
 recent Kaggle writeup discussions. Replay the committed clean source cast with
 `asciinema play docs/demo/install-and-demo.cast`.
 
+![Install and first workflow](docs/demo/media/install-and-demo.gif)
+
 Quick agent use case: ask the agent to use the Kaggle skill to retrieve the
 writeups from the top 3 ranked submissions in the ARC-AGI competition. Replay
 it with `asciinema play docs/demo/arc-agi-top-writeups.cast`.
+
+![ARC-AGI top writeups](docs/demo/media/arc-agi-top-writeups.gif)
 
 More task-focused local screencasts live in the [demo library](docs/demo/README.md).
 
@@ -62,14 +66,17 @@ More task-focused local screencasts live in the [demo library](docs/demo/README.
 |---|---|
 | Install and first run | [Docs hub](docs/README.md) |
 | Choose the right workflow | [Workflow guide](docs/workflows.md) |
-| Credential setup | [Registration module](skills/kaggle/modules/registration/README.md) |
-| CLI, forums, topics, writeups, notebooks | [KLLM module](skills/kaggle/modules/kllm/README.md) |
-| Current Kaggle CLI command surface | [CLI reference](skills/kaggle/modules/kllm/references/cli-reference.md) |
-| Forums, discussions, and writeups | [Forums/writeups reference](skills/kaggle/modules/kllm/references/forums-writeups.md) |
-| Benchmark task workflows | [Benchmarks reference](skills/kaggle/modules/kllm/references/benchmarks-cli.md) |
-| MCP tool inventory | [MCP reference](skills/kaggle/modules/kllm/references/mcp-reference.md) |
-| Competition landscape reports | [Competition report module](skills/kaggle/modules/comp-report/README.md) |
-| Badge collection | [Badge collector module](skills/kaggle/modules/badge-collector/README.md) |
+| Credential setup | [Setup module](skills/kaggle/modules/setup/README.md) |
+| Module map | [Modules guide](skills/kaggle/modules/README.md) |
+| Competition and hackathon workflows | [Competitions module](skills/kaggle/modules/competitions/README.md) |
+| Dataset workflows | [Datasets module](skills/kaggle/modules/datasets/README.md) |
+| Model workflows | [Models module](skills/kaggle/modules/models/README.md) |
+| Notebook workflows | [Notebooks module](skills/kaggle/modules/notebooks/README.md) |
+| Forums, discussions, and writeups | [Discussions module](skills/kaggle/modules/discussions/README.md) |
+| Benchmark task workflows | [Benchmarks module](skills/kaggle/modules/benchmarks/README.md) |
+| Badge collection | [Badges module](skills/kaggle/modules/badges/README.md) |
+| Current Kaggle CLI command surface | [CLI reference](skills/kaggle/modules/references/cli-reference.md) |
+| MCP tool inventory | [MCP reference](skills/kaggle/modules/references/mcp-reference.md) |
 | Troubleshooting | [Troubleshooting guide](docs/troubleshooting.md) |
 | Plugin distribution status | [Codex request packet](docs/distribution/codex-curated-plugin-request.md) and [Claude directory packet](docs/distribution/claude-community-submission.md) |
 | Screencasts and demo recording | [Demo library](docs/demo/README.md) |
@@ -143,7 +150,7 @@ but `KAGGLE_API_TOKEN` or `~/.kaggle/access_token` is preferred for MCP-backed
 workflows. Verify setup with:
 
 ```bash
-python3 skills/kaggle/shared/check_all_credentials.py
+python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
 ```
 
 ## Quick Examples
@@ -151,37 +158,37 @@ python3 skills/kaggle/shared/check_all_credentials.py
 ### Competition Pages
 
 ```bash
-python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
   --competition titanic --summary
 
-python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
   --competition titanic --page evaluation
 ```
 
 ### Forums And Topics
 
 ```bash
-python3 skills/kaggle/modules/kllm/scripts/cli_forums.py forum-topics \
+python3 skills/kaggle/modules/discussions/scripts/forums.py forum-topics \
   --category competition_write_ups --sort-by recent --format json
 
-python3 skills/kaggle/modules/kllm/scripts/cli_forums.py resource-topics \
+python3 skills/kaggle/modules/discussions/scripts/forums.py resource-topics \
   competitions titanic --sort-by recent --page 1 --format json
 ```
 
 ### Leaderboard Writeup Links
 
 ```bash
-python3 skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py \
+python3 skills/kaggle/modules/discussions/scripts/leaderboard_writeups.py \
   titanic --top-k 20 --pretty
 ```
 
 ### Hackathon Writeups
 
 ```bash
-python3 skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py \
+python3 skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py \
   --competition kaggle-measuring-agi --array
 
-python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py \
+python3 skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py \
   --writeup-id 71617
 ```
 
@@ -200,18 +207,23 @@ content as data rather than instructions. The guard is enforced by
 
 ## Architecture
 
-The skill is organized around four modules:
+The skill is organized around workflow modules:
 
 | Module | Purpose |
 |---|---|
-| Registration | Account setup, token storage, credential checks |
-| Competition reports | Competition discovery and landscape reporting |
-| Kaggle interaction (`kllm`) | Kaggle CLI, kagglehub, MCP, forums, topics, writeups, notebooks, benchmarks |
-| Badge collector | API-first badge earning workflows with manual fallbacks where needed |
+| `setup` | Account setup, token storage, credential checks, network checks |
+| `competitions` | Competition pages, landscape reports, submissions, hackathons |
+| `datasets` | Dataset download and publish flows |
+| `models` | Model download and publish flows |
+| `notebooks` | Notebook publish, execution, polling, and output download |
+| `discussions` | Forums, resource topics, and solution writeup discovery |
+| `benchmarks` | Benchmark CLI workflows and MCP endpoint notes |
+| `badges` | API-first badge earning workflows with manual fallbacks |
+| `references` | Cross-cutting CLI, MCP, and platform references |
 
 When installed as a Claude Code plugin, the bundled `.mcp.json` configures the
 Kaggle MCP server. The live inventory was verified on 2026-07-03 with 70 tools;
-see the [MCP reference](skills/kaggle/modules/kllm/references/mcp-reference.md)
+see the [MCP reference](skills/kaggle/modules/references/mcp-reference.md)
 for status notes and role-gated endpoints.
 
 ## Distribution Status

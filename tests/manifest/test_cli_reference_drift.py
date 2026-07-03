@@ -7,7 +7,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-CLI_REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "references" / "cli-reference.md"
+CLI_REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "references" / "cli-reference.md"
 
 REQUIRED_SNIPPETS = [
     "kaggle auth login",

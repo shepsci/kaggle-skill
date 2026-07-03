@@ -1,9 +1,9 @@
 {"version": 2, "width": 100, "height": 24, "timestamp": 1783102603, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"}, "title": "kaggle-skill - hackathon writeups"}
 [0.100000, "o", "kaggle-skill hackathon retrieval\r\nworkflow: overview -> tracks -> roster -> one writeup body\r\n\r\n"]
-[0.900000, "o", "$ python3 skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py --competition kaggle-measuring-agi\r\n"]
+[0.900000, "o", "$ python3 skills/kaggle/modules/competitions/hackathons/scripts/hackathon_overview.py --competition kaggle-measuring-agi\r\n"]
 [2.000000, "o", "<untrusted-content source=\"kaggle-mcp\" tool=\"get_hackathon_overview\" competition=\"kaggle-measuring-agi\">\r\nrules: found\r\neligibility: found\r\nrubric: found\r\ntracks: available through list_hackathon_tracks\r\n</untrusted-content>\r\n"]
-[3.300000, "o", "\r\n$ python3 skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py --competition kaggle-measuring-agi --limit 3\r\n"]
+[3.300000, "o", "\r\n$ python3 skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py --competition kaggle-measuring-agi --limit 3\r\n"]
 [5.000000, "o", "<untrusted-content source=\"kaggle-mcp\" tool=\"list_hackathon_write_ups\" competition=\"kaggle-measuring-agi\">\r\nwriteups returned: 3\r\n  101001  Team Alpha  track: benchmark design\r\n  101002  Team Beta   track: interpretability\r\n  101003  Team Gamma  track: data quality\r\n</untrusted-content>\r\n"]
-[6.500000, "o", "\r\n$ python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py --writeup-id 101001\r\n"]
+[6.500000, "o", "\r\n$ python3 skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py --writeup-id 101001\r\n"]
 [8.100000, "o", "<untrusted-content source=\"kaggle-mcp\" tool=\"get_writeup\" writeup_id=\"101001\">\r\ntitle: Team Alpha\r\nbody: full writeup text returned as data for summarization\r\nlinks: project links preserved when available\r\n</untrusted-content>\r\n"]
 [10.000000, "o", "\r\nAgent summary: use the overview for rules, the track map for grouping, and fetch bodies one at a time while preserving role-denial evidence.\r\n"]

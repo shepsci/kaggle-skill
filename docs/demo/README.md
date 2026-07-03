@@ -1,21 +1,52 @@
 # Screencasts
 
-Short terminal casts are kept here as replayable `.cast` files. They are clean
-source recordings with deterministic output, no terminal control sequences, and
-human-readable pacing. Upload a fresh public copy only after replaying the
-committed source locally and confirming it still looks correct.
+Short terminal casts are kept here as replayable `.cast` files. GitHub cannot
+play raw asciinema files inline, so generated GIF previews live in `media/` and
+are embedded in Markdown. The `.cast` files remain the source of truth.
 
 ## Watch Order
 
-| Cast | What It Shows | Source |
-|---|---|---|
-| Claude install and first workflow | Marketplace install, credential verification, Titanic overview, recent writeups | [install-and-demo.cast](install-and-demo.cast) |
-| ARC-AGI top writeups | Agent prompt that retrieves writeups from the top 3 ranked ARC-AGI submissions | [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast) |
-| Antigravity CLI install | Recommended `agy` path with `npx skills add shepsci/kaggle-skill` | [antigravity-install.cast](antigravity-install.cast) |
-| Antigravity MCP config | `.agents/mcp_config.json`, `/mcp`, and `serverUrl` for the Kaggle MCP server | [mcp-config.cast](mcp-config.cast) |
-| Competition briefing | Credential check plus `list_competition_pages` for a concise competition brief | [competition-brief.cast](competition-brief.cast) |
-| Hackathon writeups | Overview, writeup roster, and one writeup fetch with untrusted-content markers | [hackathon-writeups.cast](hackathon-writeups.cast) |
-| Codex install | Codex repo marketplace install path | [codex-install.cast](codex-install.cast) |
+### Claude Install And First Workflow
+
+![Claude install and first workflow](media/install-and-demo.gif)
+
+Source: [install-and-demo.cast](install-and-demo.cast)
+
+### ARC-AGI Top Writeups
+
+![ARC-AGI top writeups](media/arc-agi-top-writeups.gif)
+
+Source: [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast)
+
+### Antigravity CLI Install
+
+![Antigravity CLI install](media/antigravity-install.gif)
+
+Source: [antigravity-install.cast](antigravity-install.cast)
+
+### Antigravity MCP Config
+
+![Antigravity MCP config](media/mcp-config.gif)
+
+Source: [mcp-config.cast](mcp-config.cast)
+
+### Competition Briefing
+
+![Competition briefing](media/competition-brief.gif)
+
+Source: [competition-brief.cast](competition-brief.cast)
+
+### Hackathon Writeups
+
+![Hackathon writeups](media/hackathon-writeups.gif)
+
+Source: [hackathon-writeups.cast](hackathon-writeups.cast)
+
+### Codex Install
+
+![Codex install](media/codex-install.gif)
+
+Source: [codex-install.cast](codex-install.cast)
 
 Replay any source cast with:
 
@@ -23,15 +54,24 @@ Replay any source cast with:
 asciinema play docs/demo/competition-brief.cast
 ```
 
+Render a GIF preview with:
+
+```bash
+agg docs/demo/competition-brief.cast docs/demo/media/competition-brief.gif
+```
+
+If `agg` is unavailable, install it with `cargo install --locked agg` or use
+the package manager documented by the asciinema/agg project.
+
 ## Recording Notes
 
-- Record with an authenticated asciinema CLI so public uploads are retained.
 - Keep each cast focused on one workflow and under about 90 seconds.
 - Re-record or hand-clean any cast that includes terminal escape/control
   sequences from progress spinners, cursor movement, or alternate screens.
 - Prefer redacted, deterministic output over long live API payloads.
-- Do not print tokens, credential file names, `kaggle.json`, or environment
+- Do not print tokens, credential file names, credential JSON, or environment
   assignments that include secrets.
+- Re-render GIF previews after editing a cast.
 - Re-run `python3 -m pytest tests/manifest/test_docs_freshness.py -q` before
   committing any cast.
 
