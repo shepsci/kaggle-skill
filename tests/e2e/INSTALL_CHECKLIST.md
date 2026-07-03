@@ -15,13 +15,13 @@ these surfaces.
 
 - [ ] `/plugin marketplace add shepsci/claude-marketplace` — returns success
 - [ ] `/plugin marketplace list` — shows `shepsci` catalog
-- [ ] `/plugin install kaggle-skill@shepsci` — returns success, no version mismatch warnings
+- [ ] `/plugin install kaggle@shepsci` — returns success, no version mismatch warnings
 - [ ] `/plugin` Installed tab shows `kaggle-skill` at the version that matches
       `.claude-plugin/plugin.json` and `pyproject.toml` (currently 2.2.0)
 
 ## Bundled MCP server
 
-- [ ] In a chat, ask: "list the Kaggle MCP tools" — agent reports ~66 tools (sanity check)
+- [ ] In a chat, ask: "list the Kaggle MCP tools" — agent reports ~70 tools (sanity check)
 - [ ] Ask: "summarize the rules and evaluation metric for the titanic competition" —
       agent calls `list_competition_pages`, returns rules + evaluation summary
 - [ ] Ask: "pull every writeup from kaggle-measuring-agi and group by track" —
@@ -68,7 +68,7 @@ not appear in this checklist, the test goes red.
 
 ## Cleanup
 
-- [ ] `/plugin uninstall kaggle-skill@shepsci` — clean removal, no leftover files
+- [ ] `/plugin uninstall kaggle@shepsci` — clean removal, no leftover files
 
 If any check fails, open an issue with the failing step + the error output and
 the Claude Code version (`claude --version`).

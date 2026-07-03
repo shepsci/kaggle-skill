@@ -1,0 +1,46 @@
+{
+  "name": "kaggle",
+  "version": "2.3.0",
+  "description": "Complete Kaggle integration: CLI, MCP, competition reports, datasets, models, notebooks, forums, writeups, submissions, and badge collection.",
+  "author": {
+    "name": "shepsci",
+    "url": "https://github.com/shepsci"
+  },
+  "homepage": "https://github.com/shepsci/kaggle-skill",
+  "repository": "https://github.com/shepsci/kaggle-skill",
+  "license": "MIT",
+  "keywords": [
+    "kaggle",
+    "competitions",
+    "datasets",
+    "models",
+    "notebooks",
+    "forums",
+    "writeups",
+    "benchmarks",
+    "machine-learning",
+    "data-science"
+  ],
+  "skills": "./skills/",
+  "mcpServers": "./.mcp.json",
+  "interface": {
+    "displayName": "Kaggle Skill",
+    "shortDescription": "Kaggle CLI, MCP, forums, writeups, and competition workflows",
+    "longDescription": "A Kaggle plugin for agents that need current CLI workflows, MCP-backed competition and hackathon retrieval, dataset/model/notebook operations, forums and discussion topics, solution writeup discovery, benchmark task guidance, credential setup, and badge collection.",
+    "developerName": "shepsci",
+    "category": "Data Science",
+    "capabilities": [
+      "Interactive",
+      "Read",
+      "Write"
+    ],
+    "websiteURL": "https://github.com/shepsci/kaggle-skill",
+    "privacyPolicyURL": "https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md",
+    "defaultPrompt": [
+      "Set up my Kaggle credentials.",
+      "Find recent Kaggle discussion writeups.",
+      "Run a Kaggle competition workflow."
+    ],
+    "brandColor": "#20BEFF"
+  }
+}

@@ -3,7 +3,7 @@
 Whenever Kaggle adds or removes tools, our reference docs need updating.
 This test pulls `tools/list` against the live server and asserts that:
 
-1. The 66-tool count claim in docs matches reality.
+1. The live tool count remains high enough to catch auth or server regressions.
 2. Every tool documented in mcp-reference.md exists on the live server.
 3. Every tool the live server exposes is documented in mcp-reference.md.
 
@@ -50,7 +50,7 @@ def _live_tools(token: str) -> set[str]:
 
 def test_live_server_returns_at_least_60_tools(kgat_token: str):
     live = _live_tools(kgat_token)
-    assert len(live) >= 60, f"live server returned only {len(live)} tools; v2.1.0 docs claim 66"
+    assert len(live) >= 70, f"live server returned only {len(live)} tools; 2026-07-03 docs claim 70"
 
 
 def test_no_documented_tool_is_missing_from_live_server(kgat_token: str):

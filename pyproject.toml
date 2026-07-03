@@ -7,8 +7,9 @@ requires-python = ">=3.11"
 license = { text = "MIT" }
 
 dependencies = [
-    "kagglehub>=0.3",
-    "kaggle>=1.6",
+    "kagglehub>=1.0.0",
+    "kaggle>=2.2.3",
+    "kagglesdk>=0.1.33,<1.0",
     "python-dotenv>=1.0",
     "requests>=2.28",
 ]
@@ -16,6 +17,15 @@ dependencies = [
 [project.optional-dependencies]
 browser = [
     "playwright>=1.40",
+]
+research = [
+    "httpx>=0.27",
+    "nbformat>=5.10",
+    "pydantic>=2.0",
+    "rich>=13.0",
+]
+benchmarks = [
+    "kaggle-benchmarks>=0.1",
 ]
 dev = [
     "ruff>=0.8",
