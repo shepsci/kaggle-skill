@@ -1,0 +1,7 @@
+{"version": 2, "width": 100, "height": 24, "timestamp": 1783102528, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "dumb"}, "title": "kaggle-skill v2.3.0 - Codex install"}
+[0.019212, "o", "kaggle-skill v2.3.0 Codex install\r\nmarketplace source: shepsci/kaggle-skill\r\nplugin selector: kaggle@shepsci\r\n\r\n"]
+[0.019741, "o", "$ CODEX_HOME=... HOME=... codex plugin marketplace add shepsci/kaggle-skill --ref main --json\r\n"]
+[0.811587, "o", "{\r\n  \"marketplaceName\": \"shepsci\",\r\n  \"installedRoot\": \"/private/tmp/kaggle-codex-cast.MEJwpv/codex-home/.tmp/marketplaces/shepsci\",\r\n  \"alreadyAdded\": false\r\n}\r\n"]
+[0.813444, "o", "\r\n$ CODEX_HOME=... HOME=... codex plugin add kaggle@shepsci --json\r\n"]
+[0.871043, "o", "{\r\n  \"pluginId\": \"kaggle@shepsci\",\r\n  \"name\": \"kaggle\",\r\n  \"marketplaceName\": \"shepsci\",\r\n  \"version\": \"2.3.0\",\r\n  \"installedPath\": \"/private/tmp/kaggle-codex-cast.MEJwpv/codex-home/plugins/cache/shepsci/kaggle/2.3.0\",\r\n  \"authPolicy\": \"ON_INSTALL\"\r\n}\r\n"]
+[0.872537, "o", "\r\nCodex install demo complete.\r\n"]

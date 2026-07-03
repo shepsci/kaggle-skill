@@ -36,6 +36,8 @@ SECRET_PATTERNS = [
 
 MARKDOWN_LINK_RE = re.compile(r"!?(?:\[[^\]]*\])\(([^)]+)\)")
 ASCIINEMA_RE = re.compile(r"https://asciinema\.org/a/[A-Za-z0-9]+(?:\.svg)?")
+OLD_CLAUDE_MARKETPLACE_COMMAND = "plugin marketplace add shepsci/claude-marketplace"
+DIRECT_CLAUDE_MARKETPLACE_COMMAND = "plugin marketplace add shepsci/kaggle-skill"
 
 
 def _iter_text_files(paths: list[Path]):
@@ -71,10 +73,23 @@ def test_readme_demo_embed_matches_committed_cast_state():
         assert not urls, "README must not link to asciinema before the cast is committed"
 
 
-def test_committed_asciinema_cast_contains_no_credentials():
-    cast = REPO_ROOT / "docs" / "demo" / "install-and-demo.cast"
+def test_claude_install_docs_prefer_direct_repo_marketplace():
+    primary_docs = [
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "docs" / "README.md",
+        REPO_ROOT / "docs" / "demo" / "demo-script.md",
+        REPO_ROOT / "tests" / "e2e" / "INSTALL_CHECKLIST.md",
+    ]
+    for path in primary_docs:
+        text = path.read_text(encoding="utf-8")
+        assert DIRECT_CLAUDE_MARKETPLACE_COMMAND in text
+        assert OLD_CLAUDE_MARKETPLACE_COMMAND not in text
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_committed_asciinema_cast_contains_no_credentials(cast: Path):
     if not cast.exists():
-        pytest.skip("README demo cast has not been recorded yet")
+        pytest.skip("no README demo casts have been recorded yet")
 
     text = cast.read_text(encoding="utf-8")
     offenders = [pattern.pattern for pattern in SECRET_PATTERNS if pattern.search(text)]

@@ -22,7 +22,7 @@ Enter
 Sleep 2s
 
 # Step 1: add the marketplace
-Type "/plugin marketplace add shepsci/claude-marketplace"
+Type "/plugin marketplace add shepsci/kaggle-skill"
 Enter
 Sleep 3s
 

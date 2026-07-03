@@ -7,7 +7,7 @@ repository is `kaggle-skill`; the public skill and plugin selector is `kaggle`.
 
 | Environment | Install |
 |---|---|
-| Claude Code | `/plugin marketplace add shepsci/claude-marketplace` then `/plugin install kaggle@shepsci` |
+| Claude Code | `/plugin marketplace add shepsci/kaggle-skill` then `/plugin install kaggle@shepsci` |
 | Codex | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
 | skills.sh agents | `npx skills add shepsci/kaggle-skill` |
 | OpenClaw | `clawhub install kaggle` |
@@ -40,7 +40,7 @@ has the detailed credential walkthrough.
 | Prepare Codex curated-plugin review material | [Codex request packet](distribution/codex-curated-plugin-request.md) |
 | Prepare Claude community marketplace material | [Claude submission packet](distribution/claude-community-submission.md) |
 | Run manual install checks | [Manual install checklist](../tests/e2e/INSTALL_CHECKLIST.md) |
-| Record the README demo | [Demo script](demo/demo-script.md) |
+| Watch or record screencasts | [Demo library](demo/README.md) |
 
 ## Safety Model
 

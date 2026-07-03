@@ -16,12 +16,13 @@ Claude Code, Codex, OpenClaw, Gemini CLI, Cursor, and 35+ agents via skills.sh.
 
 ## Demo
 
-[![asciicast](https://asciinema.org/a/90RgjsTDy9O9sIrm.svg)](https://asciinema.org/a/90RgjsTDy9O9sIrm)
+[![asciicast](https://asciinema.org/a/SAR4LCKUTmWrASEL.svg)](https://asciinema.org/a/SAR4LCKUTmWrASEL)
 
 Terminal walkthrough: install `kaggle@shepsci`, verify Kaggle credentials
 without exposing secrets, summarize Titanic competition pages, and retrieve
 recent Kaggle writeup discussions. The source cast is committed at
 [docs/demo/install-and-demo.cast](docs/demo/install-and-demo.cast).
+More screencasts live in the [demo library](docs/demo/README.md).
 
 ## Available On
 
@@ -30,7 +31,7 @@ recent Kaggle writeup discussions. The source cast is committed at
 | skills.sh | [skills.sh/shepsci/kaggle-skill](https://skills.sh/shepsci/kaggle-skill/kaggle) | `npx skills add shepsci/kaggle-skill` |
 | ClawHub | [clawhub.ai/skills/kaggle](https://clawhub.ai/skills/kaggle) | `clawhub install kaggle` |
 | Codex repo marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
-| Claude Code marketplace | [shepsci/claude-marketplace](https://github.com/shepsci/claude-marketplace) | `/plugin marketplace add shepsci/claude-marketplace` then `/plugin install kaggle@shepsci` |
+| Claude Code marketplace | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `/plugin marketplace add shepsci/kaggle-skill` then `/plugin install kaggle@shepsci` |
 
 ## What You Can Ask
 
@@ -59,16 +60,22 @@ recent Kaggle writeup discussions. The source cast is committed at
 | Competition landscape reports | [Competition report module](skills/kaggle/modules/comp-report/README.md) |
 | Badge collection | [Badge collector module](skills/kaggle/modules/badge-collector/README.md) |
 | Plugin distribution status | [Codex request packet](docs/distribution/codex-curated-plugin-request.md) and [Claude submission packet](docs/distribution/claude-community-submission.md) |
-| Demo recording | [Demo script](docs/demo/demo-script.md) |
+| Screencasts and demo recording | [Demo library](docs/demo/README.md) |
 
 ## Install
 
 ### Claude Code
 
 ```text
-/plugin marketplace add shepsci/claude-marketplace
+/plugin marketplace add shepsci/kaggle-skill
 /plugin install kaggle@shepsci
 ```
+
+Claude's `marketplace add` command adds a marketplace catalog, not an individual
+plugin. `shepsci/kaggle-skill` now contains its own `.claude-plugin/marketplace.json`,
+so it is the preferred marketplace source. The older
+`shepsci/claude-marketplace` catalog still works as an aggregate catalog, but it
+is no longer the shortest install path for this plugin.
 
 ### Codex
 
