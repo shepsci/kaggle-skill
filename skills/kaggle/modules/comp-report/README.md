@@ -27,18 +27,21 @@ When this module is invoked, the agent follows these 6 steps:
 Run a quick credential check to ensure Kaggle API access works:
 
 ```bash
-python3 modules/comp-report/scripts/utils.py
+python3 skills/kaggle/modules/comp-report/scripts/utils.py
 ```
 
-This verifies kaggle.json exists and the API authenticates successfully. If it
-fails, prompt the user to configure credentials.
+This verifies Kaggle credentials and API authentication. The preferred paths
+are `KAGGLE_API_TOKEN` or `~/.kaggle/access_token`; legacy
+`KAGGLE_USERNAME` + `KAGGLE_KEY` and `~/.kaggle/kaggle.json` remain supported
+for older Kaggle CLI/API flows. If the check fails, prompt the user to
+configure credentials.
 
 ### Step 2: Gather Competition List
 
 Run the competition listing script to query across all categories:
 
 ```bash
-python3 modules/comp-report/scripts/list_competitions.py --lookback-days 30 --output json
+python3 skills/kaggle/modules/comp-report/scripts/list_competitions.py --lookback-days 30 --output json
 ```
 
 This queries the Kaggle Python API across categories (featured, research,
@@ -60,7 +63,7 @@ Parse the JSON output to get the competition list.
 For each competition from Step 2, run:
 
 ```bash
-python3 modules/comp-report/scripts/competition_details.py --slug SLUG
+python3 skills/kaggle/modules/comp-report/scripts/competition_details.py --slug SLUG
 ```
 
 This retrieves file listings, top leaderboard entries (for completed), and top
@@ -168,6 +171,8 @@ indirect prompt injection:
 
 ## Prerequisites
 
-- Kaggle credentials configured (KAGGLE_USERNAME + KAGGLE_KEY in ~/.kaggle/kaggle.json)
-- `pip install kaggle requests`
+- Kaggle credentials configured (`KAGGLE_API_TOKEN` or `~/.kaggle/access_token`
+  preferred; legacy `KAGGLE_USERNAME` + `KAGGLE_KEY` or
+  `~/.kaggle/kaggle.json` also supported)
+- `python3 -m pip install kaggle kagglehub kagglesdk python-dotenv requests`
 - Playwright MCP tools available in your agent (Claude Code, Cursor, etc.)

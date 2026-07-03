@@ -37,7 +37,7 @@ set -euo pipefail
 KAGGLE="{kaggle_cli}"
 
 # 1. API activity = login
-$KAGGLE datasets list --page-size 1 > /dev/null 2>&1 || true
+$KAGGLE datasets list --page 1 > /dev/null 2>&1 || true
 
 # 2. Daily Titanic submission (if submission file exists)
 SUBMISSION="{submission_file}"
@@ -63,7 +63,7 @@ def _run_today(kaggle_cli: str) -> bool:
 
     # 1. API activity (counts as login)
     result = subprocess.run(
-        [kaggle_cli, "datasets", "list", "--page-size", "1"],
+        [kaggle_cli, "datasets", "list", "--page", "1"],
         capture_output=True, text=True,
     )
     if result.returncode == 0:

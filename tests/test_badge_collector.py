@@ -540,7 +540,7 @@ def test_project_structure():
 
 # ── Integration Tests (Live API) ─────────────────────────────────────────────
 
-def test_credentials():
+def check_credentials() -> bool:
     """Verify credentials work with a simple API call."""
     group = "Credentials"
 
@@ -554,7 +554,7 @@ def test_credentials():
     cli = get_kaggle_cli()
     try:
         result = subprocess.run(
-            [cli, "datasets", "list", "--page-size", "1"],
+            [cli, "datasets", "list", "--page", "1"],
             capture_output=True, text=True, timeout=30,
         )
         if result.returncode == 0:
@@ -567,6 +567,14 @@ def test_credentials():
         return False
 
     return True
+
+
+def test_credentials():
+    """Pytest wrapper for the credential smoke check."""
+    if not has_credentials():
+        record("Credentials", "available", "SKIP", "No credentials")
+        return
+    assert check_credentials()
 
 
 def run_phase_live(phase: int):
@@ -722,7 +730,7 @@ def main():
     # Integration tests
     if not args.unit:
         print("\n  --- Integration Tests ---\n")
-        creds_ok = test_credentials()
+        creds_ok = check_credentials()
 
         if creds_ok and args.phase:
             if args.phase == "all":

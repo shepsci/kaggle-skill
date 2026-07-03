@@ -708,7 +708,7 @@ group_5_cli() {
 
     # ─── Datasets ───
     if ! skip_if_no_creds "$G" "datasets list"; then
-        test_cli "$G" "datasets list" kaggle datasets list --search "titanic" --max-size 10485760 --page-size 5
+        test_cli "$G" "datasets list" kaggle datasets list --search "titanic" --max-size 10485760 --page 1
     fi
     if ! skip_if_no_creds "$G" "datasets files"; then
         test_cli "$G" "datasets files" kaggle datasets files heptapod/titanic

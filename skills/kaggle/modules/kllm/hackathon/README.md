@@ -27,7 +27,7 @@ Reach for this module when:
 Run the credential checker first if anything is unset:
 
 ```bash
-python3 ../../shared/check_all_credentials.py
+python3 skills/kaggle/shared/check_all_credentials.py
 ```
 
 ## Endpoint order

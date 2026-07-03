@@ -126,7 +126,7 @@ All credentials found. You're ready to go!
 
 ```bash
 # Test with kaggle CLI
-kaggle datasets list --search "titanic" --page-size 1
+kaggle datasets list --search "titanic" --page 1
 
 # Test with kagglehub
 python3 -c "import kagglehub; print(kagglehub.whoami())"
