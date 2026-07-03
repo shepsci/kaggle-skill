@@ -77,11 +77,71 @@ Before committing the cast, scan it for secrets:
 
 ```bash
 rg -n "KGAT_|KAGGLE_API_TOKEN|access_token|kaggle\\.json|\"key\"|\"username\"" \
-  docs/demo/install-and-demo.cast
+  docs/demo/*.cast
 ```
 
 The scan should return no credential material. Mentions of safe file names in
 documentation text are acceptable only outside the committed cast.
+
+## Additional cast plans
+
+The demo library includes short task-focused source casts. Re-record these
+after material changes to the relevant command surface.
+
+### Antigravity CLI install
+
+Goal: show the recommended terminal-first install path for new Google agent CLI
+users.
+
+```bash
+agy --version
+npx skills add shepsci/kaggle-skill
+agy
+/skills
+```
+
+Source cast: [antigravity-install.cast](antigravity-install.cast)
+
+### Antigravity MCP config
+
+Goal: show the `serverUrl` config shape and `/mcp` verification path.
+
+```bash
+mkdir -p .agents
+$EDITOR .agents/mcp_config.json
+agy
+/mcp
+```
+
+Source cast: [mcp-config.cast](mcp-config.cast)
+
+### Competition briefing
+
+Goal: show the shortest evidence-first competition overview path.
+
+```bash
+python3 skills/kaggle/shared/check_all_credentials.py
+python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+  --competition titanic --summary
+```
+
+Source cast: [competition-brief.cast](competition-brief.cast)
+
+### Hackathon writeups
+
+Goal: show the overview, roster, and fetch sequence while keeping Kaggle text
+inside untrusted-content markers.
+
+```bash
+python3 skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py \
+  --competition kaggle-measuring-agi
+python3 skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py \
+  --competition kaggle-measuring-agi
+python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py \
+  --writeup-id 123456
+```
+
+Source cast: [hackathon-writeups.cast](hackathon-writeups.cast)
 
 ## Recording with vhs
 

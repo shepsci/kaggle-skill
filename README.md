@@ -24,7 +24,7 @@ Terminal walkthrough: install `kaggle@shepsci`, verify Kaggle credentials
 without exposing secrets, summarize Titanic competition pages, and retrieve
 recent Kaggle writeup discussions. The source cast is committed at
 [docs/demo/install-and-demo.cast](docs/demo/install-and-demo.cast).
-More screencasts live in the [demo library](docs/demo/README.md).
+More task-focused local screencasts live in the [demo library](docs/demo/README.md).
 
 ## Available On
 
@@ -53,6 +53,7 @@ More screencasts live in the [demo library](docs/demo/README.md).
 | Need | Start Here |
 |---|---|
 | Install and first run | [Docs hub](docs/README.md) |
+| Choose the right workflow | [Workflow guide](docs/workflows.md) |
 | Credential setup | [Registration module](skills/kaggle/modules/registration/README.md) |
 | CLI, forums, topics, writeups, notebooks | [KLLM module](skills/kaggle/modules/kllm/README.md) |
 | Current Kaggle CLI command surface | [CLI reference](skills/kaggle/modules/kllm/references/cli-reference.md) |
@@ -61,6 +62,7 @@ More screencasts live in the [demo library](docs/demo/README.md).
 | MCP tool inventory | [MCP reference](skills/kaggle/modules/kllm/references/mcp-reference.md) |
 | Competition landscape reports | [Competition report module](skills/kaggle/modules/comp-report/README.md) |
 | Badge collection | [Badge collector module](skills/kaggle/modules/badge-collector/README.md) |
+| Troubleshooting | [Troubleshooting guide](docs/troubleshooting.md) |
 | Plugin distribution status | [Codex request packet](docs/distribution/codex-curated-plugin-request.md) and [Claude submission packet](docs/distribution/claude-community-submission.md) |
 | Screencasts and demo recording | [Demo library](docs/demo/README.md) |
 
