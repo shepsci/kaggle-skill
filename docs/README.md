@@ -7,15 +7,27 @@ repository is `kaggle-skill`; the public skill and plugin selector is `kaggle`.
 
 | Environment | Install |
 |---|---|
+| Antigravity CLI (`agy`) | `npx skills add shepsci/kaggle-skill` |
 | Claude Code | `/plugin marketplace add shepsci/kaggle-skill` then `/plugin install kaggle@shepsci` |
 | Codex | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
 | skills.sh agents | `npx skills add shepsci/kaggle-skill` |
 | OpenClaw | `clawhub install kaggle` |
 | Manual clone | install the dependencies in `pyproject.toml`, then copy `skills/kaggle/` into the agent skills directory |
 
+Antigravity CLI (`agy`) is the recommended terminal-first path for new Google
+agent CLI installs. Gemini CLI remains a legacy compatibility target.
+
 Before running Kaggle workflows, set `KAGGLE_API_TOKEN` or create
 `~/.kaggle/access_token`. The [registration module](../skills/kaggle/modules/registration/README.md)
 has the detailed credential walkthrough.
+
+## Choose A Path
+
+| Situation | Best First Stop |
+|---|---|
+| You know the task but not the module | [Workflow guide](workflows.md) |
+| Something failed or returned empty data | [Troubleshooting guide](troubleshooting.md) |
+| You want to see the flows in motion | [Demo library](demo/README.md) |
 
 ## Common Workflows
 
@@ -31,6 +43,7 @@ has the detailed credential walkthrough.
 | Author and run benchmark tasks | [Benchmarks reference](../skills/kaggle/modules/kllm/references/benchmarks-cli.md) |
 | Inspect MCP tool coverage | [MCP reference](../skills/kaggle/modules/kllm/references/mcp-reference.md) |
 | Collect badges | [Badge collector module](../skills/kaggle/modules/badge-collector/README.md) |
+| Troubleshoot common failures | [Troubleshooting guide](troubleshooting.md) |
 
 ## Maintainer Docs
 

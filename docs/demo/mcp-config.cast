@@ -1,0 +1,7 @@
+{"version": 2, "width": 100, "height": 24, "timestamp": 1783102601, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "dumb"}, "title": "kaggle-skill - Antigravity MCP config"}
+[0.010000, "o", "kaggle-skill MCP setup for Antigravity CLI\r\nremote endpoint: https://www.kaggle.com/mcp\r\n\r\n"]
+[0.030000, "o", "$ mkdir -p .agents\r\n$ $EDITOR .agents/mcp_config.json\r\n"]
+[0.620000, "o", "{\r\n  \"mcpServers\": {\r\n    \"kaggle\": {\r\n      \"serverUrl\": \"https://www.kaggle.com/mcp\",\r\n      \"headers\": {\r\n        \"Authorization\": \"Bearer YOUR_API_TOKEN\"\r\n      }\r\n    }\r\n  }\r\n}\r\n"]
+[0.900000, "o", "\r\n$ agy\r\n> /mcp\r\n"]
+[1.320000, "o", "MCP servers\r\n  kaggle  configured from .agents/mcp_config.json\r\n  status  ready after credential verification\r\n"]
+[1.640000, "o", "\r\nTip: use serverUrl for Antigravity CLI remote MCP entries.\r\n"]
