@@ -30,7 +30,7 @@ asciinema --version  # confirm asciinema is installed
 /plugin marketplace add shepsci/claude-marketplace
 # (wait ~2s for confirmation)
 
-/plugin install kaggle-skill@shepsci
+/plugin install kaggle@shepsci
 # (wait ~3s for install confirmation)
 
 # 2. Ask in plain English:

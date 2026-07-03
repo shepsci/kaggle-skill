@@ -27,7 +27,7 @@ Enter
 Sleep 3s
 
 # Step 2: install the plugin
-Type "/plugin install kaggle-skill@shepsci"
+Type "/plugin install kaggle@shepsci"
 Enter
 Sleep 3s
 

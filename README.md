@@ -5,7 +5,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 [![GitHub](https://img.shields.io/github/stars/shepsci/kaggle-skill?style=social)](https://github.com/shepsci/kaggle-skill)
 
-An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **hackathon writeup retrieval**, badge collection, and general Kaggle questions.
+An agent skill for everything Kaggle: account setup, competition landscape reports, dataset/model downloads, notebook execution, competition submissions, **forums and writeup retrieval**, benchmark workflows, badge collection, and general Kaggle questions.
 
 Works with **any AI coding agent** that supports the SKILL format — including [Claude Code](https://claude.com/claude-code), [OpenClaw](https://openclaw.ai), [Gemini CLI](https://github.com/google-gemini/gemini-cli), [Cursor](https://cursor.com), [Codex](https://openai.com/codex), and [35+ more agents via skills.sh](https://skills.sh).
 
@@ -15,13 +15,14 @@ Works with **any AI coding agent** that supports the SKILL format — including 
 |----------|------|-----------------|
 | **skills.sh** | [skills.sh/shepsci/kaggle-skill](https://skills.sh/shepsci/kaggle-skill/kaggle) | `npx skills add shepsci/kaggle-skill` |
 | **ClawHub** | [clawhub.ai/skills/kaggle](https://clawhub.ai/skills/kaggle) | `clawhub install kaggle` |
-| **Claude Code Marketplace** | [shepsci/claude-marketplace](https://github.com/shepsci/claude-marketplace) | `/plugin marketplace add shepsci/claude-marketplace` then `/plugin install kaggle-skill@shepsci` |
+| **Codex Repo Marketplace** | [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill) | `codex plugin marketplace add shepsci/kaggle-skill --ref main` then `codex plugin add kaggle@shepsci` |
+| **Claude Code Marketplace** | [shepsci/claude-marketplace](https://github.com/shepsci/claude-marketplace) | `/plugin marketplace add shepsci/claude-marketplace` then `/plugin install kaggle@shepsci` |
 
 ## Modules
 
 - **Registration** — Account creation, API token generation, credential storage
 - **Competition Reports** — Landscape reports (Python API + optional Playwright via host agent)
-- **Kaggle Interaction (kllm)** — kagglehub, kaggle-cli, MCP Server (66 tools), UI workflows. Includes the **`hackathon/`** sub-module for writeup retrieval and overview/rubric extraction.
+- **Kaggle Interaction (kllm)** — kagglehub, current kaggle-cli, MCP Server (70 tools), UI workflows. Includes forums/topics, leaderboard writeups, benchmark workflows, and the **`hackathon/`** sub-module for writeup retrieval and overview/rubric extraction.
 - **Badge Collector** — Systematic badge earning across 5 phases (~38 automatable; ~30 single-session, the rest are multi-day streaks or manual-walkthrough fallbacks)
 
 ## Installation
@@ -40,13 +41,20 @@ npx skills add shepsci/kaggle-skill
 clawhub install kaggle
 ```
 
+### Via Codex Repo Marketplace
+
+```bash
+codex plugin marketplace add shepsci/kaggle-skill --ref main
+codex plugin add kaggle@shepsci
+```
+
 ### Via Claude Code Plugin Marketplace
 
 Add the catalog once, then install:
 
 ```bash
 /plugin marketplace add shepsci/claude-marketplace
-/plugin install kaggle-skill@shepsci
+/plugin install kaggle@shepsci
 ```
 
 Or load directly from a local clone:
@@ -58,7 +66,7 @@ claude --plugin-dir /path/to/kaggle-skill
 
 ```bash
 git clone https://github.com/shepsci/kaggle-skill.git
-pip install kagglehub kaggle python-dotenv requests
+pip install "kagglehub>=1.0.0" "kaggle>=2.2.3" "kagglesdk>=0.1.33,<1.0" python-dotenv requests
 ```
 
 Then copy `skills/kaggle/` into your agent's skills directory.
@@ -66,9 +74,9 @@ Then copy `skills/kaggle/` into your agent's skills directory.
 ## Prerequisites
 
 - Python 3.11+
-- `pip install kagglehub kaggle python-dotenv requests`
+- `pip install "kagglehub>=1.0.0" "kaggle>=2.2.3" "kagglesdk>=0.1.33,<1.0" python-dotenv requests`
 - Kaggle API token (the skill walks you through setup)
-- Optional: Playwright for browser badges and competition report scraping
+- Optional: Playwright for browser badges and competition report scraping; `kaggle-benchmarks` for local benchmark task authoring
 
 ## Credential Setup
 
@@ -101,6 +109,9 @@ Once installed, your agent automatically detects the skill when you mention anyt
 - "Generate a Kaggle competition landscape report for the last 30 days"
 - "Download the Titanic dataset"
 - "Pull every writeup from kaggle-measuring-agi and group by track"
+- "Find recent solution writeups for this competition"
+- "Search Kaggle discussion topics about ensembling for the Titanic competition"
+- "Initialize a Kaggle benchmark task and run one model"
 - "What badges can I still earn through API activity?"
 - "Push this notebook to Kaggle Kernels and tell me when it finishes"
 - "What competitions are running right now?"
@@ -134,22 +145,46 @@ python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py --writeup-
 # → tries get_writeup → get_writeup_by_topic → get_writeup_by_slug; first wins
 ```
 
-#### Verify all 66 MCP tools work against the live server
+#### Search forums and resource topics with safe wrappers
+
+```bash
+python3 skills/kaggle/modules/kllm/scripts/cli_forums.py forum-topics \
+    --category competition_write_ups --sort-by recent --format json
+
+python3 skills/kaggle/modules/kllm/scripts/cli_forums.py resource-topics \
+    competitions titanic --sort-by recent --page 1 --format json
+```
+
+#### Discover leaderboard solution writeup links
+
+```bash
+python3 skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py titanic --top-k 20 --pretty
+```
+
+#### Use the current Kaggle benchmark CLI
+
+```bash
+kaggle b init -y
+kaggle b t push my-task -f task.py --wait 600
+kaggle b t run my-task -m gemini-2.5-pro --wait
+```
+
+#### Verify all 70 MCP tools work against the live server
 
 ```bash
 pytest tests/integration/test_mcp_live.py --run-live -v
 # → 33 endpoint probes + tool-inventory drift check
 ```
 
-All script output that contains Kaggle-supplied text (overview pages, writeup
-bodies, submission rosters) is wrapped in
-`<untrusted-content source="kaggle-mcp" tool="...">` markers so the agent
+All script output that contains Kaggle-supplied text (overview pages, forum
+topics, writeup bodies, leaderboard teams, submission rosters) is wrapped in
+`<untrusted-content source="..." tool="...">` markers so the agent
 treats it as data, not directives. Enforced by
 `tests/security/test_untrusted_content_wrappers.py`.
 
 ## Bundled MCP Server (Claude Code)
 
-When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to **66 Kaggle tools** (verified live on 2026-05-04 in `tests/integration/test_mcp_live.py`; baseline inventory comes from the [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools) 2026-04-22 audit):
+When installed as a Claude Code plugin, this skill includes a `.mcp.json` that configures the official Kaggle MCP server, giving direct access to **70 Kaggle tools** (verified live on 2026-07-03 in `tests/integration/test_mcp_live.py` and `tests/manifest/test_mcp_inventory_drift.py`; baseline inventory comes from the [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools) 2026-04-22 audit):
 
 - Searching and listing competitions, datasets, models, notebooks
 - Downloading competition data and datasets
@@ -163,6 +198,15 @@ When installed as a Claude Code plugin, this skill includes a `.mcp.json` that c
 See [`skills/kaggle/modules/kllm/references/mcp-reference.md`](skills/kaggle/modules/kllm/references/mcp-reference.md) for the full inventory with status flags (PASS / KNOWN_FAIL / role-gated).
 
 The MCP server requires `KAGGLE_API_TOKEN` to be set.
+
+## Plugin Distribution Status
+
+The public skill name and plugin name are both `kaggle`. This repo now includes
+a Codex plugin manifest (`.codex-plugin/plugin.json`), a Codex repo marketplace
+snapshot (`.agents/plugins/marketplace.json`), and an in-repo Claude marketplace
+entry (`.claude-plugin/marketplace.json`). Codex curated plugins and Claude
+official marketplace entries are separate review processes; this repo does not
+claim either curated status until those catalogs list it.
 
 ## Security
 
@@ -188,10 +232,14 @@ Reviewed comprehensively in v2.2.0; all MEDIUM findings fixed (zip-slip, untrust
 
 ```
 kaggle-skill/
-├── .claude-plugin/plugin.json     # Claude Code plugin manifest (v2.x)
+├── .codex-plugin/plugin.json      # Codex plugin manifest (plugin name: kaggle)
+├── .agents/plugins/marketplace.json # Codex repo marketplace snapshot
+├── .claude-plugin/plugin.json     # Claude Code plugin manifest (plugin name: kaggle)
+├── .claude-plugin/marketplace.json # In-repo Claude marketplace entry
 ├── .claude/settings.json          # Per-plugin permissions + SessionStart hook
-├── .mcp.json                      # Bundled Kaggle MCP server (66 tools)
+├── .mcp.json                      # Bundled Kaggle MCP server (70 tools)
 ├── PRIVACY.md                     # Privacy policy
+├── THIRD_PARTY_NOTICES.md         # Kaggle/NVIDIA adapted-source notices
 ├── docs/demo/                     # Screencast script + vhs tape + asciinema recorder
 ├── skills/kaggle/
 │   ├── SKILL.md                   # Main skill definition (all agents)
@@ -199,9 +247,14 @@ kaggle-skill/
 │   └── modules/
 │       ├── registration/          # Account & credential setup
 │       ├── comp-report/           # Competition landscape reports
-│       ├── kllm/                  # Core Kaggle interaction (66-tool MCP, kagglehub, CLI)
+│       ├── kllm/                  # Core Kaggle interaction (70-tool MCP, kagglehub, CLI)
+│       │   ├── scripts/           # cli_forums, leaderboard_writeups, CLI helpers
 │       │   ├── references/
-│       │   │   └── competition-overview.md   # list_competition_pages reference
+│       │   │   ├── cli-reference.md
+│       │   │   ├── forums-writeups.md
+│       │   │   ├── benchmarks-cli.md
+│       │   │   ├── competition-research.md
+│       │   │   └── competition-overview.md
 │       │   └── hackathon/         # MCP-driven hackathon workflows (sub-module of kllm)
 │       │       ├── README.md
 │       │       ├── references/    # hackathon-endpoints / benchmark-endpoints / episode-endpoints

@@ -112,7 +112,7 @@ def test_tools_list_includes_at_least_60_tools(kgat_token: str):
     resp = mcp_list_tools(token=kgat_token)
     tools = resp.get("result", {}).get("tools", [])
     assert len(tools) >= 60, (
-        f"server returned only {len(tools)} tools; audit expected ~66"
+        f"server returned only {len(tools)} tools; audit expected ~70"
     )
 
 

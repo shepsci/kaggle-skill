@@ -21,6 +21,8 @@ WRAPPED_SCRIPTS = [
     "skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py",
     "skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py",
     "skills/kaggle/modules/kllm/scripts/list_competition_pages.py",
+    "skills/kaggle/modules/kllm/scripts/cli_forums.py",
+    "skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py",
 ]
 
 
@@ -45,7 +47,7 @@ def test_script_emits_untrusted_content_close_marker(script: str):
 @pytest.mark.parametrize("script", WRAPPED_SCRIPTS, ids=lambda p: Path(p).name)
 def test_untrusted_content_marker_includes_source_attribution(script: str):
     text = (REPO_ROOT / script).read_text()
-    assert 'source="kaggle-mcp"' in text, (
-        f"{script}: <untrusted-content> marker should include source=\"kaggle-mcp\" "
+    assert 'source="kaggle-' in text, (
+        f"{script}: <untrusted-content> marker should include a kaggle-* source "
         "so the agent can reason about provenance."
     )

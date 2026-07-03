@@ -1,0 +1,33 @@
+{
+  "name": "shepsci",
+  "description": "shepsci's Claude Code plugin catalog entry for Kaggle workflows.",
+  "owner": {
+    "name": "shepsci",
+    "url": "https://github.com/shepsci"
+  },
+  "plugins": [
+    {
+      "name": "kaggle",
+      "version": "2.3.0",
+      "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection.",
+      "author": {
+        "name": "shepsci"
+      },
+      "homepage": "https://github.com/shepsci/kaggle-skill",
+      "repository": "https://github.com/shepsci/kaggle-skill",
+      "license": "MIT",
+      "source": "./",
+      "category": "data-science",
+      "tags": [
+        "kaggle",
+        "competitions",
+        "datasets",
+        "models",
+        "notebooks",
+        "forums",
+        "writeups",
+        "benchmarks"
+      ]
+    }
+  ]
+}

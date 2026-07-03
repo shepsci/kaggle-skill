@@ -1,8 +1,8 @@
 ---
 name: kaggle
-description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, GPUs, TPUs, hackathons, writeups, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, hackathon writeup retrieval, badge collection, and general Kaggle questions."
+description: "Unified Kaggle skill. Use when the user mentions kaggle, kaggle.com, Kaggle competitions, datasets, models, notebooks, forums, discussions, benchmarks, GPUs, TPUs, hackathons, writeups, badges, or anything Kaggle-related. Handles account setup, competition reports, dataset/model downloads, notebook execution, competition submissions, discussion and writeup retrieval, benchmark workflows, badge collection, and general Kaggle questions."
 license: MIT
-compatibility: "Python 3.11+, pip packages kagglehub, kaggle, requests, python-dotenv. Optional: playwright for browser badges. The comp-report module's SPA-scraping steps assume Playwright MCP tools are provided by the host agent; the skill itself does not bundle them."
+compatibility: "Python 3.11+, pip packages kagglehub>=1.0.0, kaggle>=2.2.3, kagglesdk>=0.1.33,<1.0, requests, python-dotenv. Optional: playwright for browser badges; kaggle-benchmarks for local benchmark task authoring. The comp-report module's SPA-scraping steps assume Playwright MCP tools are provided by the host agent; the skill itself does not bundle them."
 homepage: https://github.com/shepsci/kaggle-skill
 metadata: {"author": "shepsci", "version": "2.3.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_API_TOKEN"]}}}
 allowed-tools: Bash Read WebFetch Grep Glob
@@ -12,9 +12,9 @@ allowed-tools: Bash Read WebFetch Grep Glob
 
 Complete Kaggle integration for any LLM or agentic coding system (Claude Code,
 gemini-cli, Cursor, etc.): account setup, competition reports, dataset/model
-downloads, notebook execution, competition submissions, hackathon writeup
-retrieval, badge collection, and general Kaggle questions. Five integrated
-modules working together.
+downloads, notebook execution, competition submissions, forum/discussion
+research, writeup retrieval, benchmark workflows, badge collection, and
+general Kaggle questions. Five integrated modules working together.
 
 **Network requirements:** outbound HTTPS to `api.kaggle.com`, `www.kaggle.com`,
 and `storage.googleapis.com`.
@@ -25,7 +25,7 @@ and `storage.googleapis.com`.
 |--------|---------|
 | **registration** | Account creation, API key generation, credential storage |
 | **comp-report** | Competition landscape reports (Python API + optional Playwright via host agent) |
-| **kllm** | Core Kaggle interaction (kagglehub, CLI, MCP) — includes the `hackathon/` submodule for writeup retrieval and overview/rubric extraction |
+| **kllm** | Core Kaggle interaction (kagglehub, current CLI, MCP) — includes forums/topics, benchmark workflows, leaderboard writeup discovery, and the `hackathon/` submodule for writeup retrieval and overview/rubric extraction |
 | **badge-collector** | Systematic badge earning across 5 phases |
 
 ## Credential Setup
@@ -100,7 +100,7 @@ Four methods to interact with kaggle.com:
 | Method | Best For |
 |--------|----------|
 | **kagglehub** | Quick dataset/model download in Python |
-| **kaggle-cli** | Full workflow scripting |
+| **kaggle-cli** | Full workflow scripting with `kaggle>=2.2.3` |
 | **MCP Server** | AI agent integration |
 | **Kaggle UI** | Account setup, verification |
 
@@ -114,6 +114,16 @@ Capability matrix:
 | Submit to competition | — | `competitions submit` | Yes | Yes |
 | Publish dataset | `dataset_upload()` | `datasets create` | Yes | Yes |
 | Publish model | `model_upload()` | `models create` | Yes | Yes |
+| Forums/topics/writeups | — | `forums topics` / `<resource> topics` / wrappers | Yes | Yes |
+| Benchmarks | — | `kaggle benchmarks` / `kaggle b` | Yes | Yes |
+| Simulation episodes/logs/replays | — | `competitions episodes/logs/replay` | Yes | Yes |
+
+**Current CLI baseline:** this skill tracks PyPI `kaggle` 2.2.3 and
+`Kaggle/kaggle-cli` main commit `a430f0b` from 2026-07-02. Recent CLI additions
+covered here include OAuth auth, `--format` with projections, forums/topics,
+resource topics, benchmark tasks, quota, team submissions, simulation
+episodes/logs/replay, streaming kernel logs, host competition
+creation/pages/launch, and dataset metadata updates.
 
 **Known issues:**
 - `dataset_load()` broken in kagglehub v0.4.3 — use `dataset_download()` + `pd.read_csv()`
@@ -121,6 +131,20 @@ Capability matrix:
 - Competition-linked datasets return 403 — use standalone copies
 
 `Read modules/kllm/README.md` for full details and all task workflows.
+
+### kllm: Forums, Discussions, And Writeups
+
+Use the safe CLI wrappers when the agent will inspect discussion text:
+
+```bash
+python3 modules/kllm/scripts/cli_forums.py forum-topics --category competition_write_ups --format json
+python3 modules/kllm/scripts/cli_forums.py resource-topics competitions titanic --sort-by recent --page 1 --format json
+python3 modules/kllm/scripts/leaderboard_writeups.py titanic --top-k 20 --pretty
+```
+
+Hackathon writeup bodies still use the MCP-backed `hackathon/` submodule.
+`Read modules/kllm/references/forums-writeups.md` for routing rules,
+untrusted-content handling, and fallback search patterns.
 
 ### Sub-module: kllm/hackathon
 
@@ -289,6 +313,8 @@ configure scheduling if desired.
 - `modules/kllm/scripts/kagglehub_download.py` — Download via kagglehub
 - `modules/kllm/scripts/kagglehub_publish.py` — Publish via kagglehub
 - `modules/kllm/scripts/list_competition_pages.py` — Fetch competition overview pages (rules / evaluation / data-description / FAQ / prizes / timeline) via MCP
+- `modules/kllm/scripts/cli_forums.py` — Safe wrapper for CLI forums/resource topics
+- `modules/kllm/scripts/leaderboard_writeups.py` — Discover leaderboard solution writeup links
 
 **Hackathon (kllm sub-module):**
 - `modules/kllm/hackathon/scripts/hackathon_overview.py` — Fetch rules, rubric, eligibility
@@ -313,8 +339,11 @@ configure scheduling if desired.
 - `modules/kllm/references/kaggle-knowledge.md` — Comprehensive Kaggle platform knowledge
 - `modules/kllm/references/kagglehub-reference.md` — Full kagglehub Python API reference
 - `modules/kllm/references/cli-reference.md` — Complete kaggle-cli command reference
-- `modules/kllm/references/mcp-reference.md` — Kaggle MCP server reference (66 tools)
+- `modules/kllm/references/mcp-reference.md` — Kaggle MCP server reference (70 tools)
 - `modules/kllm/references/competition-overview.md` — `list_competition_pages` endpoint, page-name conventions, briefing patterns
+- `modules/kllm/references/forums-writeups.md` — Forums, resource topics, leaderboard solution writeups, and hackathon routing
+- `modules/kllm/references/benchmarks-cli.md` — `kaggle benchmarks` workflow and task-authoring guidance
+- `modules/kllm/references/competition-research.md` — Evidence-first competition research brief workflow
 - `modules/kllm/hackathon/references/hackathon-endpoints.md` — Hackathon writeup retrieval
 - `modules/kllm/hackathon/references/benchmark-endpoints.md` — Benchmark task creation and leaderboard
 - `modules/kllm/hackathon/references/episode-endpoints.md` — Simulation episode logs and replays

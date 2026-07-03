@@ -15,7 +15,8 @@ verify and auto-configure credentials.
 3. `KAGGLE_USERNAME` + `KAGGLE_KEY` env vars (legacy)
 4. `~/.kaggle/kaggle.json` with `{"username":"...","key":"..."}` (legacy, chmod 600)
 
-For kaggle-cli: same env vars or `~/.kaggle/kaggle.json`.
+For kaggle-cli: use `kaggle auth login`, the same env vars/token file, or
+`~/.kaggle/kaggle.json`.
 For MCP Server: pass API key as `Authorization: Bearer <token>` header.
 
 **Important:** API tokens generated at kaggle.com/settings (under "API Tokens
@@ -27,7 +28,7 @@ For MCP Server: pass API key as `Authorization: Bearer <token>` header.
 | Method | Type | Best For |
 |--------|------|----------|
 | **kagglehub** | Python library (`pip install kagglehub`) | Quick dataset/model download in Python |
-| **kaggle-cli** | CLI (`pip install kaggle`) | Full workflow scripting (competitions, notebooks, datasets, models) |
+| **kaggle-cli** | CLI (`pip install kaggle>=2.2.3`) | Full workflow scripting (competitions, notebooks, datasets, models, forums, benchmarks) |
 | **Kaggle MCP Server** | Remote endpoint `https://www.kaggle.com/mcp` | AI agent integration (Claude Code, gemini-cli, Cursor, etc.) |
 | **Kaggle UI** | Browser via Open Claw Chrome extension | Account setup, verification, visual exploration |
 
@@ -37,44 +38,46 @@ For MCP Server: pass API key as `Authorization: Bearer <token>` header.
 |------|-----------|------------|------------|-----|
 | Search competitions | — | `kaggle competitions list` | `search_competitions` | Yes |
 | Get competition metadata | — | — | `get_competition` | Yes |
-| Read competition overview pages (rules / evaluation / data-description / FAQ / prizes / timeline) | — | — | `list_competition_pages` ([guide](references/competition-overview.md)) | Yes |
+| Read competition overview pages (rules / evaluation / data-description / FAQ / prizes / timeline) | — | `kaggle competitions pages` | `list_competition_pages` ([guide](references/competition-overview.md)) | Yes |
+| Host competition creation/pages/launch | — | `competitions init/create/pages/launch` | — | Yes |
 | List competition data files | — | `kaggle competitions files` | `list_competition_data_files` / `list_competition_data_tree_files` / `get_competition_data_files_summary` | Yes |
 | Download competition data | `competition_download()` | `kaggle competitions download` | `download_competition_data_file` / `download_competition_data_files` | Yes |
 | Submit to competition | — | `kaggle competitions submit` | `start_competition_submission_upload` → `submit_to_competition` | Yes |
-| Submit kernel to code competition | — | — | `create_code_competition_submission` 🔒 | Yes |
-| List/search submissions | — | `kaggle competitions submissions` | `search_competition_submissions` / `get_competition_submission` | Yes |
-| Read leaderboard | — | `kaggle competitions leaderboard` | `get_competition_leaderboard` / `download_competition_leaderboard` | Yes |
+| Submit kernel to code competition | — | `competitions submit -k ... -v ...` | `create_code_competition_submission` 🔒 | Yes |
+| List/search submissions | — | `competitions submissions` / `team-submissions` | `search_competition_submissions` / `get_competition_submission` | Yes |
+| Read leaderboard | — | `competitions leaderboard` / `leaderboard_writeups.py` | `get_competition_leaderboard` / `download_competition_leaderboard` | Yes |
+| Simulation episodes, logs, replay | — | `competitions episodes/logs/replay` | `get_episode_agent_logs` / `get_episode_replay` / `list_submission_episodes` ([guide](hackathon/references/episode-endpoints.md)) | Yes |
 | Search datasets | — | `kaggle datasets list` | `search_datasets` | Yes |
-| Get dataset info / metadata | — | `kaggle datasets metadata` | `get_dataset_info` / `get_dataset_metadata` / `get_dataset_files_summary` / `get_dataset_status` | Yes |
+| Get dataset info / metadata | — | `datasets metadata/status` | `get_dataset_info` / `get_dataset_metadata` / `get_dataset_files_summary` / `get_dataset_status` | Yes |
 | List dataset files | — | `kaggle datasets files` | `list_dataset_files` / `list_dataset_tree_files` | Yes |
 | Download dataset | `dataset_download()` | `kaggle datasets download` | `download_dataset` | Yes |
-| Upload dataset file / version | `dataset_upload()` | `kaggle datasets create` / `kaggle datasets version` | `upload_dataset_file` / `update_dataset_metadata` | Yes |
+| Upload dataset file / version | `dataset_upload()` | `datasets create/version/metadata --update` | `upload_dataset_file` / `update_dataset_metadata` | Yes |
 | Search notebooks | — | `kaggle kernels list` | `search_notebooks` | Yes |
-| Get notebook info | — | — | `get_notebook_info` / `list_notebook_files` | Yes |
-| Execute notebook (KKB) | — | `kaggle kernels push/status/output` | `create_notebook_session` → `get_notebook_session_status` → `download_notebook_output[_zip]` | Yes |
+| Get notebook info | — | `kernels files/pull` | `get_notebook_info` / `list_notebook_files` | Yes |
+| Execute notebook (KKB) | — | `kernels push/status/output/logs` | `create_notebook_session` → `get_notebook_session_status` → `download_notebook_output[_zip]` | Yes |
 | Cancel notebook session | — | — | `cancel_notebook_session` | Yes |
 | Save / version notebook | — | `kaggle kernels push` | `save_notebook` | Yes |
 | List models | — | `kaggle models list` | `list_models` | Yes |
-| Get model + variations + versions | — | — | `get_model` / `list_model_variations` / `get_model_variation` / `list_model_variation_versions` / `list_model_variation_version_files` | Yes |
-| Download model variation version | `model_download()` | `kaggle models instances versions download` | `download_model_variation_version` | Yes |
-| Create / update model + variation | — | `kaggle models create` | `create_model` / `update_model` / `update_model_variation` | Yes |
-| Forums (list / topics / threads) | — | — | `list_forums` / `list_forum_topics` / `get_forum` / `get_forum_topic` | Yes |
-| Hackathon overview | — | — | `get_hackathon_overview` ([guide](references/hackathon-endpoints.md)) | Yes |
-| Hackathon writeups (list / fetch / by topic / by slug) | — | — | `list_hackathon_write_ups` / `get_writeup` / `get_writeup_by_topic` / `get_writeup_by_slug` / `get_resolved_writeup_links` | Yes |
+| Get model + variations + versions | — | `models get` / `instances files` | `get_model` / `list_model_variations` / `get_model_variation` / `list_model_variation_versions` / `list_model_variation_version_files` | Yes |
+| Download model variation version | `model_download()` | `models instances versions download` | `download_model_variation_version` | Yes |
+| Create / update model + variation | — | `models create/update` / `instances create/update` | `create_model` / `update_model` / `update_model_variation` | Yes |
+| Forums and resource topics | — | `forums topics` / `<resource> topics` / `cli_forums.py` | `list_forums` / `list_forum_topics` / `get_forum` / `get_forum_topic` | Yes |
+| Hackathon overview | — | `competitions pages` (basic) | `get_hackathon_overview` ([guide](hackathon/references/hackathon-endpoints.md)) | Yes |
+| Hackathon writeups (list / fetch / by topic / by slug) | — | forum/topic fallback | `list_hackathon_write_ups` / `get_writeup` / `get_writeup_by_topic` / `get_writeup_by_slug` / `get_resolved_writeup_links` | Yes |
 | Hackathon tracks | — | — | `list_hackathon_tracks` | Yes |
 | Hackathon writeup CSV export (host/judge) | — | — | `download_hackathon_write_ups` 🔒 | Yes |
-| Benchmarks | — | — | `create_benchmark_task_from_prompt` / `get_benchmark_leaderboard` ([guide](references/benchmark-endpoints.md)) | Yes |
-| Episodes (simulation logs / replays) | — | — | `get_episode_agent_logs` / `get_episode_replay` / `list_submission_episodes` ([guide](references/episode-endpoints.md)) | Yes |
-| Authorize / user profile | — | — | `authorize` / `get_user_profile` | Yes |
+| Benchmarks | — | `kaggle benchmarks` / `kaggle b` | `create_benchmark_task_from_prompt` / `get_benchmark_leaderboard` ([guide](hackathon/references/benchmark-endpoints.md)) | Yes |
+| Quota | — | `kaggle quota` | — | Yes |
+| Authorize / user profile | — | OAuth via `kaggle auth login` | `authorize` / `get_user_profile` | Yes |
 | Generic search | — | — | `search_content` | Yes |
 | Register account | — | — | — | UI only |
 | Get API tokens | — | — | — | UI only |
 | Persona verification | — | — | — | UI only |
 
 🔒 = role-gated. See [mcp-reference.md](references/mcp-reference.md) for the
-full 66-tool inventory with status flags. The `kagglehub` and `kaggle-cli`
-columns are deliberately sparse — most workflows are now better served via
-the bundled MCP server.
+full 70-tool inventory with status flags. Use CLI for scriptable platform
+workflows and topics; use MCP where it exposes richer agent-oriented objects
+or hackathon-specific writeup bodies.
 
 ## Known Issues
 
@@ -141,7 +144,11 @@ See `modules/kllm/scripts/cli_competition.sh` for a complete competition workflo
 
 Before joining or analyzing a competition, pull its overview pages (rules,
 evaluation, data description, FAQ, prizes, timeline) via the
-`list_competition_pages` MCP endpoint:
+CLI or the `list_competition_pages` MCP endpoint:
+
+```bash
+kaggle competitions pages titanic --content --format json
+```
 
 ```bash
 # Print every page as JSON
@@ -164,6 +171,47 @@ See [references/competition-overview.md](references/competition-overview.md)
 for the full endpoint reference, page-name conventions, and recommended
 analysis patterns.
 
+### Forums, Discussions, And Writeups
+
+Use the CLI-backed wrapper for global forums and resource topics:
+
+```bash
+python3 modules/kllm/scripts/cli_forums.py forum-topics \
+  --category competition_write_ups --sort-by recent --format json
+
+python3 modules/kllm/scripts/cli_forums.py resource-topics \
+  competitions titanic --sort-by recent --page 1 --format json
+
+python3 modules/kllm/scripts/cli_forums.py resource-topic \
+  competitions titanic/12345 --format json
+```
+
+For leaderboard solution writeup links:
+
+```bash
+python3 modules/kllm/scripts/leaderboard_writeups.py titanic --top-k 20 --pretty
+```
+
+For hackathon writeup bodies, stay on the MCP path under `hackathon/scripts/`.
+See [references/forums-writeups.md](references/forums-writeups.md).
+
+### Benchmarks CLI
+
+Use `kaggle benchmarks` or `kaggle b` for task creation, model runs, status,
+logs, downloads, publishing, and benchmark topics:
+
+```bash
+kaggle b init -y
+kaggle b t push my-task -f task.py --wait 600
+kaggle b t run my-task -m gemini-2.5-pro --wait
+kaggle b t status my-task
+kaggle b t download my-task --include-source
+```
+
+These commands can create Kaggle resources and consume quota, so confirm the
+user wants the operation before running the full lifecycle. See
+[references/benchmarks-cli.md](references/benchmarks-cli.md).
+
 ## Scripts
 
 - `scripts/setup_env.sh` — Auto-configure Kaggle credentials from env vars (creates kaggle.json)
@@ -177,6 +225,8 @@ analysis patterns.
 - `scripts/kagglehub_download.py` — Download datasets and models via kagglehub
 - `scripts/kagglehub_publish.py <dataset|model> <handle> <local-dir> [version-notes]` — Publish via kagglehub
 - `scripts/list_competition_pages.py --competition <slug> [--summary|--page NAME|--pretty]` — Fetch host-authored overview pages (rules, evaluation, data-description, FAQ, prizes, timeline) via the `list_competition_pages` MCP endpoint
+- `scripts/cli_forums.py ...` — Safe wrapper around `kaggle forums topics` and `kaggle <resource> topics`
+- `scripts/leaderboard_writeups.py <competition> [--top-k N]` — Discover solution writeup links from leaderboard payloads
 
 ## References
 
@@ -185,3 +235,6 @@ analysis patterns.
 - [cli-reference.md](references/cli-reference.md) — Complete kaggle-cli command reference
 - [mcp-reference.md](references/mcp-reference.md) — Kaggle MCP server endpoint, auth, and tools
 - [competition-overview.md](references/competition-overview.md) — `list_competition_pages` endpoint, page-name conventions, briefing patterns
+- [forums-writeups.md](references/forums-writeups.md) — CLI forums/resource topics, leaderboard solution writeups, and hackathon writeup routing
+- [benchmarks-cli.md](references/benchmarks-cli.md) — Current `kaggle benchmarks` command workflow and task-authoring guidance
+- [competition-research.md](references/competition-research.md) — Evidence-first competition research brief workflow

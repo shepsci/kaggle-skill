@@ -1,6 +1,6 @@
 {
-  "name": "kaggle-skill",
-  "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, submissions, hackathon writeup retrieval, and badge collection.",
+  "name": "kaggle",
+  "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection.",
   "version": "2.3.0",
   "author": {
     "name": "shepsci"
@@ -14,11 +14,12 @@
     "datasets",
     "models",
     "notebooks",
+    "forums",
     "hackathons",
     "writeups",
+    "benchmarks",
     "machine-learning",
     "data-science"
   ],
-  "skills": ["./skills/kaggle"],
-  "privacyPolicy": "https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md"
+  "skills": ["./skills/kaggle"]
 }

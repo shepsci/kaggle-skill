@@ -93,20 +93,23 @@ print(mcp_call("tools/list"))
 print(mcp_call("tools/call", {"name": "search_datasets", "arguments": {"search": "titanic"}}))
 ```
 
-## Tool Inventory (66 live tools as of 2026-04-22, verified 2026-05-04)
+## Tool Inventory (70 live tools, verified 2026-07-03)
 
 Source: `tools/list` against `https://www.kaggle.com/mcp`, cross-referenced
 against [shepsci/kmcp-tools](https://github.com/shepsci/kmcp-tools)
 `data/endpoints.md`. Use `tools/list` to confirm against the current server.
 
 **Status flag changes since the 2026-04-22 audit** (verified by
-`tests/integration/test_mcp_live.py` on 2026-05-04):
+`tests/integration/test_mcp_live.py` and `tests/manifest/test_mcp_inventory_drift.py`):
 
 - `get_hackathon_write_up` — was KNOWN_FAIL, **now PASS**. Kaggle shipped a fix.
 - `get_benchmark_leaderboard` — was BLOCKED (permission-gated), **now PASS**
   for ordinary KGAT tokens.
 - `get_competition` for classic competitions (titanic, playground-series-s6e2)
   — was KNOWN_FAIL, **now PASS**.
+- New live MCP tools documented on 2026-07-03:
+  `get_accelerator_quota`, `list_competition_topics`,
+  `list_team_public_submissions`, and `list_topic_messages`.
 
 The hackathon module's `fetch_writeup.py` fallback chain (`get_writeup` →
 `get_writeup_by_topic` → `get_writeup_by_slug`) is retained as defensive
@@ -128,9 +131,11 @@ Status legend:
 - ✅ `get_competition_leaderboard`
 - ✅ `get_competition_submission`
 - ✅ `search_competition_submissions`
+- ✅ `list_team_public_submissions` — public team submission history
 - ✅ `list_competition_data_files`
 - ✅ `list_competition_data_tree_files`
 - ✅ `list_competition_pages` — host-authored overview pages (rules, evaluation, data-description, FAQ, prizes, timeline). Universal: works for regular competitions, playgrounds, and hackathons. See [competition-overview.md](competition-overview.md) for the full reference and patterns. Wrapper script: `modules/kllm/scripts/list_competition_pages.py`.
+- ✅ `list_competition_topics` — discussion topics for a competition
 - ✅ `download_competition_data_file`
 - ✅ `download_competition_data_files`
 - ✅ `download_competition_leaderboard`
@@ -179,6 +184,7 @@ Status legend:
 - ✅ `list_forum_topics`
 - ✅ `get_forum`
 - ✅ `get_forum_topic`
+- ✅ `list_topic_messages` — messages/comments for a topic
 
 ### Hackathon (newer surface — see `modules/kllm/hackathon/`)
 - ✅ `get_hackathon_overview` — rules, eligibility, rubric, prizes
@@ -204,6 +210,9 @@ Status legend:
 
 ### Search
 - ✅ `search_content` — generic content search
+
+### Quota
+- ✅ `get_accelerator_quota` — Kaggle accelerator quota status
 
 ## Usage Patterns
 

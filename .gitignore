@@ -34,3 +34,4 @@ tests/test-*-report-*.md
 .idea/
 .DS_Store
 .ipynb_checkpoints/
+.claude/settings.local.json
