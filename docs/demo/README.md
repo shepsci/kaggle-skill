@@ -10,6 +10,7 @@ committed source locally and confirming it still looks correct.
 | Cast | What It Shows | Source |
 |---|---|---|
 | Claude install and first workflow | Marketplace install, credential verification, Titanic overview, recent writeups | [install-and-demo.cast](install-and-demo.cast) |
+| ARC-AGI top writeups | Agent prompt that retrieves writeups from the top 3 ranked ARC-AGI submissions | [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast) |
 | Antigravity CLI install | Recommended `agy` path with `npx skills add shepsci/kaggle-skill` | [antigravity-install.cast](antigravity-install.cast) |
 | Antigravity MCP config | `.agents/mcp_config.json`, `/mcp`, and `serverUrl` for the Kaggle MCP server | [mcp-config.cast](mcp-config.cast) |
 | Competition briefing | Credential check plus `list_competition_pages` for a concise competition brief | [competition-brief.cast](competition-brief.cast) |

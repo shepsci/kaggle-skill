@@ -25,6 +25,11 @@ Terminal walkthrough: install `kaggle@shepsci`, verify Kaggle credentials
 without exposing secrets, summarize Titanic competition pages, and retrieve
 recent Kaggle writeup discussions. Replay the committed clean source cast with
 `asciinema play docs/demo/install-and-demo.cast`.
+
+Quick agent use case: ask the agent to use the Kaggle skill to retrieve the
+writeups from the top 3 ranked submissions in the ARC-AGI competition. Replay
+it with `asciinema play docs/demo/arc-agi-top-writeups.cast`.
+
 More task-focused local screencasts live in the [demo library](docs/demo/README.md).
 
 ## Available On
@@ -43,6 +48,8 @@ More task-focused local screencasts live in the [demo library](docs/demo/README.
 - "Generate a Kaggle competition landscape report for the last 30 days."
 - "Search Kaggle discussion topics about ensembling."
 - "Find recent solution writeups for this competition."
+- "Use the Kaggle skill to retrieve the writeups from the top 3 ranked
+  submissions in the ARC-AGI competition."
 - "Pull every writeup from `kaggle-measuring-agi` and group by track."
 - "Download this dataset and prepare it for a notebook."
 - "Push this notebook to Kaggle Kernels and tell me when it finishes."

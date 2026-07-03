@@ -128,6 +128,20 @@ python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
 
 Source cast: [competition-brief.cast](competition-brief.cast)
 
+### ARC-AGI top writeups
+
+Goal: show a quick agent-facing prompt that retrieves leaderboard solution
+writeup links for the top 3 ranked ARC-AGI submissions.
+
+```bash
+claude
+Use the kaggle skill to retrieve the writeups from the top 3 ranked submissions in the ARC-AGI competition.
+python3 skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py \
+  arc-prize-2026-arc-agi-3 --top-k 3 --pretty
+```
+
+Source cast: [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast)
+
 ### Hackathon writeups
 
 Goal: show the overview, roster, and fetch sequence while keeping Kaggle text
