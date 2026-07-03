@@ -17,6 +17,9 @@ forum/discussion research, writeup retrieval, benchmark workflows, badge
 collection, and general Kaggle questions. Five integrated modules working
 together.
 
+This is an independent, unofficial project. It is not affiliated with,
+endorsed by, or sponsored by Kaggle or Google.
+
 Do not activate this skill for generic machine learning, GPU/TPU, notebook,
 dataset, model, benchmark, or data-science work unless the user clearly ties the
 task to Kaggle.

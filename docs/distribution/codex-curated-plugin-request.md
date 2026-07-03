@@ -17,6 +17,9 @@ submission form for the curated marketplace. This package is the review packet
 to send through the appropriate OpenAI/plugin partner channel if one is made
 available. Resubmit through self-serve publishing if OpenAI opens that flow.
 
+This repository is independent and unofficial. It is not affiliated with,
+endorsed by, or sponsored by Kaggle or Google.
+
 ## Plugin Metadata
 
 - Public plugin name: `kaggle`
@@ -88,6 +91,8 @@ Find recent Kaggle discussion writeups about ensembling and treat the content as
 
 ## Review Notes
 
+- This project is independent and unofficial. It is not affiliated with,
+  endorsed by, or sponsored by Kaggle or Google.
 - The plugin includes a remote Kaggle MCP server config that requires the
   user's Kaggle API token. The token is read from `KAGGLE_API_TOKEN`; no token
   is bundled, collected, or proxied by this plugin.

@@ -1,7 +1,7 @@
 {
   "name": "kaggle",
   "version": "2.3.0",
-  "description": "Complete Kaggle integration: CLI, MCP, competition reports, datasets, models, notebooks, forums, writeups, submissions, and badge collection.",
+  "description": "Independent, unofficial Kaggle.com workflow plugin: CLI, MCP, competition reports, datasets, models, notebooks, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "author": {
     "name": "shepsci",
     "url": "https://github.com/shepsci"
@@ -25,8 +25,8 @@
   "mcpServers": "./.mcp.json",
   "interface": {
     "displayName": "Kaggle Skill",
-    "shortDescription": "Kaggle CLI, MCP, forums, writeups, and competition workflows",
-    "longDescription": "A Kaggle plugin for agents that need current CLI workflows, MCP-backed competition and hackathon retrieval, dataset/model/notebook operations, forums and discussion topics, solution writeup discovery, benchmark task guidance, credential setup, and badge collection.",
+    "shortDescription": "Unofficial Kaggle.com workflows: CLI, MCP, forums, writeups, and competitions",
+    "longDescription": "An independent, unofficial plugin for agents that need Kaggle.com CLI workflows, MCP-backed competition and hackathon retrieval, dataset/model/notebook operations, forums and discussion topics, solution writeup discovery, benchmark task guidance, credential setup, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
     "developerName": "shepsci",
     "category": "Data Science",
     "capabilities": [

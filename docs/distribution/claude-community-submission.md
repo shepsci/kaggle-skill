@@ -29,6 +29,9 @@ separate outcomes:
 This repository does not claim Claude official, Claude directory, or Anthropic
 Verified listing status unless the relevant catalog lists it.
 
+This repository is independent and unofficial. It is not affiliated with,
+endorsed by, or sponsored by Kaggle or Google.
+
 Submit through one of the documented forms:
 
 - Claude organization form: https://claude.ai/admin-settings/directory/submissions/plugins/new
@@ -98,19 +101,22 @@ For Claude directory submission metadata, use an HTTPS git URL source:
 Short description:
 
 ```text
-Complete Kaggle integration: competition reports, dataset/model downloads,
-notebook execution, forums, writeups, submissions, and badge collection.
+Independent plugin for Kaggle.com workflows: competition reports, dataset/model
+downloads, notebook execution, forums, writeups, submissions, and badge
+collection.
 ```
 
 Long description:
 
 ```text
-Kaggle is a Claude Code plugin and agent skill for end-to-end Kaggle workflows:
-credential setup, current Kaggle CLI guidance, Kaggle MCP access, competition
-research briefs, datasets, models, notebooks, forums/topics, leaderboard
-solution writeup discovery, hackathon writeup retrieval, benchmark task
-workflows, and badge collection. It includes safety wrappers that mark
-Kaggle-supplied forum/writeup/page content as untrusted data for agent use.
+This is an independent, unofficial Claude Code plugin and agent skill for
+end-to-end Kaggle.com workflows: credential setup, current Kaggle CLI guidance,
+Kaggle MCP access, competition research briefs, datasets, models, notebooks,
+forums/topics, leaderboard solution writeup discovery, hackathon writeup
+retrieval, benchmark task workflows, and badge collection. It is not affiliated
+with, endorsed by, or sponsored by Kaggle or Google. It includes safety wrappers
+that mark Kaggle-supplied forum/writeup/page content as untrusted data for agent
+use.
 ```
 
 Security notes:
@@ -134,6 +140,13 @@ or proxied by this plugin. If Claude directory review requires OAuth-only MCP
 connectors for default listings, submit a Claude-default bundle with the MCP
 configuration documented as optional setup, or work with Kaggle/Google on an
 approved OAuth-backed connector before requesting Anthropic Verified.
+```
+
+Affiliation note:
+
+```text
+This project is independent and unofficial. It is not affiliated with, endorsed
+by, or sponsored by Kaggle or Google.
 ```
 
 Reviewer prompts:

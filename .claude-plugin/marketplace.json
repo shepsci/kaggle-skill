@@ -1,6 +1,6 @@
 {
   "name": "shepsci",
-  "description": "shepsci's Claude Code plugin catalog entry for Kaggle workflows.",
+  "description": "shepsci's independent, unofficial Claude Code plugin catalog entry for Kaggle.com workflows. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "owner": {
     "name": "shepsci",
     "url": "https://github.com/shepsci"
@@ -9,7 +9,7 @@
     {
       "name": "kaggle",
       "version": "2.3.0",
-      "description": "Complete Kaggle integration: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection.",
+      "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
       "author": {
         "name": "shepsci"
       },

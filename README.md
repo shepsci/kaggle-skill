@@ -10,6 +10,9 @@ credential setup, competition research, dataset/model downloads, notebook
 execution, submissions, forums and writeups, benchmark workflows, and badge
 collection.
 
+This is an independent, unofficial project. It is not affiliated with,
+endorsed by, or sponsored by Kaggle or Google.
+
 The repository name is `kaggle-skill`; the public skill and plugin name is
 `kaggle`. It works with agents that support SKILL-style packages, including
 Claude Code, Codex, OpenClaw, Antigravity CLI (`agy`), Hermes, Cursor, and 35+
@@ -221,6 +224,8 @@ Current status:
 
 - `kaggle-skill` is self-hosted and installable from this repository and from
   third-party skill indexes such as skills.sh and ClawHub.
+- This project is independent and unofficial. It is not affiliated with,
+  endorsed by, or sponsored by Kaggle or Google.
 - Claude plugin-directory submission is the first official-listing target.
   Anthropic Verified is a separate discretionary review goal to pursue after
   directory acceptance and usage evidence.
