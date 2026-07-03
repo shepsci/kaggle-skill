@@ -100,45 +100,6 @@ def test_no_grading_claim_in_public_surface(doc: Path):
         )
 
 
-# ── plugin.json description == marketplace.json description ─────────────────
-
-def test_plugin_json_description_matches_marketplace_listing():
-    """The plugin description in our local .claude-plugin/plugin.json must
-    match the description published in shepsci/claude-marketplace. Drift means
-    one of them is stale.
-
-    Skipped in three cases:
-      - sibling shepsci/claude-marketplace not cloned
-      - marketplace lists an older version (drift handled by the marketplace PR)
-      - local plugin lists an older version (test won't pin a downgrade)
-    Once both versions match, this test enforces description parity going
-    forward."""
-    plugin = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text())
-    local_name = plugin.get("name", "kaggle")
-    local_desc = plugin.get("description", "")
-    local_version = plugin.get("version", "")
-    marketplace_path = REPO_ROOT.parent / "claude-marketplace" / ".claude-plugin" / "marketplace.json"
-    if not marketplace_path.exists():
-        pytest.skip("sibling shepsci/claude-marketplace not cloned; skipping cross-check")
-    marketplace = json.loads(marketplace_path.read_text())
-    kaggle_entries = [p for p in marketplace.get("plugins", []) if p.get("name") == local_name]
-    if not kaggle_entries:
-        pytest.skip(
-            f"{local_name!r} missing from sibling marketplace.json; "
-            "marketplace rename/sync is handled by the distribution PR"
-        )
-    if kaggle_entries[0].get("version") != local_version:
-        pytest.skip(
-            f"marketplace.json at version {kaggle_entries[0].get('version')!r}, "
-            f"local plugin.json at {local_version!r} — version drift first; "
-            "the marketplace PR fixes this."
-        )
-    market_desc = kaggle_entries[0].get("description", "")
-    assert market_desc == local_desc, (
-        f"description drift:\n  local plugin.json: {local_desc!r}\n  marketplace.json:  {market_desc!r}"
-    )
-
-
 # ── plugin.json version == pyproject.toml version == SKILL.md frontmatter ───
 
 def test_version_consistency_across_manifests():

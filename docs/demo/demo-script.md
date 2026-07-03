@@ -7,7 +7,7 @@ Re-record after material install, credential, or workflow changes.
 
 Show the current v2.3.0 experience in 60-90 seconds:
 
-1. Install `kaggle@shepsci` from the Claude marketplace command surface.
+1. Install `kaggle@shepsci` from the in-repo Claude marketplace manifest.
 2. Verify Kaggle credentials without displaying secrets.
 3. Summarize the Titanic competition pages.
 4. Retrieve recent Kaggle discussion/writeup content.
