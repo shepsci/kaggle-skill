@@ -23,7 +23,7 @@ sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle"))
 
 from shared.mcp_client import mcp_list_tools  # noqa: E402
 
-MCP_REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "references" / "mcp-reference.md"
+MCP_REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "references" / "mcp-reference.md"
 
 pytestmark = pytest.mark.live
 

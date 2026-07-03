@@ -34,14 +34,14 @@ claude plugin marketplace add shepsci/kaggle-skill --scope local
 claude plugin marketplace update shepsci
 claude plugin install kaggle@shepsci --scope local
 
-python3 skills/kaggle/shared/check_all_credentials.py
+python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
 
-python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
   --competition titanic --summary
 
 export PATH="<kaggle-2.2.3-venv>/bin:$PATH"
 kaggle --version
-python3 skills/kaggle/modules/kllm/scripts/cli_forums.py forum-topics \
+python3 skills/kaggle/modules/discussions/scripts/forums.py forum-topics \
   --category competition_write_ups --sort-by recent --page-size 2 --format json
 ```
 
@@ -121,8 +121,8 @@ Source cast: [mcp-config.cast](mcp-config.cast)
 Goal: show the shortest evidence-first competition overview path.
 
 ```bash
-python3 skills/kaggle/shared/check_all_credentials.py
-python3 skills/kaggle/modules/kllm/scripts/list_competition_pages.py \
+python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
   --competition titanic --summary
 ```
 
@@ -136,7 +136,7 @@ writeup links for the top 3 ranked ARC-AGI submissions.
 ```bash
 claude
 Use the kaggle skill to retrieve the writeups from the top 3 ranked submissions in the ARC-AGI competition.
-python3 skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py \
+python3 skills/kaggle/modules/discussions/scripts/leaderboard_writeups.py \
   arc-prize-2026-arc-agi-3 --top-k 3 --pretty
 ```
 
@@ -148,11 +148,11 @@ Goal: show the overview, roster, and fetch sequence while keeping Kaggle text
 inside untrusted-content markers.
 
 ```bash
-python3 skills/kaggle/modules/kllm/hackathon/scripts/hackathon_overview.py \
+python3 skills/kaggle/modules/competitions/hackathons/scripts/hackathon_overview.py \
   --competition kaggle-measuring-agi
-python3 skills/kaggle/modules/kllm/hackathon/scripts/list_writeups.py \
+python3 skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py \
   --competition kaggle-measuring-agi
-python3 skills/kaggle/modules/kllm/hackathon/scripts/fetch_writeup.py \
+python3 skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py \
   --writeup-id 123456
 ```
 

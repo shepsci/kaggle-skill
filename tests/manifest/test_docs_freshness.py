@@ -68,13 +68,27 @@ def test_public_docs_do_not_contain_stale_strings(stale: str):
 def test_readme_demo_links_to_committed_cast_source():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     cast = REPO_ROOT / "docs" / "demo" / "install-and-demo.cast"
+    gif = REPO_ROOT / "docs" / "demo" / "media" / "install-and-demo.gif"
 
     assert cast.exists(), "README demo source cast must be committed"
     assert "docs/demo/install-and-demo.cast" in readme
+    assert "docs/demo/media/install-and-demo.gif" in readme
+    assert gif.exists() and gif.stat().st_size > 0
     assert not ASCIINEMA_RE.findall(readme), (
         "README must not link to public asciinema uploads unless the committed "
         "cast has been freshly uploaded and visually verified"
     )
+
+
+def test_arc_agi_demo_has_readme_gif_preview_and_cast_source():
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    cast = REPO_ROOT / "docs" / "demo" / "arc-agi-top-writeups.cast"
+    gif = REPO_ROOT / "docs" / "demo" / "media" / "arc-agi-top-writeups.gif"
+
+    assert cast.exists(), "ARC-AGI demo source cast must be committed"
+    assert "docs/demo/arc-agi-top-writeups.cast" in readme
+    assert "docs/demo/media/arc-agi-top-writeups.gif" in readme
+    assert gif.exists() and gif.stat().st_size > 0
 
 
 def test_claude_install_docs_use_kaggle_skill_marketplace():
@@ -138,6 +152,28 @@ def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
     assert 4.0 <= duration <= 90.0, (
         f"{cast.relative_to(REPO_ROOT)} duration should be readable and under 90 seconds"
     )
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_committed_asciinema_cast_uses_current_module_paths(cast: Path):
+    text = cast.read_text(encoding="utf-8")
+    forbidden = [
+        "modules/kllm",
+        "modules/comp-report",
+        "modules/badge-collector",
+        "modules/registration",
+    ]
+    offenders = [term for term in forbidden if term in text]
+    assert not offenders, f"{cast.relative_to(REPO_ROOT)} contains old module paths: {offenders}"
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_committed_asciinema_cast_has_gif_preview(cast: Path):
+    gif = REPO_ROOT / "docs" / "demo" / "media" / f"{cast.stem}.gif"
+    demo_readme = (REPO_ROOT / "docs" / "demo" / "README.md").read_text(encoding="utf-8")
+
+    assert gif.exists() and gif.stat().st_size > 0, f"missing GIF preview for {cast.name}"
+    assert f"media/{cast.stem}.gif" in demo_readme, f"demo README does not embed {gif.name}"
 
 
 @pytest.mark.parametrize("doc", list(_iter_text_files([REPO_ROOT / "README.md", REPO_ROOT / "docs"])))

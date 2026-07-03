@@ -19,7 +19,7 @@ SKILL_ROOT = REPO_ROOT / "skills" / "kaggle"
 
 # ── Badge count ─────────────────────────────────────────────────────────────
 
-BADGE_REGISTRY = REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "scripts" / "badge_registry.py"
+BADGE_REGISTRY = REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts" / "badge_registry.py"
 
 
 def _actual_badge_count() -> int:
@@ -33,9 +33,9 @@ def test_badge_registry_count_matches_documented_count():
     actual = _actual_badge_count()
     docs_to_check = [
         REPO_ROOT / "skills" / "kaggle" / "SKILL.md",
-        REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "README.md",
-        REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "references" / "badge-catalog.md",
-        REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "scripts" / "badge_registry.py",
+        REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "README.md",
+        REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "references" / "badge-catalog.md",
+        REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts" / "badge_registry.py",
     ]
     pattern = re.compile(r"\b(\d{2,3})[ -](badges?|badge|badge definitions|Kaggle badges)\b")
     for doc in docs_to_check:
@@ -181,18 +181,77 @@ def test_documented_script_paths_exist_and_use_matching_interpreter(doc: Path):
     )
 
 
-# ── Hackathon module lives under kllm ───────────────────────────────────────
+# ── Workflow module layout ─────────────────────────────────────────────────
 
-def test_hackathon_is_under_kllm_not_top_level_module():
-    """v2.3.0 moved hackathon under kllm. Top-level modules/hackathon must not exist."""
-    top_level = REPO_ROOT / "skills" / "kaggle" / "modules" / "hackathon"
-    nested = REPO_ROOT / "skills" / "kaggle" / "modules" / "kllm" / "hackathon"
-    assert not top_level.exists(), f"old hackathon dir still present at {top_level}"
-    assert nested.exists(), f"hackathon submodule missing from {nested}"
+EXPECTED_MODULES = {
+    "setup",
+    "competitions",
+    "datasets",
+    "models",
+    "notebooks",
+    "discussions",
+    "benchmarks",
+    "badges",
+    "references",
+}
+
+OLD_MODULES = {"kllm", "comp-report", "badge-collector", "registration", "hackathon"}
+
+
+def test_workflow_module_layout_is_current():
+    modules_dir = SKILL_ROOT / "modules"
+    actual = {path.name for path in modules_dir.iterdir() if path.is_dir()}
+    assert EXPECTED_MODULES <= actual
+    assert not (actual & OLD_MODULES), f"old module directories still exist: {sorted(actual & OLD_MODULES)}"
+    for module in EXPECTED_MODULES:
+        assert (modules_dir / module / "README.md").exists(), f"{module} is missing README.md"
+
+
+def test_hackathons_live_under_competitions():
+    top_level = SKILL_ROOT / "modules" / "hackathon"
+    nested = SKILL_ROOT / "modules" / "competitions" / "hackathons"
+    assert not top_level.exists(), f"old top-level hackathon dir still present at {top_level}"
     assert (nested / "README.md").exists()
     assert (nested / "scripts" / "list_writeups.py").exists()
     assert (nested / "scripts" / "fetch_writeup.py").exists()
     assert (nested / "scripts" / "hackathon_overview.py").exists()
+
+
+def test_public_docs_do_not_reference_removed_module_paths():
+    forbidden = [
+        "modules/kllm",
+        "modules/comp-report",
+        "modules/badge-collector",
+        "modules/registration",
+        "registration module",
+        "comp-report",
+        "badge-collector",
+    ]
+    offenders: list[str] = []
+    for doc in _public_markdown_files():
+        text = doc.read_text(encoding="utf-8").lower()
+        for term in forbidden:
+            if term in text:
+                offenders.append(f"{doc.relative_to(REPO_ROOT)} contains {term!r}")
+    assert not offenders, "public docs contain stale module references: " + "; ".join(offenders)
+
+
+def test_readme_and_demo_docs_reference_rendered_gif_previews():
+    docs = [
+        REPO_ROOT / "README.md",
+        REPO_ROOT / "docs" / "demo" / "README.md",
+    ]
+    expected = [
+        "docs/demo/media/install-and-demo.gif",
+        "docs/demo/media/arc-agi-top-writeups.gif",
+    ]
+    for doc in docs:
+        text = doc.read_text(encoding="utf-8")
+        for gif in expected:
+            rel = gif if doc == REPO_ROOT / "README.md" else gif.removeprefix("docs/demo/")
+            assert rel in text, f"{doc.relative_to(REPO_ROOT)} does not reference {rel}"
+            path = REPO_ROOT / gif
+            assert path.exists() and path.stat().st_size > 0, f"missing or empty GIF preview: {gif}"
 
 
 # ── OpenClaw status in compatibility table ───────────────────────────────────

@@ -17,9 +17,9 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "scripts"))
+sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts"))
 
-PHASE_2 = REPO_ROOT / "skills" / "kaggle" / "modules" / "badge-collector" / "scripts" / "phase_2_competition.py"
+PHASE_2 = REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts" / "phase_2_competition.py"
 
 
 def _load_module():

@@ -1,0 +1,30 @@
+{
+  "title": "kaggle-badges-sample-dataset",
+  "id": "USERNAME/kaggle-badges-sample-dataset",
+  "subtitle": "Sample dataset for Kaggle badge collection",
+  "description": "Auto-generated dataset by the Kaggle Badge Collector tool. Contains sample tabular data for demonstration purposes.",
+  "licenses": [
+    {
+      "name": "CC0-1.0"
+    }
+  ],
+  "keywords": [
+    "kaggle-badges",
+    "sample",
+    "tabular",
+    "data-science"
+  ],
+  "resources": [
+    {
+      "path": "data.csv",
+      "description": "Sample data file with numeric and categorical columns",
+      "schema": {
+        "fields": [
+          {"name": "id", "type": "integer", "description": "Row identifier"},
+          {"name": "value", "type": "number", "description": "Numeric value"},
+          {"name": "category", "type": "string", "description": "Category label"}
+        ]
+      }
+    }
+  ]
+}
