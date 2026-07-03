@@ -4,15 +4,12 @@ Last run: 2026-07-03
 
 ## Kaggle CLI
 
-The system Kaggle CLI was `2.0.0`, below the new project floor. Live CLI
-checks were therefore run against an isolated Python 3.11 virtual environment:
+Live CLI checks should run against an isolated Python 3.11 environment with the
+project's declared Kaggle CLI floor, so validation does not depend on whichever
+`kaggle` binary happens to be installed globally:
 
 ```bash
-/opt/homebrew/bin/python3.11 -m venv /tmp/kaggle-skill-live-venv
-/tmp/kaggle-skill-live-venv/bin/python -m pip install --upgrade pip
-/tmp/kaggle-skill-live-venv/bin/python -m pip install \
-  "kaggle>=2.2.3" "kagglesdk>=0.1.33,<1.0"
-/tmp/kaggle-skill-live-venv/bin/kaggle --version
+uv run --no-project --python 3.11 --with "kaggle>=2.2.3" kaggle --version
 ```
 
 Result:
@@ -24,8 +21,13 @@ Kaggle CLI 2.2.3
 Live tests:
 
 ```bash
-KAGGLE_CLI_BIN=/tmp/kaggle-skill-live-venv/bin/kaggle \
-  python3 -m pytest --run-live tests/integration/test_cli_live.py -q
+uv run --no-project --python 3.11 \
+  --with pytest \
+  --with requests \
+  --with "kaggle>=2.2.3" \
+  --with "kagglehub>=1.0.0" \
+  --with "kagglesdk>=0.1.33,<1.0" \
+  python -m pytest tests/integration/test_cli_live.py --run-live -q
 ```
 
 Result: passed.
@@ -35,7 +37,10 @@ Result: passed.
 Live tests:
 
 ```bash
-python3 -m pytest --run-live \
+uv run --no-project --python 3.11 \
+  --with pytest \
+  --with requests \
+  python -m pytest --run-live \
   tests/integration/test_mcp_live.py \
   tests/manifest/test_mcp_inventory_drift.py -q
 ```

@@ -8,7 +8,7 @@ next manual step rather than guessing.
 
 ```bash
 python3 skills/kaggle/shared/check_all_credentials.py
-python3 skills/kaggle/modules/kllm/scripts/network_check.sh
+bash skills/kaggle/modules/kllm/scripts/network_check.sh
 python3 -m pytest tests/manifest -q
 ```
 

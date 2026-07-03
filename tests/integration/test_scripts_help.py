@@ -22,6 +22,7 @@ ARGPARSE_SCRIPTS = [
     "skills/kaggle/modules/comp-report/scripts/list_competitions.py",
     "skills/kaggle/modules/comp-report/scripts/competition_details.py",
     "skills/kaggle/modules/kllm/scripts/kagglehub_download.py",
+    "skills/kaggle/modules/kllm/scripts/kagglehub_publish.py",
     "skills/kaggle/modules/kllm/scripts/list_competition_pages.py",
     "skills/kaggle/modules/kllm/scripts/cli_forums.py",
     "skills/kaggle/modules/kllm/scripts/leaderboard_writeups.py",
@@ -38,7 +39,6 @@ NO_ARGPARSE_SCRIPTS = [
     "skills/kaggle/shared/check_all_credentials.py",
     "skills/kaggle/modules/registration/scripts/check_registration.py",
     "skills/kaggle/modules/kllm/scripts/check_credentials.py",
-    "skills/kaggle/modules/kllm/scripts/kagglehub_publish.py",
 ]
 
 

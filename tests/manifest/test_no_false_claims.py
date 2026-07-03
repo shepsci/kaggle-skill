@@ -14,6 +14,7 @@ from pathlib import Path
 import pytest
 
 REPO_ROOT = Path(__file__).resolve().parents[2]
+SKILL_ROOT = REPO_ROOT / "skills" / "kaggle"
 
 
 # ── Badge count ─────────────────────────────────────────────────────────────
@@ -125,17 +126,59 @@ def test_version_consistency_across_manifests():
     )
 
 
-# ── README script-path examples must point at files that exist ──────────────
+# ── Documented script-path examples must point at files that exist ──────────
 
-def test_readme_script_paths_exist():
-    """Every `python3 skills/kaggle/...` invocation in the README must reference
-    a real file. Catches the kind of bug we saw with `python3 shared/check_all_credentials.py`
-    (relative path from wrong CWD)."""
-    readme = (REPO_ROOT / "README.md").read_text()
-    pattern = re.compile(r"python3\s+(skills/kaggle/[a-zA-Z0-9_./-]+\.(?:py|sh))")
-    referenced = set(pattern.findall(readme))
-    missing = [p for p in referenced if not (REPO_ROOT / p).exists()]
-    assert not missing, f"README references missing scripts: {missing}"
+def _public_markdown_files() -> list[Path]:
+    docs = [REPO_ROOT / "README.md", SKILL_ROOT / "SKILL.md"]
+    docs.extend(sorted((REPO_ROOT / "docs").rglob("*.md")))
+    docs.extend(sorted(SKILL_ROOT.rglob("*.md")))
+    return sorted(set(docs))
+
+
+def _candidate_script_paths(doc: Path, raw_target: str) -> list[Path]:
+    target = raw_target.strip("`'\"")
+    if "$" in target or target.startswith(("http://", "https://")):
+        return []
+    candidates = [REPO_ROOT / target]
+    if target.startswith(("modules/", "shared/")):
+        candidates.append(SKILL_ROOT / target)
+    if target.startswith(("scripts/", "./", "../")):
+        candidates.append(doc.parent / target)
+    return candidates
+
+
+@pytest.mark.parametrize("doc", _public_markdown_files(), ids=lambda p: str(p.relative_to(REPO_ROOT)))
+def test_documented_script_paths_exist_and_use_matching_interpreter(doc: Path):
+    """Every documented `python3`/`bash` invocation must reference a real local
+    script in the context where that doc is meant to be read.
+
+    Public README/docs examples resolve from the repository root. Installed
+    skill docs intentionally use `modules/...` and `shared/...` paths relative
+    to `skills/kaggle/`, and module READMEs may use local `scripts/...` paths.
+    """
+    text = doc.read_text(encoding="utf-8")
+    pattern = re.compile(r"\b(python3|bash)\s+([^\s\\]+?\.(?:py|sh))")
+    missing: list[str] = []
+    wrong_interpreter: list[str] = []
+
+    for interpreter, raw_target in pattern.findall(text):
+        target = raw_target.strip("`'\"")
+        if not _candidate_script_paths(doc, target):
+            continue
+        candidates = _candidate_script_paths(doc, target)
+        if not candidates:
+            continue
+        if not any(path.exists() for path in candidates):
+            missing.append(target)
+        if target.endswith(".sh") and interpreter != "bash":
+            wrong_interpreter.append(f"{interpreter} {target}")
+        if target.endswith(".py") and interpreter != "python3":
+            wrong_interpreter.append(f"{interpreter} {target}")
+
+    assert not missing, f"{doc.relative_to(REPO_ROOT)} references missing scripts: {missing}"
+    assert not wrong_interpreter, (
+        f"{doc.relative_to(REPO_ROOT)} uses the wrong interpreter: {wrong_interpreter}"
+    )
 
 
 # ── Hackathon module lives under kllm ───────────────────────────────────────
@@ -167,9 +210,12 @@ def test_platform_tested_status_is_attested():
     checklist = (REPO_ROOT / "tests" / "e2e" / "INSTALL_CHECKLIST.md").read_text()
 
     # Pull every platform name in the compatibility table that's marked Tested.
-    # The table format is `| **Platform Name** ... | Tested |`.
-    pattern = re.compile(r"^\|\s*\*\*([^*|]+)\*\*[^|]*\|\s*Tested\s*\|", re.MULTILINE)
-    tested_platforms = [m.group(1).strip() for m in pattern.finditer(readme)]
+    pattern = re.compile(r"^\|\s*([^|\n]+?)\s*\|\s*Tested\s*\|", re.MULTILINE)
+    tested_platforms = [
+        re.sub(r"[*`]", "", m.group(1)).strip()
+        for m in pattern.finditer(readme)
+        if "platform" not in m.group(1).lower()
+    ]
     if not tested_platforms:
         pytest.skip("no platforms marked Tested; nothing to attest")
 

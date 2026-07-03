@@ -7,11 +7,22 @@ Usage:
 """
 
 import argparse
-import kagglehub
+
+
+def _load_kagglehub():
+    try:
+        import kagglehub  # type: ignore
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "error: kagglehub is required for downloads. "
+            "Install dependencies with `python3 -m pip install kagglehub`."
+        ) from exc
+    return kagglehub
 
 
 def download_dataset(handle: str) -> str:
     """Download a dataset. Returns the local path."""
+    kagglehub = _load_kagglehub()
     path = kagglehub.dataset_download(handle)
     print(f"Dataset downloaded to: {path}")
     return path
@@ -19,6 +30,7 @@ def download_dataset(handle: str) -> str:
 
 def download_model(handle: str) -> str:
     """Download a model. Returns the local path."""
+    kagglehub = _load_kagglehub()
     path = kagglehub.model_download(handle)
     print(f"Model downloaded to: {path}")
     return path

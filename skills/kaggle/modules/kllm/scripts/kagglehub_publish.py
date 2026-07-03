@@ -14,13 +14,23 @@ Usage:
     python scripts/kagglehub_publish.py model <handle> <local-dir> [version-notes] [license-name]
 """
 
-import sys
+import argparse
 
-import kagglehub
+
+def _load_kagglehub():
+    try:
+        import kagglehub  # type: ignore
+    except ModuleNotFoundError as exc:
+        raise SystemExit(
+            "error: kagglehub is required for publishing. "
+            "Install dependencies with `python3 -m pip install kagglehub`."
+        ) from exc
+    return kagglehub
 
 
 def publish_dataset(handle: str, local_dir: str, version_notes: str = "Upload via kagglehub"):
     """Publish a private dataset to Kaggle using kagglehub."""
+    kagglehub = _load_kagglehub()
     result = kagglehub.dataset_upload(
         handle=handle,
         local_dataset_dir=local_dir,
@@ -37,6 +47,7 @@ def publish_model(
     license_name: str = "Apache-2.0",
 ):
     """Publish a private model to Kaggle using kagglehub."""
+    kagglehub = _load_kagglehub()
     result = kagglehub.model_upload(
         handle=handle,
         local_model_dir=local_dir,
@@ -47,25 +58,32 @@ def publish_model(
     return result
 
 
-if __name__ == "__main__":
-    if len(sys.argv) < 4:
-        print("Usage:")
-        print("  python kagglehub_publish.py dataset <handle> <local-dir> [version-notes]")
-        print("  python kagglehub_publish.py model <handle> <local-dir> [version-notes] [license-name]")
-        sys.exit(1)
+def parse_args() -> argparse.Namespace:
+    parser = argparse.ArgumentParser(description="Publish to Kaggle via kagglehub")
+    subparsers = parser.add_subparsers(dest="action", required=True)
 
-    action = sys.argv[1]
-    handle = sys.argv[2]
-    local_dir = sys.argv[3]
+    dataset = subparsers.add_parser("dataset", help="Publish or version a dataset")
+    dataset.add_argument("handle", help="Dataset handle (owner/name)")
+    dataset.add_argument("local_dir", help="Local dataset directory")
+    dataset.add_argument("version_notes", nargs="?", default="Upload via kagglehub")
 
-    if action == "dataset":
-        notes = sys.argv[4] if len(sys.argv) > 4 else "Upload via kagglehub"
-        publish_dataset(handle, local_dir, notes)
-    elif action == "model":
-        notes = sys.argv[4] if len(sys.argv) > 4 else "Upload via kagglehub"
-        license_name = sys.argv[5] if len(sys.argv) > 5 else "Apache-2.0"
-        publish_model(handle, local_dir, notes, license_name)
+    model = subparsers.add_parser("model", help="Publish or version a model")
+    model.add_argument("handle", help="Model handle (owner/name/framework/variation)")
+    model.add_argument("local_dir", help="Local model directory")
+    model.add_argument("version_notes", nargs="?", default="Upload via kagglehub")
+    model.add_argument("license_name", nargs="?", default="Apache-2.0")
+
+    return parser.parse_args()
+
+
+def main() -> int:
+    args = parse_args()
+    if args.action == "dataset":
+        publish_dataset(args.handle, args.local_dir, args.version_notes)
     else:
-        print(f"Unknown action: {action}")
-        print("Use 'dataset' or 'model'")
-        sys.exit(1)
+        publish_model(args.handle, args.local_dir, args.version_notes, args.license_name)
+    return 0
+
+
+if __name__ == "__main__":
+    raise SystemExit(main())
