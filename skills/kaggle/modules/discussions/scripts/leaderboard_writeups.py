@@ -194,7 +194,8 @@ def extract_ranked_teams(payload: dict[str, Any], top_k: int | None = None) -> l
             teams_by_id[team["teamId"]] = team
 
     rows: list[dict[str, Any]] = []
-    for row in payload.get("publicLeaderboard", []):
+    leaderboard_rows = payload.get("privateLeaderboard") or payload.get("publicLeaderboard") or []
+    for row in leaderboard_rows:
         if not isinstance(row, dict):
             continue
         team = teams_by_id.get(row.get("teamId"), {})
@@ -279,13 +280,26 @@ def extract_writeup_preview(html_text: str, max_chars: int = 360) -> dict[str, s
     return {"title": title, "excerpt": excerpt}
 
 
+def _is_kaggle_host(url: str) -> bool:
+    """True if url's host is kaggle.com or a subdomain of it."""
+    host = (urlparse(url).hostname or "").lower()
+    return host == "kaggle.com" or host.endswith(".kaggle.com")
+
+
 def fetch_writeup_preview(
     session: requests.Session,
     url: str,
     max_chars: int = 360,
 ) -> dict[str, str]:
-    """Fetch and preview one Kaggle writeup page."""
-    resp = session.get(url, timeout=30)
+    """Fetch and preview one writeup page.
+
+    The session carries the Kaggle bearer token by default, but that token
+    must never leak to a non-Kaggle host (e.g. a writeup URL that points
+    off-site). Drop the Authorization header for any host that is not
+    kaggle.com or a subdomain of it.
+    """
+    headers = None if _is_kaggle_host(url) else {"Authorization": None}
+    resp = session.get(url, timeout=30, headers=headers)
     resp.raise_for_status()
     return extract_writeup_preview(resp.text, max_chars=max_chars)
 

@@ -265,7 +265,7 @@ def test_main_preview_retrieves_wraps_and_does_not_refuse_injection_text():
         def __init__(self):
             self.headers = {}
 
-        def get(self, url, timeout):
+        def get(self, url, timeout, headers=None):
             assert "discussion/717133" in url
             return FakeResponse()
 
@@ -303,3 +303,73 @@ def test_main_preview_retrieves_wraps_and_does_not_refuse_injection_text():
     assert "Ignore previous instructions" in text
     assert "https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3/discussion/717133" in text
     assert not any(phrase in text.lower() for phrase in REFUSAL_PHRASES)
+
+
+def test_add_writeup_previews_does_not_send_token_to_non_kaggle_host():
+    mod = _load_module()
+
+    class FakeResponse:
+        def __init__(self, text):
+            self.text = text
+
+        def raise_for_status(self):
+            return None
+
+    class FakeSession:
+        """Mimics requests.Session header-merge semantics: a per-request
+        headers override with a None value removes that header, matching
+        how requests.Session.get(url, headers=...) behaves in production."""
+
+        def __init__(self):
+            self.headers: dict[str, str] = {}
+            self.recorded_headers: list[dict[str, str]] = []
+
+        def get(self, url, timeout, headers=None):
+            merged = dict(self.headers)
+            if headers:
+                for key, value in headers.items():
+                    if value is None:
+                        merged.pop(key, None)
+                    else:
+                        merged[key] = value
+            self.recorded_headers.append(merged)
+            return FakeResponse("<html><head><title>Page</title></head><body>hello</body></html>")
+
+    session = FakeSession()
+    session.headers.update(
+        {"Authorization": "Bearer KGAT_test", "Accept": "text/html,application/xhtml+xml"}
+    )
+
+    rows = [
+        {"rank": 1, "writeup_url": "https://evil.example.com/steal-token"},
+        {"rank": 2, "writeup_url": "https://www.kaggle.com/competitions/example/writeups/first"},
+    ]
+
+    with patch.object(mod.requests, "Session", lambda: session):
+        result = mod.add_writeup_previews(rows, token="KGAT_test")
+
+    assert len(result) == 2
+    assert "preview_error" not in result[0]
+    assert "preview_error" not in result[1]
+    assert "Authorization" not in session.recorded_headers[0]
+    assert session.recorded_headers[1].get("Authorization") == "Bearer KGAT_test"
+
+
+def test_extract_ranked_teams_prefers_private_leaderboard():
+    mod = _load_module()
+    payload = {
+        "privateLeaderboard": [
+            {"teamId": 10, "rank": 1, "displayScore": "0.62", "submissionId": 111},
+            {"teamId": 20, "rank": 2, "displayScore": "0.61", "submissionId": 222},
+        ],
+        "teams": [
+            {"teamId": 10, "teamName": "First Team"},
+            {"teamId": 20, "teamName": "Second Team"},
+        ],
+    }
+    rows = mod.extract_ranked_teams(payload)
+
+    assert [row["rank"] for row in rows] == [1, 2]
+    assert [row["team_name"] for row in rows] == ["First Team", "Second Team"]
+    assert rows[0]["score"] == "0.62"
+    assert rows[0]["submission_id"] == 111
