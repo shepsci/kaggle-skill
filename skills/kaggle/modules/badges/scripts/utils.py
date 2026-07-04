@@ -1,4 +1,4 @@
-"""Shared utilities for the badge collector."""
+"""Shared utilities for the badges workflow."""
 
 import json
 import os
@@ -24,6 +24,7 @@ RESOURCE_PREFIX = "kaggle-badges-"
 
 # Skill root: skills/kaggle
 SKILL_ROOT = Path(__file__).resolve().parents[3]
+REPO_ROOT = SKILL_ROOT.parent.parent
 SETUP_SCRIPTS = SKILL_ROOT / "modules" / "setup" / "scripts"
 TEMPLATES_DIR = Path(__file__).resolve().parent / "templates"
 

@@ -23,6 +23,7 @@ comp-report-*.md
 data/
 downloads/
 *.csv
+!skills/kaggle/modules/badges/scripts/templates/submission_titanic.csv
 *.zip
 *.tar.gz
 

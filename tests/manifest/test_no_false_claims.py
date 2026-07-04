@@ -243,7 +243,7 @@ def test_readme_and_demo_docs_reference_rendered_gif_previews():
     ]
     expected = [
         "docs/demo/media/install-and-demo.gif",
-        "docs/demo/media/arc-agi-top-writeups.gif",
+        "docs/demo/media/vesuvius-top-writeups.gif",
     ]
     for doc in docs:
         text = doc.read_text(encoding="utf-8")

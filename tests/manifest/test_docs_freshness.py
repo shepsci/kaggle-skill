@@ -80,14 +80,24 @@ def test_readme_demo_links_to_committed_cast_source():
     )
 
 
-def test_arc_agi_demo_has_readme_gif_preview_and_cast_source():
+def test_readme_first_embedded_image_is_vesuvius_demo():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
-    cast = REPO_ROOT / "docs" / "demo" / "arc-agi-top-writeups.cast"
-    gif = REPO_ROOT / "docs" / "demo" / "media" / "arc-agi-top-writeups.gif"
+    images = [
+        image for image in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", readme)
+        if image.startswith("docs/demo/")
+    ]
+    assert images, "README should embed at least one demo image"
+    assert images[0] == "docs/demo/media/vesuvius-top-writeups.gif"
 
-    assert cast.exists(), "ARC-AGI demo source cast must be committed"
-    assert "docs/demo/arc-agi-top-writeups.cast" in readme
-    assert "docs/demo/media/arc-agi-top-writeups.gif" in readme
+
+def test_vesuvius_demo_has_readme_gif_preview_and_cast_source():
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    cast = REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast"
+    gif = REPO_ROOT / "docs" / "demo" / "media" / "vesuvius-top-writeups.gif"
+
+    assert cast.exists(), "Vesuvius demo source cast must be committed"
+    assert "docs/demo/vesuvius-top-writeups.cast" in readme
+    assert "docs/demo/media/vesuvius-top-writeups.gif" in readme
     assert gif.exists() and gif.stat().st_size > 0
 
 
@@ -165,6 +175,44 @@ def test_committed_asciinema_cast_uses_current_module_paths(cast: Path):
     ]
     offenders = [term for term in forbidden if term in text]
     assert not offenders, f"{cast.relative_to(REPO_ROOT)} contains old module paths: {offenders}"
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_committed_asciinema_cast_has_no_placeholders_or_refusal_language(cast: Path):
+    text = cast.read_text(encoding="utf-8").lower()
+    forbidden = [
+        "discussion/...",
+        "placeholder",
+        "returned only the links",
+        "user-generated content",
+        "too dangerous",
+        "cannot retrieve",
+        "can't access that",
+        "couldn't do that",
+        "could not retrieve",
+    ]
+    offenders = [term for term in forbidden if term in text]
+    assert not offenders, f"{cast.relative_to(REPO_ROOT)} contains weak demo text: {offenders}"
+
+
+def test_vesuvius_cast_demonstrates_top_three_writeup_previews():
+    cast = REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast"
+    lines = cast.read_text(encoding="utf-8").splitlines()
+    text = "".join(json.loads(line)[2] for line in lines[1:])
+    required = [
+        "vesuvius-challenge-surface-detection",
+        "--top-k 3",
+        "--preview",
+        '"rank": 1',
+        '"rank": 2',
+        '"rank": 3',
+        '"preview"',
+        '"excerpt"',
+        "<untrusted-content",
+        "</untrusted-content>",
+    ]
+    missing = [term for term in required if term not in text]
+    assert not missing, f"Vesuvius demo is missing expected proof points: {missing}"
 
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))

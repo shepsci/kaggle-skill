@@ -128,19 +128,20 @@ python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
 
 Source cast: [competition-brief.cast](competition-brief.cast)
 
-### ARC-AGI top writeups
+### Vesuvius top writeups
 
 Goal: show a quick agent-facing prompt that retrieves leaderboard solution
-writeup links for the top 3 ranked ARC-AGI submissions.
+writeup links and previews for the top 3 ranked Vesuvius Challenge surface
+detection submissions.
 
 ```bash
 claude
-Use the kaggle skill to retrieve the writeups from the top 3 ranked submissions in the ARC-AGI competition.
+Use the kaggle skill to retrieve and preview the writeups from the top 3 ranked submissions in the Vesuvius Challenge surface detection competition.
 python3 skills/kaggle/modules/discussions/scripts/leaderboard_writeups.py \
-  arc-prize-2026-arc-agi-3 --top-k 3 --pretty
+  vesuvius-challenge-surface-detection --top-k 3 --preview --pretty
 ```
 
-Source cast: [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast)
+Source cast: [vesuvius-top-writeups.cast](vesuvius-top-writeups.cast)
 
 ### Hackathon writeups
 
