@@ -5,7 +5,7 @@ Re-record after material install, credential, or workflow changes.
 
 ## Goal of the demo
 
-Show the current v2.3.0 experience in 60-90 seconds:
+Show the current v2.4.0 experience in 60-90 seconds:
 
 1. Install `kaggle@shepsci` from the in-repo Claude marketplace manifest.
 2. Verify Kaggle credentials without displaying secrets.
@@ -31,7 +31,6 @@ These are the commands shown in the cast:
 
 ```bash
 claude plugin marketplace add shepsci/kaggle-skill --scope local
-claude plugin marketplace update shepsci
 claude plugin install kaggle@shepsci --scope local
 
 python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
@@ -39,15 +38,19 @@ python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
 python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
   --competition titanic --summary
 
-export PATH="<kaggle-2.2.3-venv>/bin:$PATH"
 kaggle --version
 python3 skills/kaggle/modules/discussions/scripts/forums.py forum-topics \
-  --category competition_write_ups --sort-by recent --page-size 2 --format json
+  --category competition_write_ups --sort-by recent --page-size 2 --format json -q
 ```
 
 Keep the terminal focused on confirmations, summaries, and short wrapped
 Kaggle-supplied snippets. Do not scroll through full forum/writeup bodies,
 pagination tokens, or long live API payloads in the cast.
+
+The credential-check output is shown redacted: the real masked-token line is
+replaced with a fixed `[OK] API Token: [redacted] (Legacy scoped API token)`
+line before the cast is committed, so no token fragment ever ships in the
+`.cast` file.
 
 ## Recording with asciinema
 
@@ -97,8 +100,6 @@ users.
 ```bash
 agy --version
 npx skills add shepsci/kaggle-skill
-agy
-/skills
 ```
 
 Source cast: [antigravity-install.cast](antigravity-install.cast)
@@ -150,21 +151,23 @@ inside untrusted-content markers.
 
 ```bash
 python3 skills/kaggle/modules/competitions/hackathons/scripts/hackathon_overview.py \
-  --competition kaggle-measuring-agi
+  --competition kaggle-measuring-agi --summary
 python3 skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py \
-  --competition kaggle-measuring-agi
+  --competition kaggle-measuring-agi --page-size 2 --max-pages 1
 python3 skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py \
-  --writeup-id 123456
+  --writeup-id 71599 --pretty | head -c 1200
 ```
 
 Source cast: [hackathon-writeups.cast](hackathon-writeups.cast)
 
-## Recording with vhs
+### Codex CLI install
 
-VHS is retained as an optional future GIF/MP4 path. The issue #7 artifact is
-the asciinema cast.
+Goal: show the recommended isolated-environment install path for Codex CLI
+users.
 
 ```bash
-cd ~/work/kaggle-skill/docs/demo
-vhs demo.tape
+CODEX_HOME=... HOME=... codex plugin marketplace add shepsci/kaggle-skill --ref main --json
+CODEX_HOME=... HOME=... codex plugin add kaggle@shepsci --json
 ```
+
+Source cast: [codex-install.cast](codex-install.cast)

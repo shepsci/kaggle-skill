@@ -1,7 +1,10 @@
-{"version": 2, "width": 100, "height": 24, "timestamp": 1783102602, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"}, "title": "kaggle-skill - competition briefing"}
-[0.100000, "o", "kaggle-skill competition briefing\r\nworkflow: credentials -> overview pages -> concise evidence\r\n\r\n"]
-[0.900000, "o", "$ python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py\r\n"]
-[1.800000, "o", "[OK] API token present (redacted)\r\n[INFO] legacy username/key not required for this workflow\r\n\r\nReady for Kaggle API, kagglehub, and MCP-backed workflows.\r\n"]
-[3.100000, "o", "\r\n$ python3 skills/kaggle/modules/competitions/scripts/competition_pages.py --competition titanic --summary\r\n"]
-[5.300000, "o", "<untrusted-content source=\"kaggle-mcp\" tool=\"list_competition_pages\" competition=\"titanic\">\r\ncompetition: titanic\r\npage count: 5\r\n  - rules: one account per participant; team and submission constraints present\r\n  - evaluation: predict passenger survival; metric page found\r\n  - data-description: train/test files and feature descriptions found\r\n  - faq: getting-started competition guidance found\r\n\r\nKey pages:\r\n  rules:            found\r\n  evaluation:       found\r\n  data-description: found\r\n  timeline:         missing\r\n</untrusted-content>\r\n"]
-[8.200000, "o", "\r\nAgent summary: Titanic is a beginner classification competition. Start with the rules, use the evaluation page for metric details, and download data only after accepting terms in Kaggle if required.\r\n"]
+{"version": 2, "width": 100, "height": 24, "timestamp": 1783200000, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"}, "title": "kaggle-skill - competition briefing"}
+[0.1, "o", "kaggle-skill competition briefing\r\nworkflow: credentials -> overview pages -> concise evidence\r\n\r\n"]
+[0.9, "o", "$ python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py\r\n"]
+[1.8, "o", "[OK] API Token: [redacted] (Legacy scoped API token)\r\n[INFO] KAGGLE_USERNAME not set (optional with API token)\r\n[INFO] KAGGLE_KEY not set (optional when API token is available)\r\n"]
+[2.9, "o", "\r\nAPI token found — you're ready to go!\r\n(Supported by kaggle CLI >= 1.8.0, kagglehub >= 0.4.1, MCP Server)\r\n"]
+[4.2, "o", "\r\n$ python3 skills/kaggle/modules/competitions/scripts/competition_pages.py --competition titanic --summary\r\n"]
+[5.8, "o", "<untrusted-content source=\"kaggle-mcp\" tool=\"list_competition_pages\" competition=\"titanic\">\r\ncompetition: titanic\r\npage count: 5\r\n  - rules: ### One account per participant  You cannot sign up to Kaggle from multiple acco\r\n  - Description: ## 👋🛳️ Ahoy, welcome to Kaggle! You’re in the right place.  This is the legendar\r\n"]
+[7.7, "o", "  - Evaluation: <h2>Goal</h2> <p>It is your job to predict if a passenger survived the sinking o\r\n  - data-description: <h3>Overview</h3> <p>The data has been split into two groups:</p> <ul> <li>train\r\n  - Frequently Asked Questions: <h2>What is a Getting Started competition?</h2> <p>Getting Started competitions \r\n\r\nKey pages:\r\n"]
+[9.8, "o", "  rules:            found\r\n  evaluation:       found\r\n  data-description: found\r\n  timeline:         MISSING\r\n</untrusted-content>\r\n"]
+[12.7, "o", "\r\nAgent summary: Titanic brief retrieved — 5 pages, key pages found, timeline page missing upstream.\r\n"]

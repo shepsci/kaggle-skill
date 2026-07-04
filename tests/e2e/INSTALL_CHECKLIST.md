@@ -15,7 +15,7 @@ than in the automated test suite.
 - [ ] `/plugin marketplace add shepsci/kaggle-skill` returns success.
 - [ ] `/plugin marketplace list` shows the `shepsci` catalog.
 - [ ] `/plugin install kaggle@shepsci` returns success with no version mismatch warning.
-- [ ] `/plugin` Installed tab shows `kaggle` at version `2.3.0`, matching
+- [ ] `/plugin` Installed tab shows `kaggle` at version `2.4.0`, matching
       `.claude-plugin/plugin.json` and `pyproject.toml`.
 
 ## Bundled MCP Server

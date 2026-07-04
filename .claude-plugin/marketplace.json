@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "kaggle",
-      "version": "2.3.0",
+      "version": "2.4.0",
       "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
       "author": {
         "name": "shepsci"

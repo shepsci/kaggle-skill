@@ -45,7 +45,7 @@ Submit through one of the documented forms:
 - Primary marketplace source: https://github.com/shepsci/kaggle-skill
 - License: MIT
 - Category: data-science
-- Version: 2.3.0
+- Version: 2.4.0
 - Privacy policy: https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md
 - Security and support: https://github.com/shepsci/kaggle-skill/blob/main/SECURITY.md
 - Third-party notices: `THIRD_PARTY_NOTICES.md`

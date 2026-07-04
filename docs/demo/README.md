@@ -60,8 +60,9 @@ Render a GIF preview with:
 agg docs/demo/competition-brief.cast docs/demo/media/competition-brief.gif
 ```
 
-If `agg` is unavailable, install it with `cargo install --locked agg` or use
-the package manager documented by the asciinema/agg project.
+If `agg` is unavailable, install it with `brew install agg` (the formula
+exists on Homebrew) or `cargo install --locked agg`, or use the package
+manager documented by the asciinema/agg project.
 
 ## Recording Notes
 

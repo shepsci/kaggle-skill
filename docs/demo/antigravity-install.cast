@@ -1,10 +1,7 @@
 {"version": 2, "width": 100, "height": 24, "timestamp": 1783102600, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"}, "title": "kaggle-skill - Antigravity CLI install"}
 [0.100000, "o", "kaggle-skill Antigravity CLI install path\r\nrecommended terminal surface: agy\r\n\r\n"]
 [0.900000, "o", "$ agy --version\r\n"]
-[1.500000, "o", "Antigravity CLI 2.x\r\n"]
+[1.500000, "o", "1.0.16\r\n"]
 [2.400000, "o", "\r\n$ npx skills add shepsci/kaggle-skill\r\n"]
-[4.100000, "o", "Installing skill package from shepsci/kaggle-skill\r\nAdded skill: kaggle\r\n"]
-[5.000000, "o", "\r\n$ agy\r\n"]
-[5.700000, "o", "> /skills\r\n"]
-[6.600000, "o", "Loaded skills\r\n  kaggle  Unified Kaggle workflows: credentials, competitions, MCP, writeups, badges\r\n"]
-[7.800000, "o", "\r\nNext prompt: Set up my Kaggle credentials without showing secrets.\r\n"]
+[4.100000, "o", "# Adds the kaggle skill from shepsci/kaggle-skill to your Antigravity CLI skills directory.\r\n"]
+[5.700000, "o", "\r\nNext prompt in agy: Set up my Kaggle credentials without showing secrets.\r\n"]
