@@ -6,17 +6,17 @@ are embedded in Markdown. The `.cast` files remain the source of truth.
 
 ## Watch Order
 
+### Vesuvius Top Writeups
+
+![Vesuvius top writeups](media/vesuvius-top-writeups.gif)
+
+Source: [vesuvius-top-writeups.cast](vesuvius-top-writeups.cast)
+
 ### Claude Install And First Workflow
 
 ![Claude install and first workflow](media/install-and-demo.gif)
 
 Source: [install-and-demo.cast](install-and-demo.cast)
-
-### ARC-AGI Top Writeups
-
-![ARC-AGI top writeups](media/arc-agi-top-writeups.gif)
-
-Source: [arc-agi-top-writeups.cast](arc-agi-top-writeups.cast)
 
 ### Antigravity CLI Install
 
