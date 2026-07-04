@@ -4,7 +4,7 @@ description: "Unified Kaggle skill. Use when the user explicitly mentions Kaggle
 license: MIT
 compatibility: "Python 3.11+, pip packages kagglehub>=1.0.0, kaggle>=2.2.3, kagglesdk>=0.1.33,<1.0, requests, python-dotenv. Optional: playwright for browser badges; kaggle-benchmarks for local benchmark task authoring. The competitions module's SPA-scraping steps assume Playwright MCP tools are provided by the host agent; the skill itself does not bundle them."
 homepage: https://github.com/shepsci/kaggle-skill
-metadata: {"author": "shepsci", "version": "2.3.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_API_TOKEN"]}}}
+metadata: {"author": "shepsci", "version": "2.4.0", "primaryEnv": "KAGGLE_API_TOKEN", "openclaw": {"requires": {"bins": ["python3", "pip3"], "env": ["KAGGLE_API_TOKEN"]}}}
 allowed-tools: Bash Read WebFetch Grep Glob
 ---
 

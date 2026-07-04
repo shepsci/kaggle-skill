@@ -22,7 +22,7 @@ echo ""
 read -r -p "Press Enter to start recording..."
 
 asciinema rec "$OUTPUT" \
-    --title "kaggle-skill v2.3.0 - install + demo" \
+    --title "kaggle-skill v2.4.0 - install + demo" \
     --idle-time-limit 1.5 \
     --rows 30 --cols 100
 
