@@ -2,6 +2,15 @@
 
 All notable changes to this project are documented in this file.
 
+## Unreleased
+
+- The `codex-install` cast is now verbatim output from a real codex-cli
+  0.142.5 run (the `authPolicy` field is genuine and has been restored).
+- The Kaggle bearer token is no longer sent to non-Kaggle hosts when
+  fetching leaderboard writeup previews.
+- `extract_ranked_teams` now honors private leaderboards the same way the
+  writeup join already does.
+
 ## 2.4.0 - 2026-07-04
 
 Screencast and docs refresh:
