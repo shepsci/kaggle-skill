@@ -1,84 +1,87 @@
-"""Detect drift between mcp-reference.md and the live Kaggle MCP server.
+"""mcp-reference.md must match the committed tool snapshot and probe results.
 
-Whenever Kaggle adds or removes tools, our reference docs need updating.
-This test pulls `tools/list` against the live server and asserts that:
-
-1. The live tool count remains high enough to catch auth or server regressions.
-2. Every tool documented in mcp-reference.md exists on the live server.
-3. Every tool the live server exposes is documented in mcp-reference.md.
-
-Skipped without --run-live and KAGGLE_API_TOKEN.
+Offline. The snapshot (tests/fixtures/mcp_tools_snapshot.json) is compared
+with the live server by tests/integration/test_mcp_live.py and by the weekly
+drift job; this file keeps the reference page in step with the snapshot.
 """
 
 from __future__ import annotations
 
+import json
 import re
 import sys
 from pathlib import Path
 
-import pytest
-
 REPO_ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(REPO_ROOT / "skills" / "kaggle"))
+sys.path.insert(0, str(REPO_ROOT / "tools"))
 
-from shared.mcp_client import mcp_list_tools  # noqa: E402
+import probe_mcp  # noqa: E402
 
-MCP_REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "references" / "mcp-reference.md"
-
-pytestmark = pytest.mark.live
-
-
-def _documented_tools() -> set[str]:
-    r"""Extract tool names from mcp-reference.md inventory section.
-
-    Tools are formatted as bullet items: ``- ✅ `tool_name` `` (or other
-    status emoji). We pull anything in backticks that follows a bullet
-    + status marker.
-    """
-    text = MCP_REFERENCE.read_text()
-    # Match bullet-list backticked tool names, e.g.  `- ✅ \`search_competitions\``
-    # or `- ⚠️ \`get_hackathon_write_up\``
-    pattern = re.compile(r"^\s*-\s*[^\s]+?\s*`([a-z_][a-z0-9_]*)`", re.MULTILINE)
-    return {m.group(1) for m in pattern.finditer(text)}
+REFERENCE = REPO_ROOT / "skills" / "kaggle" / "modules" / "references" / "mcp-reference.md"
+SNAPSHOT = json.loads((REPO_ROOT / "tests" / "fixtures" / "mcp_tools_snapshot.json").read_text())
+RESULTS = json.loads((REPO_ROOT / "tests" / "fixtures" / "mcp_probe_results.json").read_text())
 
 
-def _live_tools(token: str) -> set[str]:
-    resp = mcp_list_tools(token=token, timeout=30)
-    tools = resp.get("result", {}).get("tools", [])
-    return {t.get("name", "") for t in tools if t.get("name")}
+def _table_block() -> str:
+    text = REFERENCE.read_text(encoding="utf-8")
+    return text.split(probe_mcp.TABLE_START, 1)[1].split(probe_mcp.TABLE_END, 1)[0]
 
 
-def test_live_server_returns_at_least_60_tools(kgat_token: str):
-    live = _live_tools(kgat_token)
-    assert len(live) >= 70, f"live server returned only {len(live)} tools; 2026-07-03 docs claim 70"
+def _documented_tools() -> list[str]:
+    return re.findall(r"^\| `([a-z_]+)` \|", _table_block(), re.MULTILINE)
 
 
-def test_no_documented_tool_is_missing_from_live_server(kgat_token: str):
+def test_every_tool_is_documented_exactly_once():
     documented = _documented_tools()
-    live = _live_tools(kgat_token)
-    missing = documented - live
-    # Some "tools" referenced in docs are aliases or comments; allow a small leak.
-    assert not missing, (
-        f"mcp-reference.md documents {len(missing)} tools not exposed by the live server: "
-        f"{sorted(missing)}. Either Kaggle removed them or our docs have typos."
+    assert sorted(documented) == sorted(SNAPSHOT["tools"])
+    assert len(documented) == len(set(documented)) == SNAPSHOT["count"]
+
+
+def test_reference_states_the_tool_count():
+    assert f"{SNAPSHOT['count']} tools" in REFERENCE.read_text(encoding="utf-8")
+
+
+def test_table_is_what_the_probe_results_render_to():
+    """Edit the notes in tools/probe_mcp.py and run `--render`; do not edit the table by hand."""
+    assert _table_block().strip() == probe_mcp.render_table(RESULTS, SNAPSHOT).strip()
+
+
+def test_probe_results_cover_every_tool_and_hold_no_secret():
+    assert set(RESULTS["tools"]) == set(SNAPSHOT["tools"])
+    raw = json.dumps(RESULTS)
+    assert "KGAT_" not in raw and "KGRT_" not in raw and "Bearer" not in raw
+
+
+def test_write_tools_were_not_called():
+    for name in probe_mcp.WRITE_TOOLS:
+        entry = RESULTS["tools"][name]
+        assert entry["kind"] == "write"
+        assert set(entry) == {"kind", "note"}, f"{name} has probe results; it must never be called"
+
+
+def test_examples_use_the_request_wrapper():
+    text = REFERENCE.read_text(encoding="utf-8")
+    calls = re.findall(r'"arguments"\s*:\s*\{(.{0,40})', text)
+    assert calls, "the reference should show at least one raw tools/call example"
+    assert all(call.lstrip().startswith('"request"') for call in calls)
+    assert "Accept: application/json, text/event-stream" in text
+
+
+def test_reference_links_no_private_repository():
+    assert "kmcp-tools" not in REFERENCE.read_text(encoding="utf-8")
+
+
+def test_measured_counts_in_the_text_match_the_probe_results():
+    probed = {n: e for n, e in RESULTS["tools"].items() if "note" not in e}
+    anonymous = sum(1 for e in probed.values() if e["anonymous"] == "ok")
+    credential = sum(
+        1 for e in probed.values() if e["anonymous"] != "ok" and e["api_token"] == "ok"
     )
-
-
-def test_no_live_tool_is_missing_from_docs(kgat_token: str):
-    documented = _documented_tools()
-    live = _live_tools(kgat_token)
-    undocumented = live - documented
-    assert not undocumented, (
-        f"Live server exposes {len(undocumented)} tools not documented in mcp-reference.md: "
-        f"{sorted(undocumented)}. Kaggle has shipped new endpoints — update the docs."
-    )
-
-
-def test_competition_overview_endpoint_is_present_and_documented(kgat_token: str):
-    """Specifically guard list_competition_pages — the headline endpoint for v2.2.0."""
-    live = _live_tools(kgat_token)
-    documented = _documented_tools()
-    assert "list_competition_pages" in live, "list_competition_pages missing from live server"
-    assert "list_competition_pages" in documented, (
-        "list_competition_pages missing from mcp-reference.md — required for v2.2.0"
-    )
+    gated = len(probed) - anonymous - credential
+    text = REFERENCE.read_text(encoding="utf-8")
+    assert f"measured on {RESULTS['probed']}, for the {len(probed)} read tools" in text
+    assert f"- {anonymous} answer with no credential." in text
+    assert f"- {credential} answer only with one." in text
+    assert f"- {gated} are limited to hosts and judges." in text
+    same = all(e.get("oauth") == e["api_token"] for e in probed.values() if "oauth" in e)
+    assert same, "the text says OAuth and API tokens behave the same; the results disagree"

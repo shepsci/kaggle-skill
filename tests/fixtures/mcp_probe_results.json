@@ -1,0 +1,408 @@
+{
+ "probed": "2026-09-30",
+ "identities": [
+  "anonymous",
+  "oauth",
+  "api_token"
+ ],
+ "tools": {
+  "authorize": {
+   "kind": "other",
+   "note": "not probed: starts a sign-in flow"
+  },
+  "cancel_notebook_session": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "create_benchmark_task_from_prompt": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "create_code_competition_submission": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "create_model": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "create_notebook_session": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "download_competition_data_file": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_competition_data_files": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_competition_leaderboard": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_competition_submission": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_dataset": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_hackathon_write_ups": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "error: Permission 'competitions.update' was denied",
+   "api_token": "error: Permission 'competitions.update' was denied"
+  },
+  "download_model_variation_version": {
+   "kind": "read",
+   "anonymous": "error: Permission denied on resource (or it may not exists).",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_notebook_output": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "download_notebook_output_zip": {
+   "kind": "read",
+   "note": "not probed: needs a notebook session id"
+  },
+  "get_accelerator_quota": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_benchmark_leaderboard": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_competition": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_competition_data_files_summary": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_competition_leaderboard": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_competition_submission": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_dataset_files_summary": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_dataset_info": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_dataset_metadata": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_dataset_status": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_episode_agent_logs": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_episode_replay": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_forum": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_forum_topic": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_hackathon_overview": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_hackathon_write_up": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_model": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_model_variation": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_notebook_info": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_notebook_session_status": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_resolved_writeup_links": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "error: Only competition hosts, judges, or admins can access resolved writeup links.",
+   "api_token": "error: Only competition hosts, judges, or admins can access resolved writeup links."
+  },
+  "get_user_profile": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_writeup": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_writeup_by_slug": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "get_writeup_by_topic": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_competition_data_files": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_competition_data_tree_files": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_competition_pages": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_competition_topics": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_dataset_files": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_dataset_tree_files": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_forum_topics": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_forums": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_hackathon_tracks": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_hackathon_write_ups": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_model_variation_version_files": {
+   "kind": "read",
+   "anonymous": "error: Permission denied on resource (or it may not exists).",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_model_variation_versions": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_model_variations": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_models": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_notebook_files": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_notebook_session_output": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_submission_episodes": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_team_public_submissions": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "list_topic_messages": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "save_notebook": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "search_competition_submissions": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "search_competitions": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "search_content": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "search_datasets": {
+   "kind": "read",
+   "anonymous": "ok",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "search_notebooks": {
+   "kind": "read",
+   "anonymous": "unauthenticated",
+   "oauth": "ok",
+   "api_token": "ok"
+  },
+  "start_competition_submission_upload": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "submit_to_competition": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "update_dataset_metadata": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "update_model": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "update_model_variation": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  },
+  "upload_dataset_file": {
+   "kind": "write",
+   "note": "not probed: changes something on Kaggle"
+  }
+ }
+}

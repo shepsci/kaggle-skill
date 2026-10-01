@@ -1,0 +1,240 @@
+"""Unit tests for the maintainer tools under tools/ (offline parts only)."""
+
+from __future__ import annotations
+
+import json
+import sys
+from pathlib import Path
+
+import pytest
+
+REPO_ROOT = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(REPO_ROOT / "tools"))
+
+import check_oauth_registration  # noqa: E402
+import cli_snapshot  # noqa: E402
+import mcp_snapshot  # noqa: E402
+import probe_mcp  # noqa: E402
+
+TOOLS = [
+    {"name": "authorize", "inputSchema": {"type": "object", "properties": {}}},
+    {
+        "name": "get_competition",
+        "inputSchema": {
+            "type": "object",
+            "properties": {
+                "request": {"type": "object", "properties": {"competitionName": {"type": "string"}}}
+            },
+        },
+    },
+]
+
+
+def test_mcp_snapshot_reduces_tools_to_names_and_fields():
+    assert mcp_snapshot.snapshot_from_tools(TOOLS) == {
+        "authorize": {"wrapper": False, "fields": []},
+        "get_competition": {"wrapper": True, "fields": ["competitionName"]},
+    }
+
+
+def test_mcp_snapshot_diff_names_every_kind_of_change():
+    old = mcp_snapshot.snapshot_from_tools(TOOLS)
+    new = {
+        "get_competition": {"wrapper": True, "fields": ["competitionId", "competitionName"]},
+        "get_quota": {"wrapper": True, "fields": []},
+    }
+    assert mcp_snapshot.diff(old, old) == []
+    assert mcp_snapshot.diff(old, new) == [
+        "added tool: get_quota",
+        "removed tool: authorize",
+        "get_competition: new fields competitionId",
+    ]
+
+
+def test_committed_mcp_snapshot_is_well_formed():
+    snapshot = json.loads(mcp_snapshot.SNAPSHOT.read_text())
+    assert snapshot["count"] == len(snapshot["tools"]) == 71
+    assert [n for n, t in snapshot["tools"].items() if not t["wrapper"]] == ["authorize"]
+
+
+def test_every_tool_in_the_snapshot_is_classified_by_the_probe_tool():
+    """A tool the probe script does not know is neither probed nor marked as a write."""
+    snapshot = set(json.loads(mcp_snapshot.SNAPSHOT.read_text())["tools"])
+    known = (
+        probe_mcp.WRITE_TOOLS
+        | set(probe_mcp.NOT_PROBED)
+        | set(probe_mcp.NO_ARGUMENTS)
+        | set(probe_mcp.STATIC_PROBES)
+        | set(probe_mcp.DYNAMIC_PROBES)
+    )
+    assert snapshot - known == set()
+    assert known - snapshot == set()
+
+
+def test_probe_tool_never_calls_a_tool_that_writes():
+    callable_tools = set(probe_mcp.STATIC_PROBES) | set(probe_mcp.DYNAMIC_PROBES)
+    assert callable_tools & probe_mcp.WRITE_TOOLS == set()
+    risky = [
+        name
+        for name in callable_tools
+        if name.startswith(
+            ("create_", "update_", "upload_", "save_", "submit_", "cancel_", "start_", "delete_")
+        )
+    ]
+    assert risky == []
+
+
+def test_cli_snapshot_resolves_commands_and_aliases():
+    snapshot = json.loads(cli_snapshot.SNAPSHOT.read_text())
+    commands, aliases = snapshot["commands"], snapshot["aliases"]
+    resolve = lambda text: cli_snapshot.resolve(text.split(), commands, aliases)  # noqa: E731
+    assert resolve("competitions submit titanic -f x.csv") == ("competitions submit", 2)
+    assert resolve("c submit titanic") == ("competitions submit", 2)
+    assert resolve("models variations versions download a/b/c/d/1") == (
+        "models instances versions download",
+        4,
+    )
+    assert resolve("kernels get owner/kernel") == ("kernels pull", 2)
+    assert resolve("frobnicate") == (None, 0)
+
+
+@pytest.mark.parametrize(
+    "usage, expected",
+    [
+        ("usage: kaggle kernels pull [-h] [-p PATH] [kernel]", ["kernels", "pull"]),
+        (
+            "usage: kaggle competitions pages [competition] list [-h] [-v]",
+            ["competitions", "pages", "list"],
+        ),
+        ("usage: kaggle [-h] [-v] [-W] {competitions,c} ...", []),
+        ("kaggle: error: something", []),
+    ],
+)
+def test_usage_path(usage, expected):
+    assert cli_snapshot._usage_path(usage) == expected
+
+
+def test_cli_snapshot_diff():
+    old = {"commands": {"a": ["--x"], "b": []}, "aliases": {"c": "a"}}
+    new = {"commands": {"a": ["--x", "--y"], "d": []}, "aliases": {}}
+    assert cli_snapshot.diff(old, old) == []
+    assert cli_snapshot.diff(old, new) == [
+        "added command: kaggle d",
+        "removed command: kaggle b",
+        "kaggle a: new options --y",
+        "removed alias: kaggle c",
+    ]
+
+
+# ── tools/build_casts.py ─────────────────────────────────────────────────────
+
+
+def test_cast_output_is_cleaned_of_terminal_codes():
+    import build_casts
+
+    assert build_casts.clean("\x1b[32mok\x1b[0m\r\nnext\x07") == "ok\nnext"
+
+
+def test_cut_output_says_how_much_was_left_out_and_keeps_the_closing_tag():
+    import build_casts
+
+    lines = [
+        '<untrusted-content-0a1b2c3d source="kaggle-mcp" tool="t" competition="' + "x" * 90 + '">'
+    ]
+    lines += [f"line {i} " + "y" * 120 for i in range(30)]
+    lines += ["</untrusted-content-0a1b2c3d>"]
+    shown = build_casts.shorten("\n".join(lines), max_lines=5, max_width=40).splitlines()
+    assert shown[0] == lines[0], "a block's opening tag is never cut"
+    assert all(len(line) <= 40 for line in shown[1:5])
+    assert shown[5] == "… (26 more lines)"
+    assert shown[6] == "</untrusted-content-0a1b2c3d>"
+    assert build_casts.shorten("a\nb\n\n", 5, 40) == "a\nb"
+
+
+def test_gif_screen_wraps_and_scrolls():
+    import build_casts
+
+    text = "x" * (build_casts.COLS + 5) + "\r\n" + "\r\n".join(str(i) for i in range(60))
+    screen = build_casts._screen_lines(text)
+    assert len(screen) == build_casts.ROWS
+    assert screen[-1] == "59"
+    assert build_casts._screen_lines("y" * (build_casts.COLS + 5))[:2] == [
+        "y" * build_casts.COLS,
+        "y" * 5,
+    ]
+
+
+def test_every_cast_file_has_a_definition_in_the_builder(tmp_path):
+    import build_casts
+
+    defined = {cast.name for cast in build_casts.casts(tmp_path)}
+    committed = {path.stem for path in (REPO_ROOT / "docs" / "demo").glob("*.cast")}
+    assert committed == defined
+
+
+# ── check_oauth_registration ─────────────────────────────────────────────────
+
+REGISTRATION_ANSWER = {
+    "client_id": "claude-code-(kaggle)",
+    "client_secret": "",
+    "token_endpoint_auth_method": "none",
+}
+METADATA_ANSWER = {"registration_endpoint": "https://www.kaggle.com/api/v1/oauth2/register"}
+
+
+def test_oauth_facts_describe_the_secret_without_keeping_it():
+    facts = check_oauth_registration.facts
+    assert facts(REGISTRATION_ANSWER, METADATA_ANSWER)["client_secret"] == "empty"
+    assert facts({"client_id": "x"}, {})["client_secret"] == "absent"
+    with_secret = facts({"client_id": "x", "client_secret": "s3cr3t-value"}, {})
+    assert with_secret["client_secret"] == "set"
+    assert "s3cr3t-value" not in json.dumps(with_secret)
+
+
+def test_committed_oauth_snapshot_matches_what_the_tool_would_record():
+    snapshot = json.loads(check_oauth_registration.SNAPSHOT.read_text())
+    assert snapshot["client_name"] == check_oauth_registration.CLIENT_NAME
+    assert set(snapshot["facts"]) == set(
+        check_oauth_registration.facts(REGISTRATION_ANSWER, METADATA_ANSWER)
+    )
+
+
+def test_oauth_check_passes_when_kaggle_answers_as_recorded(monkeypatch, capsys):
+    recorded = json.loads(check_oauth_registration.SNAPSHOT.read_text())["facts"]
+    monkeypatch.setattr(check_oauth_registration, "fetch_live", lambda: dict(recorded))
+    assert check_oauth_registration.main(["--check"]) == 0
+    assert "matches the snapshot" in capsys.readouterr().out
+
+
+@pytest.mark.parametrize(
+    ("change", "expected"),
+    [
+        ({"client_id": "a1b2c3"}, 'client_id: was "claude-code-(kaggle)", now "a1b2c3"'),
+        ({"client_secret": "absent"}, 'client_secret: was "empty", now "absent"'),
+        (
+            {"token_endpoint_auth_methods_supported": ["none"]},
+            'token_endpoint_auth_methods_supported: was null, now ["none"]',
+        ),
+    ],
+)
+def test_oauth_check_reports_each_change_inside_a_block(
+    change, expected, monkeypatch, capsys, blocks, outside
+):
+    recorded = json.loads(check_oauth_registration.SNAPSHOT.read_text())["facts"]
+    monkeypatch.setattr(check_oauth_registration, "fetch_live", lambda: {**recorded, **change})
+    assert check_oauth_registration.main(["--check"]) == 1
+    out = capsys.readouterr().out
+    (block,) = blocks(out)
+    assert block.attrs["source"] == "kaggle-oauth"
+    assert expected in block.body
+    assert "changed since" in outside(out)
+    assert expected not in outside(out)
+
+
+def test_oauth_check_says_when_kaggle_cannot_be_reached(monkeypatch, capsys):
+    def offline():
+        raise OSError("no route to host")
+
+    monkeypatch.setattr(check_oauth_registration, "fetch_live", offline)
+    assert check_oauth_registration.main(["--check"]) == 2
+    assert "could not read Kaggle's OAuth endpoints" in capsys.readouterr().err

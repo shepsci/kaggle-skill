@@ -1,0 +1,13 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "An error occurred invoking 'get_competition'."
+      }
+    ],
+    "isError": true
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
+}

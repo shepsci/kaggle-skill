@@ -1,0 +1,11 @@
+{
+ "checked": "2026-10-01",
+ "client_name": "Claude Code (kaggle)",
+ "facts": {
+  "client_id": "claude-code-(kaggle)",
+  "client_secret": "empty",
+  "token_endpoint_auth_method": "none",
+  "registration_endpoint": "https://www.kaggle.com/api/v1/oauth2/register",
+  "token_endpoint_auth_methods_supported": null
+ }
+}

@@ -20,11 +20,24 @@ DOC_PATHS = [
 STALE_STRINGS = [
     "PLACEHOLDER",
     "v2.1.0",
+    "v2.4.0",
     "kaggle-skill@shepsci",
     "shepsci/" + "claude-" + "marketplace",
     "<claude-" + "marketplace-root>",
     "66 tools",
+    "70 tools",
     "currently 2.2.0",
+    "35+ agents",
+    "check_registration" + ".py",
+    "check_credentials" + ".py",
+    "cli_competition" + ".sh",
+    "SessionStart",
+    "kagglesdk>=0.1.33",
+    "kaggle>=2.2.3",
+    "kagglehub>=1.0.0",
+    "Legacy scoped API token",
+    "kmcp-tools",
+    "platform.claude.com/plugins/submit",
 ]
 
 SECRET_PATTERNS = [
@@ -83,7 +96,8 @@ def test_readme_demo_links_to_committed_cast_source():
 def test_readme_first_embedded_image_is_vesuvius_demo():
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     images = [
-        image for image in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", readme)
+        image
+        for image in re.findall(r"!\[[^\]]*\]\(([^)]+)\)", readme)
         if image.startswith("docs/demo/")
     ]
     assert images, "README should embed at least one demo image"
@@ -151,9 +165,7 @@ def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
 
         assert "\x1b" not in data
         assert not ANSI_ESCAPE_RE.search(data)
-        bad_controls = [
-            char for char in data if ord(char) < 32 and char not in {"\r", "\n", "\t"}
-        ]
+        bad_controls = [char for char in data if ord(char) < 32 and char not in {"\r", "\n", "\t"}]
         assert not bad_controls, (
             f"{cast.relative_to(REPO_ROOT)}:{line_number} contains terminal control characters"
         )
@@ -195,10 +207,13 @@ def test_committed_asciinema_cast_has_no_placeholders_or_refusal_language(cast: 
     assert not offenders, f"{cast.relative_to(REPO_ROOT)} contains weak demo text: {offenders}"
 
 
-def test_vesuvius_cast_demonstrates_top_three_writeup_previews():
-    cast = REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast"
+def _cast_text(cast: Path) -> str:
     lines = cast.read_text(encoding="utf-8").splitlines()
-    text = "".join(json.loads(line)[2] for line in lines[1:])
+    return "".join(json.loads(line)[2] for line in lines[1:])
+
+
+def test_vesuvius_cast_demonstrates_top_three_writeup_previews():
+    text = _cast_text(REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast")
     required = [
         "vesuvius-challenge-surface-detection",
         "--top-k 3",
@@ -208,11 +223,40 @@ def test_vesuvius_cast_demonstrates_top_three_writeup_previews():
         '"rank": 3',
         '"preview"',
         '"excerpt"',
-        "<untrusted-content",
-        "</untrusted-content>",
     ]
     missing = [term for term in required if term not in text]
     assert not missing, f"Vesuvius demo is missing expected proof points: {missing}"
+
+
+@pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
+def test_cast_blocks_open_and_close_with_the_same_random_tag(cast: Path):
+    """Casts show real output, so Kaggle text in them sits in properly closed blocks."""
+    text = _cast_text(cast)
+    opened = re.findall(r"<untrusted-content-([0-9a-f]{8}) ", text)
+    closed = re.findall(r"</untrusted-content-([0-9a-f]{8})>", text)
+    assert opened == closed, f"{cast.name}: blocks opened {opened} but closed {closed}"
+    assert "<untrusted-content " not in text and "</untrusted-content>" not in text, (
+        f"{cast.name} shows the old fixed tag; rebuild it with tools/build_casts.py"
+    )
+
+
+def test_casts_that_print_kaggle_text_show_a_block():
+    for name in (
+        "vesuvius-top-writeups",
+        "competition-brief",
+        "hackathon-writeups",
+        "install-and-demo",
+    ):
+        text = _cast_text(REPO_ROOT / "docs" / "demo" / f"{name}.cast")
+        assert re.search(r"<untrusted-content-[0-9a-f]{8} source=", text), name
+
+
+def test_casts_show_the_current_version_and_surface():
+    codex = _cast_text(REPO_ROOT / "docs" / "demo" / "codex-install.cast")
+    version = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text())["version"]
+    assert f'"version": "{version}"' in codex, "rebuild the casts after a version change"
+    mcp = _cast_text(REPO_ROOT / "docs" / "demo" / "mcp-config.cast")
+    assert '"type": "http"' in mcp and "Authorization" not in mcp and "Bearer" not in mcp
 
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
@@ -224,7 +268,9 @@ def test_committed_asciinema_cast_has_gif_preview(cast: Path):
     assert f"media/{cast.stem}.gif" in demo_readme, f"demo README does not embed {gif.name}"
 
 
-@pytest.mark.parametrize("doc", list(_iter_text_files([REPO_ROOT / "README.md", REPO_ROOT / "docs"])))
+@pytest.mark.parametrize(
+    "doc", list(_iter_text_files([REPO_ROOT / "README.md", REPO_ROOT / "docs"]))
+)
 def test_relative_markdown_links_resolve(doc: Path):
     text = doc.read_text(encoding="utf-8")
     missing: list[str] = []

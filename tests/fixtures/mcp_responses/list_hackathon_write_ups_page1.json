@@ -1,0 +1,13 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"hackathon_write_ups\": [{\"id\": 1001, \"write_up\": {\"id\": 5001, \"title\": \"Team Alpha\", \"subtitle\": \"Our approach\", \"type\": \"HACKATHON_PROJECT\", \"cover_image_url\": \"/writeups/5001/images/cover\", \"url\": \"/competitions/example-hackathon/writeups/team-alpha-writeup\", \"create_time\": \"2026-02-24T14:51:00.561443100Z\", \"update_time\": \"2026-02-24T15:21:34.475234400Z\", \"content_state\": \"PUBLISHED\", \"license\": {\"id\": 1, \"name\": \"CC0: Public Domain\", \"url\": \"https://creativecommons.org/publicdomain/zero/1.0/\", \"agreement_required\": false}, \"authors\": \"Alice Example\", \"thumbnail_image_url\": \"/writeups/5001/images/thumbnail\", \"collaborators\": [{\"display_name\": \"Alice Example\", \"thumbnail_url\": \"https://storage.googleapis.com/kaggle-avatars/thumbnails/default-thumb.png\", \"url\": \"/alice\", \"user_name\": \"alice\", \"tier\": \"EXPERT\", \"id\": 42, \"profile_url\": \"/alice\", \"performance_tier\": \"EXPERT\", \"user_id\": 42, \"progression_opt_out\": false}], \"publish_time\": \"2026-02-24T15:04:05.813Z\", \"saved_cover_image_url\": \"/writeups/5001/images/cover\", \"saved_thumbnail_image_url\": \"/writeups/5001/images/thumbnail\"}, \"template\": true, \"hackathon_track_ids\": [364], \"competition_id\": 7777, \"owner_host_user_id\": 9000001, \"should_create_doi\": false, \"update_time\": \"2026-02-24T22:09:36.981365400Z\"}], \"next_page_token\": \"CfDJ8-page-two\", \"total_count\": 2}"
+      }
+    ],
+    "isError": false
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
+}

@@ -19,7 +19,9 @@ SKILL_ROOT = REPO_ROOT / "skills" / "kaggle"
 
 # ── Badge count ─────────────────────────────────────────────────────────────
 
-BADGE_REGISTRY = REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts" / "badge_registry.py"
+BADGE_REGISTRY = (
+    REPO_ROOT / "skills" / "kaggle" / "modules" / "badges" / "scripts" / "badge_registry.py"
+)
 
 
 def _actual_badge_count() -> int:
@@ -50,13 +52,14 @@ def test_badge_registry_count_matches_documented_count():
                     continue
                 assert claimed == actual, (
                     f"{doc.relative_to(REPO_ROOT)}:{line_no} claims '{claimed} {match.group(2)}' "
-                    f"but the registry has {actual} Badge() entries. Update the doc or the registry."
+                    f"but the registry has {actual} Badge() entries. Fix the doc or the registry."
                 )
 
 
 # ── No "and grading" claim in public-facing surfaces ─────────────────────────
 
 PUBLIC_CLAIM_FILES = [
+    REPO_ROOT / "plugin.json",
     REPO_ROOT / "README.md",
     REPO_ROOT / "docs" / "README.md",
     REPO_ROOT / "docs" / "demo" / "demo-script.md",
@@ -103,6 +106,7 @@ def test_no_grading_claim_in_public_surface(doc: Path):
 
 # ── plugin.json version == pyproject.toml version == SKILL.md frontmatter ───
 
+
 def test_version_consistency_across_manifests():
     plugin = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text())
     plugin_version = plugin["version"]
@@ -112,10 +116,11 @@ def test_version_consistency_across_manifests():
     assert pyproject_match, "pyproject.toml has no version field"
     pyproject_version = pyproject_match.group(1)
 
+    import yaml
+
     skill_md = (REPO_ROOT / "skills" / "kaggle" / "SKILL.md").read_text()
-    skill_match = re.search(r'"version":\s*"([^"]+)"', skill_md)
-    assert skill_match, "SKILL.md frontmatter has no version field"
-    skill_version = skill_match.group(1)
+    frontmatter = yaml.safe_load(skill_md[4 : skill_md.index("\n---\n", 4)])
+    skill_version = frontmatter["metadata"]["version"]
 
     assert plugin_version == pyproject_version == skill_version, (
         f"version drift:\n"
@@ -127,6 +132,7 @@ def test_version_consistency_across_manifests():
 
 
 # ── Documented script-path examples must point at files that exist ──────────
+
 
 def _public_markdown_files() -> list[Path]:
     docs = [REPO_ROOT / "README.md", SKILL_ROOT / "SKILL.md"]
@@ -147,7 +153,9 @@ def _candidate_script_paths(doc: Path, raw_target: str) -> list[Path]:
     return candidates
 
 
-@pytest.mark.parametrize("doc", _public_markdown_files(), ids=lambda p: str(p.relative_to(REPO_ROOT)))
+@pytest.mark.parametrize(
+    "doc", _public_markdown_files(), ids=lambda p: str(p.relative_to(REPO_ROOT))
+)
 def test_documented_script_paths_exist_and_use_matching_interpreter(doc: Path):
     """Every documented `python3`/`bash` invocation must reference a real local
     script in the context where that doc is meant to be read.
@@ -198,11 +206,27 @@ EXPECTED_MODULES = {
 OLD_MODULES = {"kllm", "comp-report", "badge-collector", "registration", "hackathon"}
 
 
+def _has_real_files(folder: Path) -> bool:
+    """True unless the folder holds nothing but Python cache files.
+
+    A checkout that predates the module rename keeps empty `__pycache__` trees
+    under the old names; git ignores them and they are not part of the skill.
+    """
+    return any(
+        p.is_file() and "__pycache__" not in p.parts and p.suffix not in {".pyc", ".pyo"}
+        for p in folder.rglob("*")
+    )
+
+
 def test_workflow_module_layout_is_current():
     modules_dir = SKILL_ROOT / "modules"
-    actual = {path.name for path in modules_dir.iterdir() if path.is_dir()}
+    actual = {
+        path.name for path in modules_dir.iterdir() if path.is_dir() and _has_real_files(path)
+    }
     assert EXPECTED_MODULES <= actual
-    assert not (actual & OLD_MODULES), f"old module directories still exist: {sorted(actual & OLD_MODULES)}"
+    assert not (actual & OLD_MODULES), (
+        f"old module directories still exist: {sorted(actual & OLD_MODULES)}"
+    )
     for module in EXPECTED_MODULES:
         assert (modules_dir / module / "README.md").exists(), f"{module} is missing README.md"
 
@@ -255,6 +279,7 @@ def test_readme_and_demo_docs_reference_rendered_gif_previews():
 
 
 # ── OpenClaw status in compatibility table ───────────────────────────────────
+
 
 def test_platform_tested_status_is_attested():
     """Every platform marked 'Tested' in the README compatibility table must

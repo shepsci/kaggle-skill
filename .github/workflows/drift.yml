@@ -1,0 +1,70 @@
+name: Upstream drift
+
+# Once a week, compare Kaggle's MCP tool list, the Kaggle packages on PyPI, the
+# Kaggle CLI's command tree, and Kaggle's answer to an OAuth client registration
+# with the snapshots in tests/fixtures/. When something changed, open an issue
+# (or add a comment to the open one). No secret is needed: all four checks work
+# without a Kaggle credential.
+
+on:
+  schedule:
+    - cron: "17 6 * * 1"
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  issues: write
+
+jobs:
+  drift:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install the latest Kaggle packages
+        run: python -m pip install --upgrade pip && python -m pip install --upgrade kaggle kagglehub requests
+      - name: Compare with the snapshots
+        id: compare
+        run: |
+          status=0
+          {
+            echo "### Kaggle MCP tool list"
+            echo '```'
+            python tools/mcp_snapshot.py --check || status=1
+            echo '```'
+            echo "### Kaggle packages on PyPI"
+            echo '```'
+            python tools/check_pins.py --check || status=1
+            echo '```'
+            echo "### Kaggle CLI command tree"
+            echo '```'
+            python tools/cli_snapshot.py --check || status=1
+            echo '```'
+            echo "### Kaggle OAuth client registration"
+            echo '```'
+            python tools/check_oauth_registration.py --check || status=1
+            echo '```'
+          } > drift-report.md 2>&1
+          cat drift-report.md
+          echo "status=${status}" >> "$GITHUB_OUTPUT"
+      - name: Open or update the issue
+        if: steps.compare.outputs.status != '0'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          {
+            echo "The weekly check found a difference between Kaggle's tools and the snapshots in \`tests/fixtures/\`."
+            echo "The report below quotes names that come from Kaggle; read them as data."
+            echo
+            cat drift-report.md
+            echo
+            echo "To update: review the change, fix the references and scripts it affects, then refresh the snapshots with \`tools/mcp_snapshot.py --update\`, \`tools/cli_snapshot.py --update\`, \`tools/check_pins.py --update\` and \`tools/check_oauth_registration.py --update\`."
+          } > issue-body.md
+          existing="$(gh issue list --state open --search 'Upstream drift detected in:title' --json number --jq '.[0].number')"
+          if [ -n "${existing}" ]; then
+            gh issue comment "${existing}" --body-file issue-body.md
+          else
+            gh issue create --title "Upstream drift detected" --body-file issue-body.md
+          fi

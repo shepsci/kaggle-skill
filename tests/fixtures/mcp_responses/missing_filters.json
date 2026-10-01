@@ -1,0 +1,13 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "You must specify `filters`."
+      }
+    ],
+    "isError": true
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
+}

@@ -1,0 +1,13 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "{\"pages\": [{\"name\": \"rules\", \"content\": \"One account per participant.\"}, {\"name\": \"Description\", \"content\": \"Predict the target.\"}, {\"name\": \"Evaluation\", \"content\": \"Metric: accuracy\"}, {\"name\": \"data-description\", \"content\": \"train.csv and test.csv\"}]}"
+      }
+    ],
+    "isError": false
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
+}

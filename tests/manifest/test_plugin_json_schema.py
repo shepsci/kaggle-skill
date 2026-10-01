@@ -27,9 +27,7 @@ def test_required_fields_present():
 
 def test_name_is_kebab_case():
     name = _load()["name"]
-    assert re.fullmatch(r"[a-z][a-z0-9-]*[a-z0-9]", name), (
-        f"name '{name}' is not kebab-case"
-    )
+    assert re.fullmatch(r"[a-z][a-z0-9-]*[a-z0-9]", name), f"name '{name}' is not kebab-case"
 
 
 def test_version_matches_semver():
