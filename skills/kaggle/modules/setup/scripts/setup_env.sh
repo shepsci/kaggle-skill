@@ -1,110 +1,87 @@
 #!/usr/bin/env bash
-# Set up Kaggle credentials from available environment variables.
+# Save Kaggle credentials from environment variables to ~/.kaggle, so the
+# Kaggle CLI and kagglehub find them in every shell.
 #
-# Credential priority:
-#   1. ~/.kaggle/access_token (new style, preferred)
-#   2. KAGGLE_API_TOKEN env var (new style)
-#   3. KAGGLE_KEY / KAGGLE_TOKEN env vars (legacy)
-#   4. ~/.kaggle/kaggle.json (legacy)
+# Run it on purpose, when you want the credential stored on disk. Nothing runs
+# it automatically, and it never overwrites a file that already exists.
 #
-# Creates ~/.kaggle/access_token (preferred) and/or ~/.kaggle/kaggle.json
-# so both kagglehub and kaggle-cli work.
+#   KAGGLE_API_TOKEN               -> ~/.kaggle/access_token
+#   KAGGLE_USERNAME + KAGGLE_KEY   -> ~/.kaggle/kaggle.json (legacy)
 #
 # Usage:
-#   bash scripts/setup_env.sh
-#   OR: source scripts/setup_env.sh  (also exports env vars in current shell)
+#   bash modules/setup/scripts/setup_env.sh
+#
+# Run it with bash. Do not source it.
+
+if (return 0 2>/dev/null); then
+    echo "Run this script with bash; do not source it." >&2
+    return 1
+fi
 
 set -euo pipefail
+umask 077
 
-# Load .env only from the directory containing this script (the plugin/skill
-# root), never from the current working directory. Sourcing $CWD/.env from a
-# SessionStart hook would let any directory the user opens Claude Code in
-# inject arbitrary env vars into the session.
-SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
-SKILL_ROOT="$(cd "${SCRIPT_DIR}/../../.." && pwd)"
-if [ -f "${SKILL_ROOT}/.env" ]; then
-    set -a
-    # shellcheck disable=SC1091
-    source "${SKILL_ROOT}/.env"
-    set +a
+# The only .env file read is the one named by KAGGLE_ENV_FILE, and only its
+# KAGGLE_API_TOKEN, KAGGLE_USERNAME and KAGGLE_KEY lines are used. The file is
+# parsed, never executed.
+if [ -n "${KAGGLE_ENV_FILE:-}" ] && [ -f "${KAGGLE_ENV_FILE}" ]; then
+    while IFS= read -r line || [ -n "${line}" ]; do
+        line="${line%$'\r'}" # a file saved with Windows line ends
+        line="${line#export }"
+        case "${line}" in
+            KAGGLE_API_TOKEN=* | KAGGLE_USERNAME=* | KAGGLE_KEY=*) ;;
+            *) continue ;;
+        esac
+        name="${line%%=*}"
+        value="${line#*=}"
+        value="${value%\"}"
+        value="${value#\"}"
+        value="${value%\'}"
+        value="${value#\'}"
+        if [ -z "${!name:-}" ]; then
+            export "${name}=${value}"
+        fi
+    done <"${KAGGLE_ENV_FILE}"
 fi
 
 KAGGLE_DIR="${HOME}/.kaggle"
 ACCESS_TOKEN_FILE="${KAGGLE_DIR}/access_token"
 KAGGLE_JSON="${KAGGLE_DIR}/kaggle.json"
 
-# Check if access_token file already exists
-if [ -f "$ACCESS_TOKEN_FILE" ]; then
-    echo "[OK] access_token already exists at ${ACCESS_TOKEN_FILE}"
-    # Surface install instructions but never auto-install on SessionStart —
-    # silently mutating the user's Python environment without consent is a
-    # security smell. The user explicitly runs the install command if they
-    # want it.
-    if ! python3 -c "import kagglehub" 2>/dev/null; then
-        echo "[INFO] kagglehub not installed. Run:  pip install --user kagglehub kaggle"
-    fi
-    echo "[OK] Kaggle environment ready"
-    exit 0
-fi
-
-# Resolve API token: prefer KAGGLE_API_TOKEN
 API_TOKEN="${KAGGLE_API_TOKEN:-}"
-
-# Resolve username
 USERNAME="${KAGGLE_USERNAME:-}"
+KEY="${KAGGLE_KEY:-}"
 
-# Resolve legacy key: prefer KAGGLE_KEY, then KAGGLE_TOKEN
-KEY="${KAGGLE_KEY:-${KAGGLE_TOKEN:-}}"
-
-# Create access_token file if we have an API token
-if [ -n "$API_TOKEN" ]; then
-    mkdir -p "$KAGGLE_DIR"
-    echo -n "$API_TOKEN" > "$ACCESS_TOKEN_FILE"
-    chmod 600 "$ACCESS_TOKEN_FILE"
-    echo "[OK] Created ${ACCESS_TOKEN_FILE} from KAGGLE_API_TOKEN"
-
-    # Export for current shell session
-    export KAGGLE_API_TOKEN="$API_TOKEN"
-    if [ -n "$KEY" ]; then
-        export KAGGLE_KEY="$KEY"
-    fi
-
-# Fall back to legacy key
-elif [ -n "$KEY" ]; then
-    # Export the correct env var names (only effective if script is sourced)
-    export KAGGLE_KEY="$KEY"
-    export KAGGLE_API_TOKEN="$KEY"
-    if [ -n "$USERNAME" ]; then
-        export KAGGLE_USERNAME="$USERNAME"
-    fi
-
-    # Create kaggle.json for legacy CLI compatibility
-    if [ ! -f "$KAGGLE_JSON" ]; then
-        mkdir -p "$KAGGLE_DIR"
-        if [ -n "$USERNAME" ]; then
-            printf '{"username":"%s","key":"%s"}\n' "$USERNAME" "$KEY" > "$KAGGLE_JSON"
-        else
-            printf '{"key":"%s"}\n' "$KEY" > "$KAGGLE_JSON"
-        fi
-        chmod 600 "$KAGGLE_JSON"
-        echo "[OK] Created ${KAGGLE_JSON}"
-    else
-        echo "[OK] ${KAGGLE_JSON} already exists"
-    fi
-
+if [ -f "${ACCESS_TOKEN_FILE}" ]; then
+    echo "[OK] ${ACCESS_TOKEN_FILE} already exists; left unchanged"
+elif [ -n "${API_TOKEN}" ] && [ -f "${API_TOKEN}" ]; then
+    # The Kaggle CLI also accepts the path of a token file in this variable.
+    echo "[OK] KAGGLE_API_TOKEN names a token file; nothing to save"
+elif [ -n "${API_TOKEN}" ]; then
+    mkdir -p "${KAGGLE_DIR}"
+    printf '%s' "${API_TOKEN}" >"${ACCESS_TOKEN_FILE}"
+    echo "[OK] Created ${ACCESS_TOKEN_FILE} from KAGGLE_API_TOKEN (mode 600)"
+elif [ -f "${KAGGLE_JSON}" ]; then
+    echo "[OK] ${KAGGLE_JSON} already exists; left unchanged"
+elif [ -n "${USERNAME}" ] && [ -n "${KEY}" ]; then
+    case "${USERNAME}${KEY}" in
+        *\"* | *\\*)
+            echo "[ERROR] KAGGLE_USERNAME or KAGGLE_KEY contains a quote or backslash" >&2
+            exit 1
+            ;;
+    esac
+    mkdir -p "${KAGGLE_DIR}"
+    printf '{"username":"%s","key":"%s"}\n' "${USERNAME}" "${KEY}" >"${KAGGLE_JSON}"
+    echo "[OK] Created ${KAGGLE_JSON} from KAGGLE_USERNAME + KAGGLE_KEY (mode 600)"
+elif [ -f "${KAGGLE_DIR}/credentials.json" ]; then
+    echo "[OK] OAuth login found (${KAGGLE_DIR}/credentials.json); nothing to save"
 else
-    if [ -f "$KAGGLE_JSON" ]; then
-        echo "[OK] kaggle.json already exists at ${KAGGLE_JSON}"
-    else
-        echo "[INFO] No Kaggle credentials found in environment."
-        echo "       Generate a token at: https://www.kaggle.com/settings"
-        echo "       → API Tokens (Recommended) → Generate New Token"
-    fi
+    echo "[INFO] No Kaggle credentials in the environment."
+    echo "       Sign in with: kaggle auth login"
+    echo "       or generate a token at https://www.kaggle.com/settings and set KAGGLE_API_TOKEN"
 fi
 
-# Surface install instructions but never auto-install on SessionStart.
-if ! python3 -c "import kagglehub" 2>/dev/null; then
-    echo "[INFO] kagglehub not installed. Run:  pip install --user kagglehub kaggle"
+if ! command -v kaggle >/dev/null 2>&1; then
+    echo "[INFO] kaggle CLI not found. Install it with:"
+    echo "       python3 -m pip install 'kaggle>=2.2.4' 'kagglehub>=1.0.2'"
 fi
-
-echo "[OK] Kaggle environment ready"

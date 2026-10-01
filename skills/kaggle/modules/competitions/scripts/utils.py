@@ -1,87 +1,103 @@
 """Shared utilities for Kaggle competition report generation."""
 
-import json
-import os
-import shutil
-import subprocess
+from __future__ import annotations
+
+import contextlib
+import io
 import sys
 import time
 from pathlib import Path
+from typing import Any
 
 # Rate limiting: seconds between API calls
 API_DELAY = 3
 
 # Skill root: skills/kaggle
 SKILL_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(SKILL_ROOT))
+
+from shared import credentials, kaggle_cli  # noqa: E402
+
+_MISSING = object()
+
+
+class KaggleAuthError(RuntimeError):
+    """No credential the Kaggle library accepts was found."""
 
 
 def get_api():
-    """Initialize and authenticate the Kaggle API client."""
-    from kaggle.api.kaggle_api_extended import KaggleApi
+    """Initialize and authenticate the Kaggle API client.
 
-    api = KaggleApi()
-    api.authenticate()
+    Raises KaggleAuthError instead of letting the library print its help text
+    and exit the process, or fail with a traceback when Kaggle cannot be
+    reached.
+    """
+    credentials.load_configured_env_file()
+    kaggle_cli.scrub_process_env()
+    captured = io.StringIO()
+    try:
+        with contextlib.redirect_stdout(captured):
+            from kaggle.api.kaggle_api_extended import KaggleApi
+
+            api = KaggleApi()
+            api.authenticate()
+    except SystemExit as exc:
+        raise KaggleAuthError(
+            "no usable Kaggle credentials: run `kaggle auth login`, set KAGGLE_API_TOKEN, "
+            "or create ~/.kaggle/access_token"
+        ) from exc
+    except Exception as exc:  # noqa: BLE001 - sign-in talks to the network and can fail many ways
+        raise KaggleAuthError(
+            f"could not sign in to Kaggle ({type(exc).__name__}); check the network and the "
+            "credential with check_all_credentials.py --verify"
+        ) from exc
     return api
 
 
+def call_quiet(fn, *args: Any, **kwargs: Any):
+    """Call a Kaggle library method and swallow what it prints.
+
+    Several list methods print ``Next Page Token = ...`` to stdout, which would
+    otherwise end up in front of this skill's JSON output.
+    """
+    with contextlib.redirect_stdout(io.StringIO()):
+        return fn(*args, **kwargs)
+
+
+def attr(obj: Any, *names: str, default: Any = None) -> Any:
+    """First attribute among ``names`` that exists and is not None.
+
+    kagglesdk objects use snake_case (``team_count``). Older releases exposed
+    camelCase (``teamCount``), so callers pass both spellings.
+    """
+    for name in names:
+        value = getattr(obj, name, _MISSING)
+        if value is not _MISSING and value is not None:
+            return value
+    return default
+
+
 def get_username() -> str:
-    """Get the Kaggle username from env or kaggle.json."""
-    username = os.getenv("KAGGLE_USERNAME")
-    if username:
-        return username
-    kaggle_json = Path.home() / ".kaggle" / "kaggle.json"
-    if kaggle_json.exists():
-        creds = json.loads(kaggle_json.read_text())
-        return creds.get("username", "")
-    return ""
-
-
-def get_kaggle_cli() -> str:
-    """Find the kaggle CLI binary."""
-    for path in [
-        shutil.which("kaggle"),
-        "/Library/Frameworks/Python.framework/Versions/3.12/bin/kaggle",
-        str(Path.home() / ".local" / "bin" / "kaggle"),
-    ]:
-        if path and Path(path).exists():
-            return path
-    return "kaggle"
+    """Kaggle username from the shared credential resolver."""
+    return credentials.username()
 
 
 def check_credentials() -> bool:
-    """Verify Kaggle credentials are configured and API authenticates."""
-    # Check credential sources in priority order
-    access_token = Path.home() / ".kaggle" / "access_token"
-    kaggle_json = Path.home() / ".kaggle" / "kaggle.json"
-    has_creds = (
-        access_token.exists()
-        or os.getenv("KAGGLE_API_TOKEN")
-        or (os.getenv("KAGGLE_USERNAME") and os.getenv("KAGGLE_KEY"))
-        or kaggle_json.exists()
-    )
-    if not has_creds:
-        print("ERROR: No Kaggle credentials found.")
-        print("  Generate a token at: https://www.kaggle.com/settings")
-        print("  → API Tokens (Recommended) → Generate New Token")
-        print("  Save as ~/.kaggle/access_token or set KAGGLE_API_TOKEN env var")
-        return False
-
-    # Try to authenticate
-    try:
-        api = get_api()
-        # Quick check: list competitions to verify auth works
-        result = api.competitions_list(page=1)
-        comps = unwrap_response(result, "competitions")
-        username = get_username()
-        print(f"OK: Kaggle API authenticated as '{username}'")
-        print(f"  API returned {len(comps)} competition(s) in smoke test")
+    """Verify that the Kaggle CLI can authenticate with what is configured."""
+    ok, username = credentials.verify()
+    if ok:
+        print(
+            f"OK: Kaggle API authenticated as '{username}'"
+            if username
+            else "OK: Kaggle API authenticated"
+        )
         return True
-    except Exception as e:
-        print(f"ERROR: Kaggle API authentication failed: {e}")
-        return False
+    print("ERROR: no usable Kaggle credentials.")
+    print("  Run `kaggle auth login`, set KAGGLE_API_TOKEN, or create ~/.kaggle/access_token")
+    return False
 
 
-def unwrap_response(result, attr: str = "competitions") -> list:
+def unwrap_response(result, attr_name: str = "competitions") -> list:
     """Unwrap a Kaggle API response object to get the inner list.
 
     The newer kagglesdk returns response objects (e.g. ApiListCompetitionsResponse)
@@ -90,8 +106,8 @@ def unwrap_response(result, attr: str = "competitions") -> list:
     """
     if isinstance(result, list):
         return result
-    if hasattr(result, attr):
-        return getattr(result, attr) or []
+    if hasattr(result, attr_name):
+        return getattr(result, attr_name) or []
     # Try common attributes
     for fallback in ["competitions", "files", "kernels", "results"]:
         if hasattr(result, fallback):
@@ -109,5 +125,4 @@ def rate_limit():
 
 
 if __name__ == "__main__":
-    ok = check_credentials()
-    sys.exit(0 if ok else 1)
+    sys.exit(0 if check_credentials() else 1)

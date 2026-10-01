@@ -5,11 +5,27 @@ Usage:
 """
 
 import argparse
-import json
+import re
 import sys
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timedelta, timezone
+from pathlib import Path
 
-from utils import get_api, rate_limit, unwrap_response
+SKILL_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(SKILL_ROOT))
+
+from utils import (  # noqa: E402
+    KaggleAuthError,
+    attr,
+    call_quiet,
+    get_api,
+    rate_limit,
+    unwrap_response,
+)
+
+from shared import untrusted  # noqa: E402
+
+SOURCE = "kaggle-api"
+TOOL = "competitions.list"
 
 
 # Categories to query from the Kaggle API
@@ -22,11 +38,16 @@ def extract_slug(ref: str) -> str:
     return str(ref).strip("/").split("/")[-1]
 
 
+def normalize_reward(value) -> str:
+    """Upper-case a trailing currency code: the API returns ``50,000 Usd``."""
+    text = str(value or "")
+    return re.sub(r"\b([A-Za-z]{3})$", lambda m: m.group(1).upper(), text)
+
+
 def competition_to_dict(comp) -> dict:
     """Convert a Kaggle competition object to a serializable dict."""
-    # The API returns objects with attributes
-    deadline = getattr(comp, "deadline", None)
-    date_created = getattr(comp, "enabledDate", None) or getattr(comp, "dateCreated", None)
+    deadline = attr(comp, "deadline")
+    date_created = attr(comp, "enabled_date", "enabledDate", "date_created", "dateCreated")
 
     # Normalize datetimes to strings
     def to_iso(dt):
@@ -39,11 +60,11 @@ def competition_to_dict(comp) -> dict:
         except Exception:
             return str(dt)
 
-    slug = extract_slug(getattr(comp, "ref", ""))
+    slug = extract_slug(attr(comp, "ref", default=""))
 
     # Extract tags
     tags = []
-    raw_tags = getattr(comp, "tags", [])
+    raw_tags = attr(comp, "tags", default=[])
     if raw_tags:
         for t in raw_tags:
             if isinstance(t, str):
@@ -55,16 +76,21 @@ def competition_to_dict(comp) -> dict:
 
     return {
         "slug": slug,
-        "title": getattr(comp, "title", ""),
-        "description": getattr(comp, "description", ""),
-        "category": getattr(comp, "category", ""),
-        "evaluation_metric": getattr(comp, "evaluationMetric", ""),
-        "reward": getattr(comp, "reward", ""),
-        "team_count": getattr(comp, "teamCount", 0),
+        "title": attr(comp, "title", default=""),
+        "description": attr(comp, "description", default=""),
+        "category": attr(comp, "category", default=""),
+        "evaluation_metric": attr(comp, "evaluation_metric", "evaluationMetric", default=""),
+        "reward": normalize_reward(attr(comp, "reward", default="")),
+        "team_count": attr(comp, "team_count", "teamCount", default=0),
         "deadline": to_iso(deadline),
         "date_created": to_iso(date_created),
         "tags": tags,
-        "is_kernels_submissions_only": getattr(comp, "isKernelsSubmissionsOnly", False),
+        "is_kernels_submissions_only": bool(
+            attr(comp, "is_kernels_submissions_only", "isKernelsSubmissionsOnly", default=False)
+        ),
+        "max_daily_submissions": attr(comp, "max_daily_submissions", "maxDailySubmissions"),
+        "max_team_size": attr(comp, "max_team_size", "maxTeamSize"),
+        "user_has_entered": bool(attr(comp, "user_has_entered", "userHasEntered", default=False)),
         "url": f"https://www.kaggle.com/competitions/{slug}",
     }
 
@@ -121,39 +147,63 @@ def within_lookback(comp_dict: dict, lookback_days: int) -> bool:
     return False
 
 
+class AllQueriesFailed(RuntimeError):
+    """Every listing request failed, so an empty result would be misleading."""
+
+    def __init__(self, failures: list[str]):
+        super().__init__(f"all {len(failures)} competition queries failed")
+        self.failures = failures
+
+
 def fetch_competitions(lookback_days: int = 30) -> list[dict]:
-    """Fetch competitions across all categories and deduplicate."""
+    """Fetch competitions across all categories and deduplicate.
+
+    Raises AllQueriesFailed when no query succeeded. A single failed query is
+    reported on standard error and the rest are still used.
+    """
     api = get_api()
     seen_slugs = set()
     all_comps = []
 
-    # Query each specific category + "all" for uncategorized types
-    categories_to_query = CATEGORIES + [""]  # empty string = all categories
+    # Every category, then no filter, then the community group, which the
+    # default ("general") group leaves out.
+    queries: list[dict] = [{"category": cat} for cat in CATEGORIES]
+    queries += [{}, {"group": "community"}]
+    failures: list[str] = []
+    succeeded = 0
 
-    for cat in categories_to_query:
+    for query in queries:
+        label = query.get("category") or query.get("group") or "all"
         for page in range(1, 3):  # pages 1 and 2
             try:
-                kwargs = {"page": page, "sort_by": "recentlyCreated"}
-                if cat:
-                    kwargs["category"] = cat
-                result = api.competitions_list(**kwargs)
-                comps = unwrap_response(result, "competitions")
-                if not comps:
-                    break
-                for comp in comps:
-                    d = competition_to_dict(comp)
-                    slug = d["slug"]
-                    if slug in seen_slugs:
-                        continue
-                    seen_slugs.add(slug)
-                    # Override category with the queried one if it's specific
-                    if cat and not d["category"]:
-                        d["category"] = cat
-                    all_comps.append(d)
-                rate_limit()
-            except Exception as e:
-                print(f"  Warning: Failed to fetch category='{cat}' page={page}: {e}", file=sys.stderr)
+                result = call_quiet(
+                    api.competitions_list, page=page, sort_by="recentlyCreated", **query
+                )
+            except Exception as e:  # noqa: BLE001 - one failed query must not stop the report
+                failures.append(f"{label} page {page}: {type(e).__name__}: {e}"[:200])
                 break
+            succeeded += 1
+            comps = unwrap_response(result, "competitions")
+            if not comps:
+                break
+            for comp in comps:
+                d = competition_to_dict(comp)
+                slug = d["slug"]
+                if slug in seen_slugs:
+                    continue
+                seen_slugs.add(slug)
+                # Use the queried category when the API gave none
+                if query.get("category") and not d["category"]:
+                    d["category"] = query["category"]
+                all_comps.append(d)
+            rate_limit()
+
+    if failures:
+        if not succeeded:
+            raise AllQueriesFailed(failures)
+        print(f"warning: {len(failures)} competition queries failed:", file=sys.stderr)
+        # The text of a failure comes from the server.
+        untrusted.emit_text("\n".join(failures), source=SOURCE, tool=TOOL, file=sys.stderr)
 
     # Filter by lookback window and classify status
     filtered = []
@@ -168,29 +218,49 @@ def fetch_competitions(lookback_days: int = 30) -> list[dict]:
     return filtered
 
 
-def main():
+def main() -> int:
     parser = argparse.ArgumentParser(description="List recent Kaggle competitions")
-    parser.add_argument("--lookback-days", type=int, default=30, help="Days to look back (default: 30)")
+    parser.add_argument(
+        "--lookback-days", type=int, default=30, help="Days to look back (default: 30)"
+    )
     parser.add_argument("--output", choices=["json", "text"], default="json", help="Output format")
     args = parser.parse_args()
 
-    comps = fetch_competitions(args.lookback_days)
+    try:
+        comps = fetch_competitions(args.lookback_days)
+    except KaggleAuthError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
+    except AllQueriesFailed as exc:
+        print(
+            f"error: {exc}; the credential may be revoked, or Kaggle unreachable", file=sys.stderr
+        )
+        untrusted.emit_text("\n".join(exc.failures), source=SOURCE, tool=TOOL, file=sys.stderr)
+        return 1
 
-    if args.output == "json":
-        print(json.dumps(comps, indent=2))
-    else:
-        active = [c for c in comps if c["status"] == "active"]
-        completed = [c for c in comps if c["status"] == "completed"]
-        print(f"Found {len(comps)} competitions ({len(active)} active, {len(completed)} completed)")
-        print()
-        for comp in comps:
-            status_icon = "ACTIVE" if comp["status"] == "active" else "DONE"
-            print(f"  [{status_icon}] {comp['title']}")
-            print(f"         slug: {comp['slug']}, category: {comp['category']}, deadline: {comp['deadline']}")
-            if comp.get("reward"):
-                print(f"         reward: {comp['reward']}, teams: {comp['team_count']}")
-            print()
+    # Titles, descriptions and tags are host-authored: one untrusted block.
+    with untrusted.Block(source=SOURCE, tool=TOOL, lookback_days=args.lookback_days) as block:
+        if args.output == "json":
+            block.write_json(comps, indent=2)
+        else:
+            active = [c for c in comps if c["status"] == "active"]
+            completed = [c for c in comps if c["status"] == "completed"]
+            block.write(
+                f"Found {len(comps)} competitions "
+                f"({len(active)} active, {len(completed)} completed)\n"
+            )
+            for comp in comps:
+                status_icon = "ACTIVE" if comp["status"] == "active" else "DONE"
+                block.write(f"  [{status_icon}] {comp['title']}")
+                block.write(
+                    f"         slug: {comp['slug']}, category: {comp['category']}, "
+                    f"deadline: {comp['deadline']}"
+                )
+                if comp.get("reward"):
+                    block.write(f"         reward: {comp['reward']}, teams: {comp['team_count']}")
+                block.write("")
+    return 0
 
 
 if __name__ == "__main__":
-    main()
+    sys.exit(main())

@@ -1,9 +1,10 @@
 {
   "name": "kaggle",
-  "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "version": "2.5.0",
+  "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "author": {
-    "name": "shepsci"
+    "name": "shepsci",
+    "url": "https://github.com/shepsci"
   },
   "homepage": "https://github.com/shepsci/kaggle-skill",
   "repository": "https://github.com/shepsci/kaggle-skill",
@@ -21,7 +22,5 @@
     "machine-learning",
     "data-science"
   ],
-  "skills": [
-    "./skills/kaggle"
-  ]
+  "skills": "./skills/"
 }

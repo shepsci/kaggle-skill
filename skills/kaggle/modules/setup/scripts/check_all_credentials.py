@@ -1,209 +1,170 @@
 #!/usr/bin/env python3
-"""Unified Kaggle credential checker.
+"""Report which Kaggle credentials are configured.
 
-Checks all credential sources in priority order:
-  1. ~/.kaggle/access_token file (new style, recommended)
-  2. KAGGLE_API_TOKEN env var (new style)
-  3. KAGGLE_USERNAME + KAGGLE_KEY env vars (legacy)
-  4. ~/.kaggle/kaggle.json (legacy)
+Looks in the same places, in the same order, as the Kaggle CLI:
 
-Also detects token type from prefix:
-  - kagat_ → OAuth 2.0 access token (3-hour expiry)
-  - kagrt_ → OAuth 2.0 refresh token
-  - KGAT_  → Legacy scoped API token
-  - Plain hex → Legacy API key
+  1. API token   KAGGLE_API_TOKEN, then ~/.kaggle/access_token
+  2. Legacy key  KAGGLE_USERNAME + KAGGLE_KEY, then kaggle.json
+  3. OAuth       ~/.kaggle/credentials.json, written by `kaggle auth login`
 
-Returns structured JSON output for easy parsing.
-Never prints actual credential values — only masked status.
+The script only reads. It never writes, moves or prints a credential.
 
 Usage:
     python3 modules/setup/scripts/check_all_credentials.py
+    python3 modules/setup/scripts/check_all_credentials.py --verify
     python3 modules/setup/scripts/check_all_credentials.py --json
 
+Finding a credential does not prove the server accepts it. --verify makes one
+call that needs a signed-in account (`kaggle quota`) and reports the account.
+
 Exit codes:
-    0 — Credentials found (at least API token or legacy key)
-    1 — No credentials found
+    0  a credential was found (and accepted, with --verify)
+    1  no credential was found, or --verify failed
 """
 
+from __future__ import annotations
+
+import argparse
 import json
 import os
 import sys
 from pathlib import Path
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except ImportError:
-    pass
+SKILL_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(SKILL_ROOT))
+
+from shared import credentials  # noqa: E402
+
+LABELS = {
+    "api_token": "API token",
+    "legacy_key": "Legacy API key",
+    "oauth": "OAuth login",
+}
+SETUP_HELP = """No Kaggle credentials found. Pick one:
+
+  1. Sign in with OAuth (recommended by the Kaggle CLI):
+       kaggle auth login
+
+  2. Use an API token from https://www.kaggle.com/settings ("Generate New Token"):
+       mkdir -p ~/.kaggle && chmod 700 ~/.kaggle
+       (umask 077 && cat > ~/.kaggle/access_token)   # paste the token, then Ctrl-D
+     or export KAGGLE_API_TOKEN in your shell profile.
+
+Public reads (competition pages, public datasets) work without credentials.
+Full guide: modules/setup/references/kaggle-setup.md"""
 
 
-def _ensure_mode_600(path: Path) -> None:
-    """Auto-tighten file mode to 600 if anything else is set.
-
-    Credential files must never be group- or world-readable. Previously this
-    only warned and continued; now it self-heals because credentials in a
-    world-readable file are an active leak, not a future risk.
-    """
-    mode = path.stat().st_mode & 0o777
-    if mode != 0o600:
-        try:
-            path.chmod(0o600)
-            print(f"[INFO] Tightened {path} permissions from {oct(mode)[-3:]} to 600")
-        except OSError as e:
-            print(f"[WARN] {path} permissions are {oct(mode)[-3:]}, could not chmod 600: {e}")
-
-
-def _read_access_token() -> str:
-    """Read ~/.kaggle/access_token if it exists."""
-    access_token = Path.home() / ".kaggle" / "access_token"
-    if not access_token.exists():
-        return ""
-    token = access_token.read_text().strip()
-    if token:
-        _ensure_mode_600(access_token)
-    return token
-
-
-def _read_kaggle_json() -> dict:
-    """Read ~/.kaggle/kaggle.json if it exists and is valid."""
-    kaggle_json = Path.home() / ".kaggle" / "kaggle.json"
-    if not kaggle_json.exists():
-        return {}
+def _loose_permissions(path: Path) -> str | None:
+    """Return the file mode as text when group or others can read it."""
     try:
-        creds = json.loads(kaggle_json.read_text())
-        _ensure_mode_600(kaggle_json)
-        return creds
-    except (json.JSONDecodeError, KeyError):
-        print(f"[WARN] {kaggle_json} exists but is malformed")
-        return {}
+        mode = path.stat().st_mode & 0o777
+    except OSError:
+        return None
+    return oct(mode)[-3:] if mode & 0o077 else None
 
 
-def _detect_token_type(token: str) -> str:
-    """Detect the type of a Kaggle token from its prefix."""
-    if not token:
-        return "unknown"
-    if token.startswith("kagat_"):
-        return "OAuth access token"
-    if token.startswith("kagrt_"):
-        return "OAuth refresh token"
-    if token.startswith("KGAT_"):
-        return "Legacy scoped API token"
-    # 32-char hex is a legacy API key
-    if len(token) == 32 and all(c in "0123456789abcdef" for c in token):
-        return "Legacy API key"
-    return "API token"
+def _credential_files() -> list[Path]:
+    home = Path.home() / ".kaggle"
+    return [
+        home / "access_token",
+        home / "access_token.txt",
+        home / "credentials.json",
+        credentials.config_dir() / "kaggle.json",
+    ]
 
 
-def _mask(value: str, prefix_len: int = 0) -> str:
-    """Mask a credential value, showing only first prefix_len and last 4 chars."""
-    if not value:
-        return "****"
-    if len(value) <= prefix_len + 4:
-        return "****"
-    return value[:prefix_len] + "*" * max(0, len(value) - prefix_len - 4) + value[-4:]
+def collect(verify: bool = False) -> dict:
+    """Gather the report as plain data. No secret values are included."""
+    found = credentials.discover()
+    report: dict = {
+        "credentials": [
+            {
+                "kind": cred.kind,
+                "label": LABELS[cred.kind],
+                "source": cred.source,
+                "username": cred.username or None,
+                "token_type": credentials.describe_token(cred.secret) if cred.secret else None,
+            }
+            for cred in found
+        ],
+        "active": None,
+        "warnings": [],
+        "verified": None,
+        "username": None,
+    }
+    if found:
+        report["active"] = {"kind": found[0].kind, "source": found[0].source}
+
+    for path in _credential_files():
+        mode = _loose_permissions(path)
+        if mode:
+            report["warnings"].append(
+                f"{path} is readable by other users (mode {mode}); run: chmod 600 {path}"
+            )
+    if os.environ.get("KAGGLE_TOKEN") and not os.environ.get("KAGGLE_API_TOKEN"):
+        report["warnings"].append(
+            "KAGGLE_TOKEN is set, but no Kaggle tool reads it; use KAGGLE_API_TOKEN"
+        )
+
+    if verify:
+        ok, username = credentials.verify()
+        report["verified"] = ok
+        report["username"] = username or None
+    return report
 
 
-def check_all_credentials(output_json: bool = False) -> bool:
-    """Check for Kaggle credentials. Returns True if usable credentials found."""
-    results = {}
-    found_any = False
+def print_report(report: dict) -> None:
+    creds = report["credentials"]
+    for cred in creds:
+        details = [f"from {cred['source']}"]
+        if cred["kind"] == "api_token" and cred["token_type"] not in (None, "token", "API token"):
+            details.append(f"looks like: {cred['token_type']}")
+        if cred["username"]:
+            details.append(f"user: {cred['username']}")
+        print(f"[OK] {cred['label']}: found ({', '.join(details)})")
+    for warning in report["warnings"]:
+        print(f"[WARN] {warning}")
 
-    # --- Auto-map KAGGLE_TOKEN → KAGGLE_KEY ---
-    if os.getenv("KAGGLE_TOKEN") and not os.getenv("KAGGLE_KEY"):
-        print("[WARN] Found KAGGLE_TOKEN but tools expect KAGGLE_KEY")
-        print("       Auto-mapping: KAGGLE_KEY = KAGGLE_TOKEN")
-        os.environ["KAGGLE_KEY"] = os.environ["KAGGLE_TOKEN"]
-
-    # --- API Token (primary, recommended) ---
-    # Check sources in priority order: access_token file → env var
-    access_token_file = _read_access_token()
-    api_token_env = os.getenv("KAGGLE_API_TOKEN", "")
-    api_token = access_token_file or api_token_env
-
-    if api_token:
-        source = "~/.kaggle/access_token" if access_token_file else "env"
-        token_type = _detect_token_type(api_token)
-        results["KAGGLE_API_TOKEN"] = {
-            "status": "OK", "value": _mask(api_token, 5),
-            "source": source, "type": token_type,
-        }
-        print(f"[OK] API Token: {_mask(api_token, 5)} ({token_type}, from {source})")
-        found_any = True
-    else:
-        results["KAGGLE_API_TOKEN"] = {"status": "MISSING", "value": None, "source": None}
-        print("[MISSING] API Token")
-        print("          Generate at: https://www.kaggle.com/settings")
-        print("          → API Tokens (Recommended) → Generate New Token")
-        print("          Save as ~/.kaggle/access_token or set KAGGLE_API_TOKEN env var")
-
-    # --- Legacy credentials (optional) ---
-    kaggle_json_data = _read_kaggle_json()
-
-    # KAGGLE_USERNAME
-    username = os.getenv("KAGGLE_USERNAME") or kaggle_json_data.get("username")
-    if username:
-        source = "env" if os.getenv("KAGGLE_USERNAME") else "kaggle.json"
-        results["KAGGLE_USERNAME"] = {"status": "OK", "value": username, "source": source}
-        print(f"[OK] KAGGLE_USERNAME: {username} (from {source})")
-    else:
-        results["KAGGLE_USERNAME"] = {"status": "MISSING", "value": None, "source": None}
-        print("[INFO] KAGGLE_USERNAME not set (optional with API token)")
-
-    # KAGGLE_KEY
-    key = os.getenv("KAGGLE_KEY") or kaggle_json_data.get("key")
-    if key:
-        source = "env" if os.getenv("KAGGLE_KEY") else "kaggle.json"
-        token_type = _detect_token_type(key)
-        results["KAGGLE_KEY"] = {
-            "status": "OK", "value": _mask(key),
-            "source": source, "type": token_type,
-        }
-        print(f"[OK] KAGGLE_KEY: {_mask(key)} ({token_type}, from {source})")
-        found_any = True
-    else:
-        results["KAGGLE_KEY"] = {"status": "MISSING", "value": None, "source": None}
-        if not api_token:
-            print("[MISSING] KAGGLE_KEY")
-            print("          Legacy API key. Generate at: https://www.kaggle.com/settings")
-            print("          → Legacy API Credentials → Create Legacy API Key")
-        else:
-            print("[INFO] KAGGLE_KEY not set (optional when API token is available)")
-
-    # --- Summary ---
     print()
-    if found_any:
-        if api_token:
-            print("API token found — you're ready to go!")
-            print("(Supported by kaggle CLI >= 1.8.0, kagglehub >= 0.4.1, MCP Server)")
-        else:
-            print("Legacy credentials found. Consider upgrading to an API token:")
-            print("  https://www.kaggle.com/settings → API Tokens → Generate New Token")
+    if not creds:
+        print(SETUP_HELP)
+        return
+
+    active = report["active"]
+    print(f"The Kaggle CLI will try the {LABELS[active['kind']]} from {active['source']} first.")
+    if report["verified"] is True:
+        who = f" as {report['username']}" if report["username"] else ""
+        print(f"[OK] Verified: Kaggle accepted the credential{who}.")
+    elif report["verified"] is False:
+        print("[FAIL] Kaggle did not accept what is configured.")
+        print("       The credential may be revoked or expired, or the Kaggle CLI is missing")
+        print("       or older than 2.2.4.")
     else:
-        print("No Kaggle credentials found. To set up:")
-        print()
-        print("  1. Go to https://www.kaggle.com/settings")
-        print("  2. Under 'API Tokens (Recommended)', click 'Generate New Token'")
-        print("  3. Copy the token and save it:")
-        print()
-        print("     # Option A: Save to file (recommended)")
-        print("     mkdir -p ~/.kaggle")
-        print("     echo 'YOUR_TOKEN' > ~/.kaggle/access_token")
-        print("     chmod 600 ~/.kaggle/access_token")
-        print()
-        print("     # Option B: Set env var in .env")
-        print("     KAGGLE_API_TOKEN=YOUR_TOKEN")
-        print()
-        print("  Full guide: modules/setup/references/kaggle-setup.md")
+        print("Found is not the same as accepted: run again with --verify to check.")
 
-    if output_json:
-        print()
-        print("--- JSON ---")
-        print(json.dumps(results, indent=2))
 
-    return found_any
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(description="Report which Kaggle credentials are configured.")
+    parser.add_argument("--json", action="store_true", help="Print the report as JSON only")
+    parser.add_argument(
+        "--verify", action="store_true", help="Ask the Kaggle CLI to authenticate with the server"
+    )
+    args = parser.parse_args(argv)
+
+    credentials.load_configured_env_file()
+    report = collect(verify=args.verify)
+
+    if args.json:
+        print(json.dumps(report, indent=2))
+    else:
+        print_report(report)
+
+    if not report["credentials"]:
+        return 1
+    if args.verify and not report["verified"]:
+        return 1
+    return 0
 
 
 if __name__ == "__main__":
-    json_mode = "--json" in sys.argv
-    ok = check_all_credentials(output_json=json_mode)
-    sys.exit(0 if ok else 1)
+    sys.exit(main())

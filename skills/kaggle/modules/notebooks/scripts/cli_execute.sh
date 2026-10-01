@@ -1,98 +1,77 @@
 #!/usr/bin/env bash
-# Execute a Jupyter notebook on Kaggle's Kernel Backend (KKB) using kaggle-cli.
-#
-# Workflow:
-#   1. kaggle kernels push   — upload notebook and trigger execution
-#   2. kaggle kernels status  — poll for completion
-#   3. kaggle kernels output  — download execution results
-#
-# Prerequisites:
-#   pip install kaggle
-#   Credentials configured in ~/.kaggle/kaggle.json
-#   kernel-metadata.json in the same directory as the notebook
+# Push a notebook to Kaggle, wait for the run, and download its output.
 #
 # Usage:
-#   bash scripts/cli_execute.sh <notebook-dir> <kernel-slug> [output-dir]
+#   bash cli_execute.sh <notebook-dir> <owner/kernel> [output-dir] [max-wait-seconds]
 #
-# Arguments:
-#   notebook-dir  — directory containing notebook + kernel-metadata.json
-#   kernel-slug   — e.g., "username/kernel-name"
-#   output-dir    — directory to save output (default: ./downloads/notebook-output)
+# <notebook-dir> holds the notebook and its kernel-metadata.json, whose "id"
+# must be the same <owner/kernel>. Defaults: ./downloads/notebook-output and
+# 3600 seconds.
+#
+# Exit status: 0 output downloaded, 1 the push or the run failed,
+# 4 the status or the output listing could not be read, 5 refused (credential
+# files in the notebook folder, or an output file name that would escape the
+# output folder), 124 timed out while running.
 
 set -euo pipefail
 
-NOTEBOOK_DIR="${1:?Usage: cli_execute.sh <notebook-dir> <kernel-slug> [output-dir]}"
-KERNEL_SLUG="${2:?Usage: cli_execute.sh <notebook-dir> <kernel-slug> [output-dir]}"
+# shellcheck source-path=SCRIPTDIR source=../../../shared/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/shared/lib.sh"
+
+usage() {
+    echo "Usage: cli_execute.sh <notebook-dir> <owner/kernel> [output-dir] [max-wait-seconds]"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+if [[ $# -lt 2 ]]; then
+    usage >&2
+    exit 2
+fi
+
+NOTEBOOK_DIR="$1"
+KERNEL_SLUG="$2"
 OUTPUT_DIR="${3:-./downloads/notebook-output}"
+MAX_WAIT="${4:-3600}"
 
-echo "============================================================"
-echo "Step 0: Prepare kernel-metadata.json"
-echo "============================================================"
-echo ""
-echo "Before pushing, edit kernel-metadata.json and replace YOUR_USERNAME"
-echo "with your actual Kaggle username. The metadata file must be in the"
-echo "same directory as the notebook."
-echo ""
-echo "Required fields in kernel-metadata.json:"
-echo '  "id": "username/kernel-slug"'
-echo '  "code_file": "sample_notebook.ipynb"'
-echo '  "language": "python"'
-echo '  "kernel_type": "notebook"'
-echo ""
+if ! is_slug "${KERNEL_SLUG}"; then
+    echo "[FAIL] notebook is not in the expected owner/name form" >&2
+    exit 2
+fi
+if ! is_positive_int "${MAX_WAIT}"; then
+    echo "[FAIL] max-wait-seconds must be a positive integer" >&2
+    exit 2
+fi
+if [ ! -f "${NOTEBOOK_DIR}/kernel-metadata.json" ]; then
+    echo "[FAIL] ${NOTEBOOK_DIR}/kernel-metadata.json not found" >&2
+    echo "       create one with: kaggle kernels init -p ${NOTEBOOK_DIR}" >&2
+    exit 2
+fi
 
-echo "============================================================"
-echo "Step 1: Push notebook to Kaggle (triggers execution)"
-echo "============================================================"
+preflight_upload "${NOTEBOOK_DIR}"
 
-# Push the notebook — this uploads the code and starts execution on KKB
-kaggle kernels push -p "${NOTEBOOK_DIR}"
+echo "--- Step 1: push (this starts a run on Kaggle) ---"
+kaggle_run kernels.push kernels push -p "${NOTEBOOK_DIR}"
 
-echo "Notebook pushed. Execution started on KKB."
-echo ""
-
-echo "============================================================"
-echo "Step 2: Poll for execution status"
-echo "============================================================"
-
-# Poll every 30 seconds until the kernel completes
-while true; do
-    STATUS=$(kaggle kernels status "${KERNEL_SLUG}" 2>&1)
-    echo "Status: ${STATUS}"
-
-    if echo "${STATUS}" | grep -q "complete"; then
-        echo "Execution complete!"
-        break
-    elif echo "${STATUS}" | grep -q "error"; then
-        echo "Execution failed!"
+echo "--- Step 2: wait for the run ---"
+rc=0
+kernel_wait "${KERNEL_SLUG}" 30 "${MAX_WAIT}" || rc=$?
+case "${rc}" in
+    0) ;;
+    1)
+        echo "The run failed or was cancelled. Log:" >&2
+        kaggle_run kernels.logs kernels logs "${KERNEL_SLUG}" >&2 || true
         exit 1
-    fi
+        ;;
+    124)
+        echo "Still running after ${MAX_WAIT}s. Keep waiting with poll_kernel.sh ${KERNEL_SLUG}." >&2
+        exit 124
+        ;;
+    *) echo "Could not read the run status." >&2; exit 4 ;;
+esac
 
-    echo "Still running... waiting 30 seconds"
-    sleep 30
-done
-
-echo ""
-echo "============================================================"
-echo "Step 3: Download execution output"
-echo "============================================================"
-
-# Download the output files generated by the notebook
-mkdir -p "${OUTPUT_DIR}"
-kaggle kernels output "${KERNEL_SLUG}" \
-    --path "${OUTPUT_DIR}"
-
-echo "Output downloaded to ${OUTPUT_DIR}/"
-ls -la "${OUTPUT_DIR}/"
-
-echo ""
-echo "============================================================"
-echo "Optional: Pull the executed notebook (with cell outputs)"
-echo "============================================================"
-
-# Pull the notebook source (includes rendered outputs after execution)
-kaggle kernels pull "${KERNEL_SLUG}" \
-    --path "${OUTPUT_DIR}/notebook-source" \
-    --metadata
-
-echo "Notebook source pulled to ${OUTPUT_DIR}/notebook-source/"
-ls -la "${OUTPUT_DIR}/notebook-source/"
+echo "--- Step 3: download output to ${OUTPUT_DIR} ---"
+kernel_output "${KERNEL_SLUG}" "${OUTPUT_DIR}"
+wrap_local ls ls -la "${OUTPUT_DIR}/"

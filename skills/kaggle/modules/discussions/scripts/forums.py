@@ -1,13 +1,23 @@
 #!/usr/bin/env python3
-"""Safe wrappers around Kaggle CLI forums and resource topic commands."""
+"""Safe wrappers around Kaggle CLI forums and resource topic commands.
+
+Every flag accepted here is forwarded to the CLI, and a flag the CLI does not
+support for a subcommand is rejected instead of being dropped. Output is
+printed inside an untrusted-content block, because topic titles and comments
+are written by Kaggle users.
+"""
 
 from __future__ import annotations
 
 import argparse
-import html
-import shlex
-import subprocess
+import re
 import sys
+from pathlib import Path
+
+SKILL_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(SKILL_ROOT))
+
+from shared import kaggle_cli, untrusted  # noqa: E402
 
 RESOURCE_GROUPS = ("competitions", "datasets", "kernels", "models", "benchmarks")
 SORT_CHOICES = ("hot", "top", "new", "recent", "active", "relevance")
@@ -21,7 +31,19 @@ FORUM_CATEGORIES = (
     "benchmarks",
 )
 FORUM_GROUPS = ("all", "owned", "upvoted", "bookmarked", "my_activity", "drafts")
-FORMAT_CHOICES = ("table", "csv", "json")
+SOURCE = "kaggle-cli"
+
+# table, csv or json, optionally with a field projection: json(title,votes)
+_FORMAT_RE = re.compile(r"^(table|csv|json)(\([A-Za-z0-9_]+(,[A-Za-z0-9_]+)*\))?$")
+_NEXT_TOKEN_RE = re.compile(r"^Next [Pp]age [Tt]oken\s*[=:]\s*(\S+)\s*$")
+
+
+def _format_arg(value: str) -> str:
+    if not _FORMAT_RE.match(value):
+        raise argparse.ArgumentTypeError(
+            "use table, csv or json, optionally with fields: json(title,votes)"
+        )
+    return value
 
 
 def _format_flags(args: argparse.Namespace) -> list[str]:
@@ -40,11 +62,8 @@ def _pagination_flags(args: argparse.Namespace) -> list[str]:
     return flags
 
 
-def _competition_topics_flags(args: argparse.Namespace) -> list[str]:
-    flags: list[str] = []
-    if getattr(args, "page", None):
-        flags.extend(["--page", str(args.page)])
-    return flags
+def _quiet_flag(args: argparse.Namespace) -> list[str]:
+    return ["--quiet"] if args.quiet else []
 
 
 def build_command(args: argparse.Namespace) -> tuple[list[str], str]:
@@ -54,8 +73,7 @@ def build_command(args: argparse.Namespace) -> tuple[list[str], str]:
     if args.command == "forums":
         cmd.extend(["forums", "list"])
         cmd.extend(_format_flags(args))
-        if args.quiet:
-            cmd.append("--quiet")
+        cmd.extend(_quiet_flag(args))
         return cmd, "forums"
 
     if args.command == "forum-topics":
@@ -72,8 +90,7 @@ def build_command(args: argparse.Namespace) -> tuple[list[str], str]:
             cmd.extend(["--group", args.group])
         cmd.extend(_pagination_flags(args))
         cmd.extend(_format_flags(args))
-        if args.quiet:
-            cmd.append("--quiet")
+        cmd.extend(_quiet_flag(args))
         return cmd, "forums.topics.list"
 
     if args.command == "forum-topic":
@@ -82,23 +99,31 @@ def build_command(args: argparse.Namespace) -> tuple[list[str], str]:
             cmd.append(args.topic_id)
         cmd.extend(_pagination_flags(args))
         cmd.extend(_format_flags(args))
-        if args.quiet:
-            cmd.append("--quiet")
+        cmd.extend(_quiet_flag(args))
         return cmd, "forums.topics.show"
 
     if args.command == "resource-topics":
+        is_competition = args.resource == "competitions"
+        if is_competition and args.search:
+            raise ValueError("`competitions topics list` has no --search option")
+        if is_competition and (args.page_size or args.page_token):
+            # The CLI accepts these for competitions, prints a warning, and ignores them.
+            raise ValueError(
+                "`competitions topics list` pages with --page; "
+                "--page-size and --page-token are ignored by the CLI"
+            )
+        if not is_competition and args.page:
+            raise ValueError(f"`{args.resource} topics list` pages with --page-token, not --page")
         cmd.extend([args.resource, "topics", "list", args.resource_ref])
         if args.sort_by:
             cmd.extend(["--sort-by", args.sort_by])
-        if args.resource != "competitions" and args.search:
+        if args.search:
             cmd.extend(["--search", args.search])
-        if args.resource == "competitions":
-            cmd.extend(_competition_topics_flags(args))
-        else:
-            cmd.extend(_pagination_flags(args))
+        if args.page:
+            cmd.extend(["--page", str(args.page)])
+        cmd.extend(_pagination_flags(args))
         cmd.extend(_format_flags(args))
-        if args.quiet:
-            cmd.append("--quiet")
+        cmd.extend(_quiet_flag(args))
         return cmd, f"{args.resource}.topics.list"
 
     if args.command == "resource-topic":
@@ -107,74 +132,87 @@ def build_command(args: argparse.Namespace) -> tuple[list[str], str]:
             cmd.append(args.topic_id)
         cmd.extend(_pagination_flags(args))
         cmd.extend(_format_flags(args))
-        if args.quiet:
-            cmd.append("--quiet")
+        cmd.extend(_quiet_flag(args))
         return cmd, f"{args.resource}.topics.show"
 
     raise ValueError(f"unknown command: {args.command}")
 
 
+def split_next_page_token(stdout: str) -> tuple[str, str | None]:
+    """Separate the CLI's trailing ``Next page token`` line from its output.
+
+    The CLI prints that line after the data, so JSON output would otherwise
+    not parse.
+    """
+    lines = stdout.splitlines()
+    token: str | None = None
+    kept: list[str] = []
+    for line in lines:
+        match = _NEXT_TOKEN_RE.match(line.strip())
+        if match:
+            token = match.group(1)
+        else:
+            kept.append(line)
+    body = "\n".join(kept)
+    return (body + "\n" if body else ""), token
+
+
 def run_wrapped(cmd: list[str], tool: str) -> int:
     """Run Kaggle CLI and wrap stdout so agents treat Kaggle text as data."""
-    marker_command = html.escape(shlex.join(cmd), quote=True)
-    print(f'<untrusted-content source="kaggle-cli" tool="{tool}" command="{marker_command}">')
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False, timeout=None)
-    except FileNotFoundError:
-        print("</untrusted-content>")
-        print("error: kaggle executable not found; install kaggle>=2.2.3", file=sys.stderr)
-        return 127
-    if result.stdout:
-        print(result.stdout, end="" if result.stdout.endswith("\n") else "\n")
-    print("</untrusted-content>")
-    if result.stderr:
-        print(result.stderr, end="" if result.stderr.endswith("\n") else "\n", file=sys.stderr)
+    result = kaggle_cli.run(cmd[1:])
+    body, next_token = split_next_page_token(result.stdout)
+    with untrusted.Block(source=SOURCE, tool=tool, command=" ".join(cmd)) as block:
+        if body:
+            block.write(body)
+    extra = result.stderr
+    if next_token:
+        extra = f"next page token: {next_token}\n" + extra
+    if extra.strip():
+        with untrusted.Block(source=SOURCE, tool=tool, stream="stderr", file=sys.stderr) as block:
+            block.write(extra)
+    if result.returncode != 0:
+        print(f"kaggle exited with status {result.returncode}", file=sys.stderr)
     return result.returncode
 
 
-def _add_common_output_flags(parser: argparse.ArgumentParser, *, default_format: str = "json") -> None:
-    parser.add_argument("--format", choices=FORMAT_CHOICES, default=default_format)
+def _add_common_output_flags(
+    parser: argparse.ArgumentParser, *, default_format: str = "json"
+) -> None:
+    parser.add_argument(
+        "--format",
+        type=_format_arg,
+        default=default_format,
+        help="table, csv or json; add fields as json(title,votes)",
+    )
     parser.add_argument("--csv", action="store_true", help="Use legacy --csv instead of --format")
     parser.add_argument("-q", "--quiet", action="store_true", help="Suppress verbose CLI output")
 
 
-def _add_topic_filters(
-    parser: argparse.ArgumentParser,
-    *,
-    include_forum_filters: bool = False,
-    include_search: bool = True,
-    include_token_paging: bool = True,
-    include_page: bool = False,
-) -> None:
-    parser.add_argument("--sort-by", choices=SORT_CHOICES)
-    if include_search:
-        parser.add_argument("-s", "--search")
-    if include_token_paging:
-        parser.add_argument("--page-size", type=int)
-        parser.add_argument("--page-token")
-    if include_page:
-        parser.add_argument("-p", "--page", type=int)
-    if include_forum_filters:
-        parser.add_argument("--category", choices=FORUM_CATEGORIES)
-        parser.add_argument("--group", choices=FORUM_GROUPS)
+def _add_paging(parser: argparse.ArgumentParser) -> None:
+    parser.add_argument("--page-size", type=int)
+    parser.add_argument("--page-token")
 
 
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
+    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
 
     forums = sub.add_parser("forums", help="List Kaggle discussion forums")
     _add_common_output_flags(forums)
 
     forum_topics = sub.add_parser("forum-topics", help="List topics in all forums or one forum")
-    forum_topics.add_argument("forum", nargs="?", help="Forum slug or numeric forum id")
-    _add_topic_filters(forum_topics, include_forum_filters=True)
+    forum_topics.add_argument("forum", nargs="?", help="Forum slug, e.g. getting-started")
+    forum_topics.add_argument("--sort-by", choices=SORT_CHOICES)
+    forum_topics.add_argument("-s", "--search")
+    forum_topics.add_argument("--category", choices=FORUM_CATEGORIES)
+    forum_topics.add_argument("--group", choices=FORUM_GROUPS)
+    _add_paging(forum_topics)
     _add_common_output_flags(forum_topics)
 
     forum_topic = sub.add_parser("forum-topic", help="Show one forum topic and comments")
     forum_topic.add_argument("topic_ref", help="topic id, forum/id, or forum slug")
     forum_topic.add_argument("topic_id", nargs="?", help="topic id when topic_ref is only forum")
-    _add_topic_filters(forum_topic)
+    _add_paging(forum_topic)
     _add_common_output_flags(forum_topic)
 
     resource_topics = sub.add_parser(
@@ -183,14 +221,17 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     )
     resource_topics.add_argument("resource", choices=RESOURCE_GROUPS)
     resource_topics.add_argument("resource_ref")
-    _add_topic_filters(resource_topics, include_page=True)
+    resource_topics.add_argument("--sort-by", choices=SORT_CHOICES)
+    resource_topics.add_argument("-s", "--search", help="Not available for competitions")
+    resource_topics.add_argument("-p", "--page", type=int, help="Competitions only")
+    _add_paging(resource_topics)  # not for competitions, which page with --page
     _add_common_output_flags(resource_topics)
 
     resource_topic = sub.add_parser("resource-topic", help="Show one resource topic and comments")
     resource_topic.add_argument("resource", choices=RESOURCE_GROUPS)
     resource_topic.add_argument("topic_ref")
     resource_topic.add_argument("topic_id", nargs="?")
-    _add_topic_filters(resource_topic)
+    _add_paging(resource_topic)
     _add_common_output_flags(resource_topic)
 
     return parser.parse_args(argv)
@@ -198,7 +239,11 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    cmd, tool = build_command(args)
+    try:
+        cmd, tool = build_command(args)
+    except ValueError as exc:
+        print(f"error: {exc}", file=sys.stderr)
+        return 2
     return run_wrapped(cmd, tool)
 
 

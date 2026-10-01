@@ -1,47 +1,53 @@
 #!/usr/bin/env bash
-# Download datasets and models from Kaggle using the kaggle-cli.
+# Download a Kaggle dataset with the kaggle CLI.
 #
 # Usage:
-#   bash cli_download.sh                          # runs examples with defaults
-#   bash cli_download.sh <dataset> [output-dir]   # download a specific dataset
+#   bash cli_download.sh <owner/dataset> [output-dir]
 #
-# Examples:
-#   bash cli_download.sh kaggle/meta-kaggle ./downloads/meta-kaggle
+# Example:
 #   bash cli_download.sh heptapod/titanic ./downloads/titanic
 #
-# Prerequisites:
-#   uv pip install kaggle
-#   Credentials configured in ~/.kaggle/kaggle.json or env vars
+# Public datasets need no credentials. File names and descriptions come from
+# the dataset owner, so the listing is printed as untrusted content.
 
 set -euo pipefail
 
-DATASET="${1:-kaggle/meta-kaggle}"
+# shellcheck source-path=SCRIPTDIR source=../../../shared/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/shared/lib.sh"
 
-# Validate the slug — Kaggle slugs are owner/dataset, ASCII-safe characters
-# only. Reject anything that could traverse the filesystem when used in
-# OUTPUT_DIR or the kaggle-cli `--unzip` step.
-if ! printf '%s' "$DATASET" | grep -qE '^[A-Za-z0-9._-]+/[A-Za-z0-9._-]+$'; then
-    echo "[FAIL] dataset slug '$DATASET' is not in the expected owner/name form" >&2
-    echo "       allowed chars: A-Z a-z 0-9 . _ - and exactly one '/'" >&2
+usage() {
+    echo "Usage: cli_download.sh <owner/dataset> [output-dir]"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+if [[ $# -lt 1 ]]; then
+    usage >&2
     exit 2
 fi
 
-OUTPUT_DIR="${2:-./downloads/$(echo "$DATASET" | tr '/' '-')}"
+DATASET="$1"
 
-echo "============================================================"
-echo "kaggle-cli: Download Dataset"
-echo "============================================================"
+# Kaggle slugs are owner/name in ASCII. Each part must start with a letter or
+# digit, which rules out `..`, option-looking values and anything with spaces,
+# newlines or shell metacharacters.
+if [[ ! "${DATASET}" =~ ^[A-Za-z0-9][A-Za-z0-9._-]*/[A-Za-z0-9][A-Za-z0-9._-]*$ ]]; then
+    echo "[FAIL] dataset slug is not in the expected owner/name form" >&2
+    echo "       allowed: letters, digits, '.', '_' and '-', with exactly one '/'" >&2
+    exit 2
+fi
 
-# List files in the dataset
-echo "--- Listing dataset files for ${DATASET} ---"
-kaggle datasets files "${DATASET}"
+OUTPUT_DIR="${2:-./downloads/${DATASET//\//-}}"
 
-# Download the dataset
-echo "--- Downloading dataset to ${OUTPUT_DIR} ---"
+echo "--- Files in ${DATASET} ---"
+kaggle_run datasets.files datasets files "${DATASET}"
+
+echo "--- Downloading to ${OUTPUT_DIR} ---"
 mkdir -p "${OUTPUT_DIR}"
-kaggle datasets download "${DATASET}" \
-    --path "${OUTPUT_DIR}" \
-    --unzip
+kaggle_run datasets.download datasets download "${DATASET}" \
+    --path "${OUTPUT_DIR}" --unzip --quiet
 
 echo "Dataset downloaded to ${OUTPUT_DIR}"
-ls -la "${OUTPUT_DIR}/"
+wrap_local ls ls -la "${OUTPUT_DIR}/"

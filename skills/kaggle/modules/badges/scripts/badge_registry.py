@@ -1,4 +1,3 @@
-from typing import Optional
 """Registry of all 55 Kaggle badges with metadata.
 
 Each badge has:
@@ -12,6 +11,7 @@ Each badge has:
 """
 
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -173,7 +173,7 @@ def get_automatable_badges() -> list[Badge]:
     return [b for b in ALL_BADGES if b.automatable]
 
 
-def get_badge_by_id(badge_id: str) -> Optional['Badge']:
+def get_badge_by_id(badge_id: str) -> Optional["Badge"]:
     """Look up a badge by ID."""
     for b in ALL_BADGES:
         if b.id == badge_id:

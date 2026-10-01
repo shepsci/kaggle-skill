@@ -1,4 +1,4 @@
-"""Phase 3: Pipeline badges (~3 badges).
+"""Phase 3: Pipeline badges (3 badges).
 
 Earns badges that require KKB notebook execution and output:
   - Dataset Pipeline Creator (create dataset from notebook output)
@@ -10,14 +10,11 @@ so there is a polling/waiting step.
 """
 
 import json
-import subprocess
 import time
-from pathlib import Path
 
 from badge_tracker import set_status, should_attempt
 from utils import (
-    API_DELAY,
-    TEMPLATES_DIR,
+    kernel_status,
     make_temp_dir,
     resource_name,
     run_kaggle_cli,
@@ -30,13 +27,14 @@ def _poll_kernel(username: str, kernel_slug: str, timeout: int = 600, interval: 
     elapsed = 0
 
     while elapsed < timeout:
-        result = run_kaggle_cli(["kernels", "status", full_slug], check=False)
-        status_text = result.stdout.strip().lower()
-        print(f"    [{elapsed}s] Status: {result.stdout.strip()}")
+        # Only the status word is read, so a slug that contains "complete" or
+        # "error" cannot be mistaken for the status.
+        status = kernel_status(full_slug)
+        print(f"    [{elapsed}s] Status: {status or 'unknown'}")
 
-        if "complete" in status_text:
+        if status == "COMPLETE":
             return True
-        if "error" in status_text or "cancel" in status_text:
+        if status == "ERROR" or status.startswith("CANCEL"):
             return False
 
         time.sleep(interval)
@@ -124,10 +122,15 @@ def _dataset_pipeline(username: str) -> bool:
 
         # Download notebook output
         output_dir = make_temp_dir("-ds-pipeline-output")
-        run_kaggle_cli([
-            "kernels", "output", f"{username}/{nb_slug}",
-            "--path", str(output_dir),
-        ])
+        run_kaggle_cli(
+            [
+                "kernels",
+                "output",
+                f"{username}/{nb_slug}",
+                "--path",
+                str(output_dir),
+            ]
+        )
 
         # Create a dataset from the output
         ds_slug = resource_name("pipeline-dataset")
@@ -143,7 +146,9 @@ def _dataset_pipeline(username: str) -> bool:
 
         run_kaggle_cli(["datasets", "create", "-p", str(output_dir)])
         print(f"  [OK] Pipeline dataset created: {ds_slug}")
-        set_status("dataset_pipeline_creator", "earned", f"dataset={ds_slug} from notebook={nb_slug}")
+        set_status(
+            "dataset_pipeline_creator", "earned", f"dataset={ds_slug} from notebook={nb_slug}"
+        )
         return True
 
     except Exception as e:
@@ -231,10 +236,15 @@ def _model_pipeline(username: str) -> bool:
 
         # Download output
         output_dir = make_temp_dir("-model-pipeline-output")
-        run_kaggle_cli([
-            "kernels", "output", f"{username}/{nb_slug}",
-            "--path", str(output_dir),
-        ])
+        run_kaggle_cli(
+            [
+                "kernels",
+                "output",
+                f"{username}/{nb_slug}",
+                "--path",
+                str(output_dir),
+            ]
+        )
 
         # Create model from output
         model_slug = resource_name("pipeline-model")
@@ -252,7 +262,9 @@ def _model_pipeline(username: str) -> bool:
 
         run_kaggle_cli(["models", "create", "-p", str(output_dir)])
         print(f"  [OK] Pipeline model created: {model_slug}")
-        set_status("model_pipeline_creator", "earned", f"model={model_slug} from notebook={nb_slug}")
+        set_status(
+            "model_pipeline_creator", "earned", f"model={model_slug} from notebook={nb_slug}"
+        )
         return True
 
     except Exception as e:
@@ -262,12 +274,7 @@ def _model_pipeline(username: str) -> bool:
 
 
 def _r_markdown(username: str) -> bool:
-    """Push an R notebook/script to earn R Markdown Coder.
-
-    Note: kaggle CLI v1.8 doesn't support .Rmd files or 'rmarkdown' language
-    (returns JSON parse error). We push an R script (language=r, kernel_type=script)
-    which is the closest automatable equivalent.
-    """
+    """Push an R Markdown document to earn R Markdown Coder."""
     if not should_attempt("r_markdown_coder"):
         return True
 
@@ -276,31 +283,28 @@ def _r_markdown(username: str) -> bool:
         tmp = make_temp_dir("-rmd")
         nb_slug = resource_name("r-markdown")
 
-        # Create an R script (kaggle CLI v1.8 doesn't support .Rmd directly)
-        r_content = """# Badge Collector R Markdown equivalent
-# R script for Kaggle badge collection
+        rmd_content = """---
+title: "Iris summary"
+output: html_document
+---
 
+```{r}
 library(datasets)
-
-# Load and analyze iris data
 data(iris)
-cat("=== Iris Dataset Summary ===\\n")
-print(summary(iris))
+summary(iris)
+```
 
-# Group means by species
-cat("\\n=== Species Means ===\\n")
-print(aggregate(. ~ Species, data = iris, FUN = mean))
-
-# Generate output
-cat("\\nR script completed successfully\\n")
+```{r}
+aggregate(. ~ Species, data = iris, FUN = mean)
+```
 """
-        (tmp / "script.R").write_text(r_content)
+        (tmp / "script.Rmd").write_text(rmd_content)
 
         metadata = {
             "id": f"{username}/{nb_slug}",
             "title": nb_slug,
-            "code_file": "script.R",
-            "language": "r",
+            "code_file": "script.Rmd",
+            "language": "rmarkdown",
             "kernel_type": "script",
             "is_private": True,
             "enable_gpu": False,
@@ -315,7 +319,7 @@ cat("\\nR script completed successfully\\n")
         (tmp / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2))
 
         run_kaggle_cli(["kernels", "push", "-p", str(tmp)])
-        print(f"  [OK] R script pushed: {nb_slug}")
+        print(f"  [OK] R Markdown document pushed: {nb_slug}")
         set_status("r_markdown_coder", "earned", f"notebook={nb_slug}")
         return True
 

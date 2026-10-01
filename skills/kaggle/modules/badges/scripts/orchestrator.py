@@ -2,12 +2,12 @@
 """Badge Collector orchestrator — main entry point.
 
 Usage:
-    python orchestrator.py --phase 1          # Run phase 1 only
-    python orchestrator.py --phase all        # Run all phases (1-5)
-    python orchestrator.py --status           # Show progress table
-    python orchestrator.py --resume           # Resume from where you left off
-    python orchestrator.py --dry-run          # Show planned actions without executing
+    python orchestrator.py --dry-run            # Show planned actions for every phase
     python orchestrator.py --dry-run --phase 2  # Dry-run for a specific phase
+    python orchestrator.py --phase 1            # Run phase 1 only
+    python orchestrator.py --phase all          # Run all phases (1-5)
+    python orchestrator.py --resume             # Run every phase, retrying unfinished badges
+    python orchestrator.py --status             # Show progress table
 """
 
 import argparse
@@ -18,9 +18,14 @@ from pathlib import Path
 # Add scripts dir to path so imports work
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 
-from badge_registry import get_badges_by_phase, get_automatable_badges
-from badge_tracker import print_status_table, load_progress, should_attempt
-from utils import check_credentials, get_username
+from badge_registry import get_badges_by_phase  # noqa: E402
+from badge_tracker import (  # noqa: E402
+    load_progress,
+    print_status_table,
+    set_resume,
+    should_attempt,
+)
+from utils import check_credentials, get_username  # noqa: E402
 
 
 def dry_run(phases: list[int]) -> None:
@@ -48,9 +53,9 @@ def run_phase(phase: int, username: str) -> tuple[int, int]:
         print(f"\n  Phase {phase}: No badges to attempt (all earned/skipped)")
         return 0, 0
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Phase {phase}: Attempting {len(actionable)} badge(s)")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Import the phase module (explicit imports for security auditability)
     if phase == 1:
@@ -74,14 +79,17 @@ def run_phase(phase: int, username: str) -> tuple[int, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Kaggle Badge Collector")
-    parser.add_argument("--phase", type=str, default=None,
-                        help="Phase to run: 1-5, or 'all'")
-    parser.add_argument("--status", action="store_true",
-                        help="Show badge progress table")
-    parser.add_argument("--resume", action="store_true",
-                        help="Resume from last state (skip earned badges)")
-    parser.add_argument("--dry-run", action="store_true",
-                        help="Show planned actions without executing")
+    parser.add_argument("--phase", type=str, default=None, help="Phase to run: 1-5, or 'all'")
+    parser.add_argument("--status", action="store_true", help="Show badge progress table")
+    parser.add_argument(
+        "--resume",
+        action="store_true",
+        help="Also retry badges left as attempting or skipped; "
+        "runs every phase unless --phase is given",
+    )
+    parser.add_argument(
+        "--dry-run", action="store_true", help="Show planned actions without executing"
+    )
 
     args = parser.parse_args()
 
@@ -90,10 +98,15 @@ def main() -> None:
         print_status_table()
         return
 
-    # Determine which phases to run
-    if args.phase is None and not args.status:
-        parser.print_help()
-        return
+    set_resume(args.resume)
+
+    # Determine which phases to run. --dry-run and --resume cover every phase
+    # when no --phase is given.
+    if args.phase is None:
+        if not (args.dry_run or args.resume):
+            parser.print_help()
+            return
+        args.phase = "all"
 
     if args.phase == "all":
         phases = [1, 2, 3, 4, 5]
@@ -113,12 +126,13 @@ def main() -> None:
     print("Checking Kaggle credentials...")
     if not check_credentials():
         print("\n[ERROR] Kaggle credentials not configured.")
-        print("Set KAGGLE_USERNAME + KAGGLE_KEY, or create ~/.kaggle/kaggle.json")
+        print("Run `kaggle auth login`, set KAGGLE_API_TOKEN, or create ~/.kaggle/access_token")
         sys.exit(1)
 
     username = get_username()
     if not username:
-        print("\n[ERROR] Could not determine Kaggle username.")
+        print("\n[ERROR] Could not determine the Kaggle username.")
+        print("The Kaggle CLI did not sign in with the configured credential.")
         sys.exit(1)
 
     print(f"  Username: {username}")
@@ -132,21 +146,25 @@ def main() -> None:
     total_attempted = 0
     total_succeeded = 0
 
+    phase_errors = 0
     for phase in phases:
         try:
             attempted, succeeded = run_phase(phase, username)
             total_attempted += attempted
             total_succeeded += succeeded
         except Exception as e:
+            phase_errors += 1
             print(f"\n  [ERROR] Phase {phase} failed: {e}")
             traceback.print_exc()
             continue
 
     # Final summary
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  COMPLETE: {total_succeeded}/{total_attempted} badges earned")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print_status_table()
+    if phase_errors:
+        sys.exit(1)
 
 
 if __name__ == "__main__":

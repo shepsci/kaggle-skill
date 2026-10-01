@@ -1,18 +1,30 @@
-from typing import Optional
 """Badge progress tracker with JSON persistence.
 
 Tracks each badge's status: pending, attempting, earned, failed, skipped.
-Persists to badge-progress.json at the repo root.
+"earned" means the action that earns the badge completed; the tracker cannot
+see your Kaggle profile. Persists to badge-progress.json in the skill folder,
+or in KAGGLE_BADGES_STATE_DIR when that is set.
 """
+
+from __future__ import annotations
 
 import json
 from datetime import datetime, timezone
-from pathlib import Path
+from typing import Optional
 
-from badge_registry import ALL_BADGES, Badge, get_badge_by_id
-from utils import SKILL_ROOT
+from badge_registry import ALL_BADGES
+from utils import STATE_DIR
 
-PROGRESS_FILE = SKILL_ROOT / "badge-progress.json"
+PROGRESS_FILE = STATE_DIR / "badge-progress.json"
+
+# With --resume, badges left as "attempting" or "skipped" are tried again too.
+_RESUME = False
+
+
+def set_resume(enabled: bool) -> None:
+    """Turn resume mode on or off for this process."""
+    global _RESUME
+    _RESUME = enabled
 
 
 def _now() -> str:
@@ -38,6 +50,7 @@ def load_progress() -> dict:
 
 def save_progress(data: dict) -> None:
     """Save progress to disk."""
+    PROGRESS_FILE.parent.mkdir(parents=True, exist_ok=True)
     PROGRESS_FILE.write_text(json.dumps(data, indent=2) + "\n")
 
 
@@ -65,9 +78,16 @@ def is_earned(badge_id: str) -> bool:
 
 
 def should_attempt(badge_id: str) -> bool:
-    """Check if a badge should be attempted (not already earned or skipped)."""
+    """Whether to attempt a badge now.
+
+    Pending and failed badges are always attempted. In resume mode, badges
+    left as "attempting" (an interrupted run, or a streak in progress) and
+    "skipped" are attempted as well. Earned badges never are.
+    """
     status = get_status(badge_id)
-    return status in ("pending", "failed")
+    if status in ("pending", "failed"):
+        return True
+    return _RESUME and status in ("attempting", "skipped")
 
 
 def print_status_table() -> None:
@@ -83,15 +103,15 @@ def print_status_table() -> None:
     total = len(ALL_BADGES)
     earned = counts.get("earned", 0)
 
-    print(f"\n{'='*60}")
+    print(f"\n{'=' * 60}")
     print(f"  Badge Progress: {earned}/{total} earned")
-    print(f"{'='*60}")
+    print(f"{'=' * 60}")
     print(f"  Earned:     {counts.get('earned', 0)}")
     print(f"  Pending:    {counts.get('pending', 0)}")
     print(f"  Attempting: {counts.get('attempting', 0)}")
     print(f"  Failed:     {counts.get('failed', 0)}")
     print(f"  Skipped:    {counts.get('skipped', 0)}")
-    print(f"{'='*60}\n")
+    print(f"{'=' * 60}\n")
 
     # Group by phase
     for phase in [1, 2, 3, 4, 5, None]:
