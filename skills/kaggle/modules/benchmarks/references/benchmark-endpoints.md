@@ -1,53 +1,47 @@
 # Benchmark Endpoints
 
-Two MCP tools, both in the AGI/evaluation surface.
+The Kaggle MCP server has two benchmark tools. Arguments go inside a `request`
+object; see [mcp-reference.md](../../references/mcp-reference.md).
 
-## `create_benchmark_task_from_prompt` — ✅ PASS
+## `get_benchmark_leaderboard` (read)
 
-Create a new benchmark task on Kaggle from a prompt + assertion.
+Reads the leaderboard of a published benchmark. It needs no credential.
+Checked on 2026-09-30.
 
-**Parameters:**
-- `taskDescription` (string) — natural-language description of what the task is
-- `assertionDescription` (string) — natural-language description of how to score
+| Argument | Meaning |
+|---|---|
+| `ownerSlug` | The benchmark's owner, for example `kaggle` |
+| `benchmarkSlug` | The benchmark, for example `icml-2025-experts` |
+| `versionNumber` | Optional |
 
-**Returns:** an object with `kernel_url` pointing at the created benchmark task.
-
-```python
-from skills.kaggle.shared.mcp_client import mcp_call, resolve_token
-
-token = resolve_token()
-resp = mcp_call("create_benchmark_task_from_prompt", {
-    "taskDescription": "Compute the Fibonacci sequence up to n=20",
-    "assertionDescription": "Output must be a comma-separated list matching the canonical sequence",
-}, token=token)
-```
-
-## `get_benchmark_leaderboard` — ✅ PASS (was 🔒 BLOCKED)
-
-Read the leaderboard for an existing benchmark.
-
-**Parameters:**
-- `benchmarkSlug` (string)
-- `ownerSlug` (string)
-
-**Auth:** Was permission-gated in the 2026-04-22 audit. Verified **PASS** in
-the 2026-05-04 retest with an ordinary KGAT token — no elevated access needed.
-A non-existent benchmark/owner pair returns a not-found error rather than a
-permission denial; treat both as data-not-available and surface the response.
+The answer has `rows`, one per model version, each with `model_version_name`,
+`model_version_slug`, and `task_results`. A benchmark that does not exist
+gives `Not found`.
 
 ```python
-resp = mcp_call("get_benchmark_leaderboard", {
-    "benchmarkSlug": "some-benchmark",
-    "ownerSlug": "owner-handle",
-}, token=token)
+import sys
+
+sys.path.insert(0, ".")  # run from the skill folder
+from shared.mcp_client import classify_result, extract_json, mcp_call
+
+response = mcp_call(
+    "get_benchmark_leaderboard",
+    {"request": {"ownerSlug": "kaggle", "benchmarkSlug": "icml-2025-experts"}},
+)
+if classify_result(response) == "ok":
+    for row in extract_json(response)["rows"][:5]:
+        print(row["model_version_name"])
 ```
 
-## When to use which
+The Kaggle CLI has the same data: `kaggle benchmarks leaderboard
+kaggle/icml-2025-experts --show`.
 
-- **Creating tasks for evaluation runs** → `create_benchmark_task_from_prompt`.
-  Returns a `kernel_url` — keep it; that's how downstream submissions reference
-  the task.
-- **Reading leaderboard data for a hackathon writeup that links to a benchmark**
-  → `get_benchmark_leaderboard`. Works with an ordinary KGAT token as of
-  2026-05-04. If the response is empty / not-found, surface that as evidence
-  rather than silently falling back to scraping.
+## `create_benchmark_task_from_prompt` (write)
+
+Creates a benchmark task on the account from two texts: `taskDescription` and
+`assertionDescription`. It was not called for this reference, because it
+changes the account. Ask the user before using it, and say that it creates a
+task and a backing notebook.
+
+For writing tasks in code, use `kaggle benchmarks tasks push` with a task
+file; see [benchmarks-cli.md](benchmarks-cli.md).

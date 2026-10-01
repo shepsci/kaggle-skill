@@ -5,11 +5,14 @@ Official source: https://github.com/Kaggle/kagglehub
 ## Install
 
 ```bash
-uv pip install kagglehub
-uv pip install kagglehub[pandas-datasets]
-uv pip install kagglehub[polars-datasets]
-uv pip install kagglehub[hf-datasets]
+python3 -m pip install "kagglehub>=1.0.2"
+python3 -m pip install "kagglehub[pandas-datasets]>=1.0.2"
+python3 -m pip install "kagglehub[polars-datasets]>=1.0.2"
+python3 -m pip install "kagglehub[hf-datasets]>=1.0.2"
 ```
+
+Use 1.0.2 or later: earlier releases extracted tar archives without a path
+check. Signatures below are from 1.0.2.
 
 ## Authentication
 
@@ -22,7 +25,8 @@ kagglehub checks these sources in order:
 5. `~/.kaggle/kaggle.json`
 6. Colab legacy username/key secrets
 
-Inside Kaggle notebooks, authentication is automatic.
+Inside Kaggle notebooks, authentication is automatic. Public datasets
+download without a credential.
 
 ## dataset_download()
 
@@ -47,7 +51,12 @@ kagglehub.dataset_upload(
 ```
 
 Creates a dataset if the handle is new and creates a version when it already
-exists. Unlike model uploads, dataset uploads do not accept a license argument.
+exists. New datasets are private. Unlike model uploads, dataset uploads take no
+license argument: passing `license_name` raises `TypeError`.
+
+Everything in the folder is uploaded except what `ignore_patterns` matches.
+The skill's `kagglehub_publish.py` refuses a folder that holds a credential
+file.
 
 ## dataset_load()
 

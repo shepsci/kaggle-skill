@@ -1,173 +1,87 @@
-# Demo Script for the README Screencast
+# What the demo casts run
 
-The README demo is recorded after the documentation has been refreshed.
-Re-record after material install, credential, or workflow changes.
+The casts in this folder are built by `tools/build_casts.py`, version 2.5.0
+of the skill. Each one runs the commands below and keeps their output. Rebuild
+them after a change to a command or to what it prints.
 
-## Goal of the demo
+Everything here reads. Nothing is submitted or published, and no credential
+is printed: the casts avoid the credential checker, because its output names
+credential files.
 
-Show the current v2.4.0 experience in 60-90 seconds:
+## vesuvius-top-writeups
 
-1. Install `kaggle@shepsci` from the in-repo Claude marketplace manifest.
-2. Verify Kaggle credentials without displaying secrets.
-3. Summarize the Titanic competition pages.
-4. Retrieve recent Kaggle discussion/writeup content.
-
-## Setup before recording
-
-```bash
-# Fresh Claude Code local plugin state with no kaggle plugin installed.
-# Have a valid Kaggle API token available before recording, but do not paste
-# or print the token during the cast.
-# Use at least 100 columns x 30 rows for legibility.
-asciinema --version
-```
-
-If credentials are already present in `~/.kaggle/access_token` or
-`KAGGLE_API_TOKEN`, the demo should show only the verification result.
-
-## Recording commands used in the cast
-
-These are the commands shown in the cast:
+The request an agent gets: "retrieve and preview the writeups of the top 3
+teams in the Vesuvius Challenge surface detection competition".
 
 ```bash
-claude plugin marketplace add shepsci/kaggle-skill --scope local
-claude plugin install kaggle@shepsci --scope local
-
-python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
-
-python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
-  --competition titanic --summary
-
-kaggle --version
-python3 skills/kaggle/modules/discussions/scripts/forums.py forum-topics \
-  --category competition_write_ups --sort-by recent --page-size 2 --format json -q
-```
-
-Keep the terminal focused on confirmations, summaries, and short wrapped
-Kaggle-supplied snippets. Do not scroll through full forum/writeup bodies,
-pagination tokens, or long live API payloads in the cast.
-
-The credential-check output is shown redacted: the real masked-token line is
-replaced with a fixed `[OK] API Token: [redacted] (Legacy scoped API token)`
-line before the cast is committed, so no token fragment ever ships in the
-`.cast` file.
-
-## Recording with asciinema
-
-```bash
-cd ~/work/kaggle-skill
-bash docs/demo/record.sh
-```
-
-After recording:
-
-```bash
-asciinema cat docs/demo/install-and-demo.cast
-asciinema upload docs/demo/install-and-demo.cast
-```
-
-Only add the returned cast id to public docs after replaying the uploaded cast
-and confirming it is clean:
-
-```markdown
-[![asciicast](https://asciinema.org/a/<cast-id>.svg)](https://asciinema.org/a/<cast-id>)
-```
-
-Use an authenticated asciinema CLI for a permanent public URL. The source
-`.cast` file should still be committed so the demo can be replayed or
-re-uploaded.
-
-Before committing the cast, scan it for secrets:
-
-```bash
-rg -n "KGAT_|KAGGLE_API_TOKEN|access_token|kaggle\\.json|\"key\"|\"username\"" \
-  docs/demo/*.cast
-```
-
-The scan should return no credential material. Mentions of safe file names in
-documentation text are acceptable only outside the committed cast.
-
-## Additional cast plans
-
-The demo library includes short task-focused source casts. Re-record these
-after material changes to the relevant command surface.
-
-### Antigravity CLI install
-
-Goal: show the recommended terminal-first install path for new Google agent CLI
-users.
-
-```bash
-agy --version
-npx skills add shepsci/kaggle-skill
-```
-
-Source cast: [antigravity-install.cast](antigravity-install.cast)
-
-### Antigravity MCP config
-
-Goal: show the `serverUrl` config shape and `/mcp` verification path.
-
-```bash
-mkdir -p .agents
-$EDITOR .agents/mcp_config.json
-agy
-/mcp
-```
-
-Source cast: [mcp-config.cast](mcp-config.cast)
-
-### Competition briefing
-
-Goal: show the shortest evidence-first competition overview path.
-
-```bash
-python3 skills/kaggle/modules/setup/scripts/check_all_credentials.py
-python3 skills/kaggle/modules/competitions/scripts/competition_pages.py \
-  --competition titanic --summary
-```
-
-Source cast: [competition-brief.cast](competition-brief.cast)
-
-### Vesuvius top writeups
-
-Goal: show a quick agent-facing prompt that retrieves leaderboard solution
-writeup links and previews for the top 3 ranked Vesuvius Challenge surface
-detection submissions.
-
-```bash
-claude
-Use the kaggle skill to retrieve and preview the writeups from the top 3 ranked submissions in the Vesuvius Challenge surface detection competition.
 python3 skills/kaggle/modules/discussions/scripts/leaderboard_writeups.py \
   vesuvius-challenge-surface-detection --top-k 3 --preview --pretty
 ```
 
-Source cast: [vesuvius-top-writeups.cast](vesuvius-top-writeups.cast)
+No credential is needed.
 
-### Hackathon writeups
+## install-and-demo
 
-Goal: show the overview, roster, and fetch sequence while keeping Kaggle text
-inside untrusted-content markers.
+```bash
+claude plugin marketplace add shepsci/kaggle-skill
+claude plugin install kaggle@shepsci
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py --competition titanic --summary
+python3 skills/kaggle/modules/discussions/scripts/forums.py forum-topics \
+  --category competition_write_ups --sort-by recent --page-size 2
+```
+
+The builder installs from the local checkout, in a throwaway config folder, so
+the first line in the cast reads `claude plugin marketplace add ./kaggle-skill`.
+
+## competition-brief
+
+```bash
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py --competition titanic --summary
+python3 skills/kaggle/modules/competitions/scripts/competition_pages.py --competition titanic --page evaluation
+```
+
+No credential is needed.
+
+## hackathon-writeups
 
 ```bash
 python3 skills/kaggle/modules/competitions/hackathons/scripts/hackathon_overview.py \
   --competition kaggle-measuring-agi --summary
 python3 skills/kaggle/modules/competitions/hackathons/scripts/list_writeups.py \
-  --competition kaggle-measuring-agi --page-size 2 --max-pages 1
-python3 skills/kaggle/modules/competitions/hackathons/scripts/fetch_writeup.py \
-  --writeup-id 71599 --pretty | head -c 1200
+  --competition kaggle-measuring-agi --winner-only --array
 ```
 
-Source cast: [hackathon-writeups.cast](hackathon-writeups.cast)
+The second command needs a credential, and an account that is a host, judge,
+or teammate of that hackathon.
 
-### Codex CLI install
-
-Goal: show the recommended isolated-environment install path for Codex CLI
-users.
+## mcp-config
 
 ```bash
-CODEX_HOME=... HOME=... codex plugin marketplace add shepsci/kaggle-skill --ref main --json
-CODEX_HOME=... HOME=... codex plugin add kaggle@shepsci --json
+cat .mcp.json
+python3 tools/mcp_snapshot.py --check
 ```
 
-Source cast: [codex-install.cast](codex-install.cast)
+## codex-install
+
+```bash
+codex plugin marketplace add shepsci/kaggle-skill --ref main --json
+codex plugin add kaggle@shepsci --json
+```
+
+Built from the local checkout in a throwaway `CODEX_HOME`.
+
+## antigravity-install
+
+```bash
+agy --version
+npx skills add shepsci/kaggle-skill --list
+```
+
+`--list` shows what the skills CLI finds without installing it. To install
+for one agent: `npx skills add shepsci/kaggle-skill -a antigravity`.
+
+## Before committing a cast
+
+```bash
+python3 -m pytest tests/manifest/test_docs_freshness.py tests/manifest/test_demo_gifs_animated.py -q
+```
