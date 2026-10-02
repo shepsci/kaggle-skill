@@ -1,6 +1,6 @@
 # What the demo casts run
 
-The casts in this folder are built by `tools/build_casts.py`, version 2.5.0
+The casts in this folder are built by `tools/build_casts.py`, version 2.5.1
 of the skill. Each one runs the commands below and keeps their output. Rebuild
 them after a change to a command or to what it prints.
 

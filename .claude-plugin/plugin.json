@@ -1,12 +1,13 @@
 {
   "name": "kaggle",
   "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
-  "version": "2.5.0",
+  "version": "2.5.1",
   "author": {
     "name": "shepsci"
   },
   "homepage": "https://github.com/shepsci/kaggle-skill",
   "repository": "https://github.com/shepsci/kaggle-skill",
+  "privacyPolicyUrl": "https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md",
   "license": "MIT",
   "keywords": [
     "kaggle",
