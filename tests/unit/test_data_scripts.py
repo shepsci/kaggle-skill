@@ -366,7 +366,7 @@ def test_dataset_publish_is_a_dry_run_by_default(
     code, out, _ = run_main(mod, "owner/name", str(folder), "--notes", "v2", "--via", via)
     assert code == 0 and fake_kagglehub == [] and calls() == []
     assert out.startswith("Dry run. Nothing was sent to Kaggle.")
-    for expected in ("dataset:    owner/name", "(2 files, ", "notes:      v2", "Add --yes"):
+    for expected in ("dataset:    owner/name", "(2 files, ", "notes:      v2", "again with --yes"):
         assert expected in out, expected
 
 

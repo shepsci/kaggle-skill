@@ -324,7 +324,10 @@ def badge_arguments(rest: list[str]) -> tuple[list[str], str] | int:
     if yes:
         return rest, ""
     print("Dry run. Nothing was sent to Kaggle. The phase would do this:")
-    return [*rest, "--dry-run"], "Add --yes to run it, after the user has confirmed."
+    return [
+        *rest,
+        "--dry-run",
+    ], "Show this to the user and wait for their yes. Then run it again with --yes."
 
 
 if __name__ == "__main__":

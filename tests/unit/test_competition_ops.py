@@ -612,7 +612,7 @@ def test_submit_is_a_dry_run_by_default(load, run_main, fake_mcp, kaggle_calls, 
         "message:     baseline",
         "expected:    0.77",
         "cost:        1 of 5 submissions a day",
-        "Add --yes to do it, after the user has confirmed.",
+        "Show this to the user and wait for their yes. Then run it again with --yes.",
         "Check the file first: validate titanic",
     ):
         assert expected in out, expected

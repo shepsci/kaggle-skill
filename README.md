@@ -14,9 +14,11 @@ Codex and other agents that load `SKILL.md` packages. Not affiliated with,
 endorsed by, or sponsored by Kaggle or Google.
 
 <!-- hero:start -->
-![A competition on one screen](docs/demo/media/competition-brief.gif)
+> **You:** What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3?
 
-What the agent runs and what comes back. [Cast](docs/demo/competition-brief.cast).
+![The agent's answer, recorded](docs/demo/media/agent-brief.gif)
+
+A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief` and `pages`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
 <!-- hero:end -->
 
 ## What you need
@@ -106,15 +108,23 @@ CLI and kagglehub, not the commands that read your standing.
 <!-- demos:start -->
 ## See it work
 
-Solution writeups of the top teams, by rank ([cast](docs/demo/vesuvius-top-writeups.cast)):
+> **You:** Submit ./submission.csv to the Titanic competition on Kaggle.
 
-![Solution writeups of the top teams](docs/demo/media/vesuvius-top-writeups.gif)
+![A submission is a dry run first](docs/demo/media/agent-submit.gif)
+
+The agent checks the file, shows the dry run, and asks before it submits. A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `validate` and `submit`, then answered. [The whole answer](docs/demo/sessions/agent-submit.json), [cast](docs/demo/agent-submit.cast).
+
+> **You:** What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
+
+![What the top teams did](docs/demo/media/agent-solutions.gif)
+
+A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `solutions` and `writeup`, then answered. [The whole answer](docs/demo/sessions/agent-solutions.json), [cast](docs/demo/agent-solutions.cast).
 
 Install in Claude Code and run a first command ([cast](docs/demo/install-and-demo.cast)):
 
 ![Install and first command](docs/demo/media/install-and-demo.gif)
 
-The demos show real output; the [demo library](docs/demo/README.md) says how each is made.
+The sessions are recorded as they ran, with no Kaggle credential configured; the [demo library](docs/demo/README.md) says how each demo is made.
 <!-- demos:end -->
 
 ## Update and uninstall

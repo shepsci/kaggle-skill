@@ -82,7 +82,9 @@ def test_write_gate_is_a_dry_run_without_yes(capsys):
     assert code == 0
     assert out.startswith("Dry run. Nothing was sent to Kaggle.")
     assert "action:" in out and "file:" in out and "cost:" in out
-    assert out.rstrip().endswith("Add --yes to do it, after the user has confirmed.")
+    assert out.rstrip().endswith(
+        "Show this to the user and wait for their yes. Then run it again with --yes."
+    )
 
 
 def test_write_gate_lets_a_confirmed_write_through(capsys):

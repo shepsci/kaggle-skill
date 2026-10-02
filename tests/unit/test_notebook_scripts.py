@@ -84,7 +84,7 @@ def test_push_is_a_dry_run_that_shows_what_the_metadata_says(
         "internet:         off",
         "competition data: titanic",
         "cost:             starts a run on Kaggle; uses the weekly GPU hours",
-        "Add --yes to do it, after the user has confirmed.",
+        "Show this to the user and wait for their yes. Then run it again with --yes.",
     ):
         assert expected in out, expected
 

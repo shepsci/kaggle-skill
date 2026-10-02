@@ -95,7 +95,7 @@ def test_a_badge_phase_is_a_dry_run_until_yes(entry, capsys, monkeypatch):
     monkeypatch.delenv("KAGGLE_SKILL_READ_ONLY", raising=False)
     for argv in (["--phase", "1"], ["--ph", "2"], ["--resume"]):
         arguments, footer = entry.badge_arguments(argv)
-        assert arguments == [*argv, "--dry-run"] and footer.startswith("Add --yes")
+        assert arguments == [*argv, "--dry-run"] and footer.endswith("again with --yes.")
         assert capsys.readouterr().out.startswith("Dry run. Nothing was sent to Kaggle.")
     assert entry.badge_arguments(["--phase", "1", "--yes"]) == (["--phase", "1"], "")
     for argv in (["--status"], ["--dry-run", "--phase", "3"], ["--help"], []):

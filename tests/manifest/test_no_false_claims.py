@@ -261,17 +261,17 @@ def test_public_docs_do_not_reference_removed_module_paths():
 
 
 def test_readme_and_demo_docs_reference_rendered_gif_previews():
-    docs = [
-        REPO_ROOT / "README.md",
-        REPO_ROOT / "docs" / "demo" / "README.md",
-    ]
-    expected = [
-        "docs/demo/media/install-and-demo.gif",
-        "docs/demo/media/vesuvius-top-writeups.gif",
-    ]
-    for doc in docs:
+    readme, library = REPO_ROOT / "README.md", REPO_ROOT / "docs" / "demo" / "README.md"
+    expected = {
+        readme: ["docs/demo/media/install-and-demo.gif"],
+        library: [
+            "docs/demo/media/install-and-demo.gif",
+            "docs/demo/media/vesuvius-top-writeups.gif",
+        ],
+    }
+    for doc, gifs in expected.items():
         text = doc.read_text(encoding="utf-8")
-        for gif in expected:
+        for gif in gifs:
             rel = gif if doc == REPO_ROOT / "README.md" else gif.removeprefix("docs/demo/")
             assert rel in text, f"{doc.relative_to(REPO_ROOT)} does not reference {rel}"
             path = REPO_ROOT / gif

@@ -95,6 +95,22 @@ def clean(text: str) -> str:
     return CONTROL_RE.sub("", text)
 
 
+BLOCK_OPEN_RE = re.compile(r"<untrusted-content-([0-9a-f]{8})[ >]")
+
+
+def _closing_of_open_block(shown: list[str], rest: list[str]) -> str | None:
+    """The closing tag, somewhere in ``rest``, of the block left open in ``shown``."""
+    nonce = None
+    for line in shown:
+        opened = BLOCK_OPEN_RE.match(line)
+        if opened:
+            nonce = opened.group(1)
+        elif line.startswith("</untrusted-content-"):
+            nonce = None
+    closing = f"</untrusted-content-{nonce}>"
+    return closing if nonce and closing in rest else None
+
+
 def shorten(text: str, max_lines: int, max_width: int) -> str:
     lines = [line.rstrip() for line in text.splitlines()]
     while lines and not lines[-1]:
@@ -105,7 +121,8 @@ def shorten(text: str, max_lines: int, max_width: int) -> str:
         whole = line.startswith(("<untrusted-content-", "</untrusted-content-"))
         kept.append(line if whole or len(line) <= max_width else line[: max_width - 1] + "…")
     if len(lines) > max_lines:
-        closing = lines[-1] if lines[-1].startswith("</untrusted-content-") else None
+        # A cut inside a block still shows the block's closing tag, after the count.
+        closing = _closing_of_open_block(lines[:max_lines], lines[max_lines:])
         left_out = len(lines) - max_lines - (1 if closing else 0)
         if left_out > 0:
             kept.append(f"… ({left_out} more lines)")
@@ -234,19 +251,39 @@ def session_events(session: dict) -> list[list]:
         rec.scroll("\n".join("  " + line for line in output.splitlines()))
         rec.emit("\n", 0.5)
     rec.say(session.get("agent_short", "Agent"), 0.3)
-    rec.scroll(wrap(session["answer"]), 0.3)
+    # A terminal draws no bold: the markers would show as asterisks.
+    answer = wrap(session["answer"].replace("**", "")).splitlines()
+    limit = int(session.get("answer_show_lines") or len(answer))
+    if len(answer) > limit:
+        # A long answer is cut on screen; the session file holds all of it.
+        answer = [*answer[:limit], f"  … ({len(answer) - limit} more lines in the session file)"]
+    rec.scroll("\n".join(answer), 0.3)
     return rec.events
 
 
-def session_markdown(session: dict) -> str:
-    """The same session as Markdown, for the README."""
-    lines = [f"> **You:** {session['question']}", ">"]
-    commands = ", ".join(f"`{step['command']}`" for step in session["steps"])
-    lines.append(f"> *{session['agent']} runs {commands}, then answers:*")
-    lines.append(">")
-    for paragraph in session["answer"].splitlines():
-        lines.append(f"> {paragraph}" if paragraph.strip() else ">")
-    return "\n".join(lines)
+def session_commands(session: dict) -> list[str]:
+    """The skill's commands a session ran, by name, in the order they first ran."""
+    names: list[str] = []
+    for step in session["steps"]:
+        for name in re.findall(r"kaggle_skill\.py\s+([a-z][a-z-]*)", step["command"]):
+            if name not in names:
+                names.append(name)
+        # `S=.../kaggle_skill.py; python3 $S validate ...` names the command after $S.
+        for name in re.findall(r"\$S\s+([a-z][a-z-]*)", step["command"]):
+            if name not in names:
+                names.append(name)
+    return names
+
+
+def session_caption(session: dict, name: str) -> str:
+    """One line under a session's GIF: when, in what, what ran, and where the rest is."""
+    commands = " and ".join(f"`{command}`" for command in session_commands(session))
+    return (
+        f"A real session, recorded {session['recorded']} in {session['agent']}: the agent "
+        f"ran {commands}, then answered. "
+        f"[The whole answer](docs/demo/sessions/{name}.json), "
+        f"[cast](docs/demo/{name}.cast)."
+    )
 
 
 def write_cast(name: str, title: str, events: list[list]) -> Path:
@@ -522,6 +559,7 @@ def sessions() -> list[dict]:
 
 HERO_SESSION = "agent-brief"
 DRY_RUN_SESSION = "agent-submit"
+SOLUTIONS_SESSION = "agent-solutions"
 
 
 def _replace_block(text: str, name: str, body: str) -> str:
@@ -539,13 +577,11 @@ def readme_blocks(recorded: dict[str, dict]) -> dict[str, str]:
     if hero and (MEDIA_DIR / f"{HERO_SESSION}.gif").exists():
         hero_body = "\n".join(
             [
-                session_markdown(hero),
+                f"> **You:** {hero['question']}",
                 "",
-                f"![The same exchange, recorded](docs/demo/media/{HERO_SESSION}.gif)",
+                f"![The agent's answer, recorded](docs/demo/media/{HERO_SESSION}.gif)",
                 "",
-                f"Recorded {hero['recorded']} in {hero['agent']}; "
-                f"[source](docs/demo/sessions/{HERO_SESSION}.json), "
-                f"[cast](docs/demo/{HERO_SESSION}.cast).",
+                session_caption(hero, HERO_SESSION),
             ]
         )
     else:
@@ -562,24 +598,39 @@ def readme_blocks(recorded: dict[str, dict]) -> dict[str, str]:
     dry_run = recorded.get(DRY_RUN_SESSION)
     if dry_run and (MEDIA_DIR / f"{DRY_RUN_SESSION}.gif").exists():
         parts += [
-            "A submission is a dry run until you say yes "
-            f"([cast](docs/demo/{DRY_RUN_SESSION}.cast)):",
+            f"> **You:** {dry_run['question']}",
             "",
-            f"![A submission dry run](docs/demo/media/{DRY_RUN_SESSION}.gif)",
+            f"![A submission is a dry run first](docs/demo/media/{DRY_RUN_SESSION}.gif)",
+            "",
+            "The agent checks the file, shows the dry run, and asks before it submits. "
+            + session_caption(dry_run, DRY_RUN_SESSION),
+            "",
+        ]
+    solutions = recorded.get(SOLUTIONS_SESSION)
+    if solutions and (MEDIA_DIR / f"{SOLUTIONS_SESSION}.gif").exists():
+        parts += [
+            f"> **You:** {solutions['question']}",
+            "",
+            f"![What the top teams did](docs/demo/media/{SOLUTIONS_SESSION}.gif)",
+            "",
+            session_caption(solutions, SOLUTIONS_SESSION),
+            "",
+        ]
+    else:
+        parts += [
+            "Solution writeups of the top teams, by rank "
+            "([cast](docs/demo/vesuvius-top-writeups.cast)):",
+            "",
+            "![Solution writeups of the top teams](docs/demo/media/vesuvius-top-writeups.gif)",
             "",
         ]
     parts += [
-        "Solution writeups of the top teams, by rank "
-        "([cast](docs/demo/vesuvius-top-writeups.cast)):",
-        "",
-        "![Solution writeups of the top teams](docs/demo/media/vesuvius-top-writeups.gif)",
-        "",
         "Install in Claude Code and run a first command ([cast](docs/demo/install-and-demo.cast)):",
         "",
         "![Install and first command](docs/demo/media/install-and-demo.gif)",
         "",
-        "The demos show real output; the [demo library](docs/demo/README.md) says how each "
-        "is made.",
+        "The sessions are recorded as they ran, with no Kaggle credential configured; the "
+        "[demo library](docs/demo/README.md) says how each demo is made.",
     ]
     return {"hero": hero_body, "demos": "\n".join(parts)}
 

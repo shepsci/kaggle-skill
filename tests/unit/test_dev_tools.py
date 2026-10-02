@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 import sys
 from pathlib import Path
 
@@ -237,16 +238,34 @@ def test_a_recorded_session_becomes_events_without_running_anything(monkeypatch)
     assert stamps == sorted(stamps) and stamps[-1] <= 15
 
 
-def test_a_session_as_markdown_for_the_readme():
+def test_a_session_caption_names_the_commands_that_ran():
     import build_casts
 
-    markdown = build_casts.session_markdown(SESSION)
-    assert markdown.splitlines()[0] == (
-        "> **You:** What is the metric of the Titanic competition on Kaggle?"
+    two = {
+        **SESSION,
+        "steps": [
+            *SESSION["steps"],
+            {"command": "S=scripts/kaggle_skill.py; python3 $S pages x; python3 $S brief x"},
+        ],
+    }
+    assert build_casts.session_commands(two) == ["brief", "pages"]
+    caption = build_casts.session_caption(two, "agent-example")
+    assert "recorded 2026-10-02 in Claude Code (Claude Opus 5.5)" in caption
+    assert "ran `brief` and `pages`, then answered" in caption
+    assert "docs/demo/sessions/agent-example.json" in caption
+
+
+def test_a_long_answer_is_cut_on_screen_and_says_so():
+    import build_casts
+
+    long = {**SESSION, "answer": "\n".join(f"**point** {n}" for n in range(30))}
+    text = "".join(event[2] for event in build_casts.session_events(long))
+    assert "point 29" in text and "**" not in text, "all of it, without bold markers"
+    cut = "".join(
+        event[2] for event in build_casts.session_events({**long, "answer_show_lines": 5})
     )
-    assert "`python3 scripts/kaggle_skill.py brief titanic`" in markdown
-    assert markdown.splitlines()[-1].startswith("> - It is the share")
-    assert all(line.startswith(">") for line in markdown.splitlines())
+    assert "point 4" in cut and "point 5" not in cut
+    assert "… (25 more lines in the session file)" in cut
 
 
 def test_a_session_file_must_be_complete(tmp_path):
@@ -269,8 +288,10 @@ def test_readme_blocks_use_a_recorded_session_only_when_its_gif_exists(monkeypat
     blocks = build_casts.readme_blocks({hero["name"]: hero})
     assert "> **You:** What is the metric" in blocks["hero"]
     assert f"docs/demo/media/{build_casts.HERO_SESSION}.gif" in blocks["hero"]
-    assert "Recorded 2026-10-02 in Claude Code (Claude Opus 5.5)" in blocks["hero"]
+    assert "recorded 2026-10-02 in Claude Code (Claude Opus 5.5)" in blocks["hero"]
+    assert "Categorization accuracy" not in blocks["hero"], "the GIF and the file hold the answer"
     assert "install-and-demo.gif" in blocks["demos"]
+    assert "vesuvius-top-writeups.gif" in blocks["demos"], "until a solutions session exists"
 
     text = "a\n<!-- hero:start -->\nold\n<!-- hero:end -->\nb\n"
     assert build_casts._replace_block(text, "hero", "new") == (
@@ -492,9 +513,37 @@ def test_a_session_stream_becomes_a_session_file(tmp_path):
         {
             "command": "python3 scripts/kaggle_skill.py brief titanic",
             "output": "metric: accuracy\n./x",
-            "show_lines": 10,
+            "show_lines": 2,
         }
     ], "only the skill's commands are kept, with the folders shortened"
     assert session["answer"] == "The metric is accuracy."
     with pytest.raises(SystemExit, match="without an answer"):
         record_session.to_session(events[:-1], "agent-x", "X", "Q", tmp_path)
+
+
+def test_a_session_file_keeps_only_the_lines_a_demo_shows():
+    """A writeup is someone's text, and some include contact details: keep its heading."""
+    body = "\n".join(['<untrusted-content-ab12cd34 source="s" tool="t">', "# Title", "sub"])
+    body += "\nby A, B\nhttps://www.kaggle.com/x\n\n" + "\n".join(
+        f"line {n} someone@example.com" for n in range(40)
+    )
+    body += "\n</untrusted-content-ab12cd34>"
+    step = record_session.step("python3 scripts/kaggle_skill.py writeup 71617", body)
+    lines = step["output"].splitlines()
+    assert lines[1] == "# Title" and lines[-2] == "… (40 more lines)"
+    assert lines[-1] == "</untrusted-content-ab12cd34>" and "@" not in step["output"]
+    assert step["show_lines"] == len(lines) == 8
+    brief = record_session.step("python3 scripts/kaggle_skill.py brief titanic", body)
+    assert len(brief["output"].splitlines()) == 12, "ten lines, the count, and the closing tag"
+
+
+def test_a_recorded_session_sees_no_kaggle_credential(tmp_path, monkeypatch):
+    """The agent's shell commands get an empty HOME; Claude Code keeps its own."""
+    monkeypatch.setenv("KAGGLE_API_TOKEN", "KGAT_should_not_pass")
+    env = record_session.session_env(tmp_path)
+    assert "KAGGLE_API_TOKEN" not in env and env["KAGGLE_SKILL_READ_ONLY"] == "1"
+    assert env["HOME"] == os.environ["HOME"], "the CLI's own sign-in stays"
+    script = Path(env["CLAUDE_ENV_FILE"]).read_text()
+    assert script.strip() == f"export HOME={tmp_path}"
+    kept = record_session.session_env(None)
+    assert "CLAUDE_ENV_FILE" not in kept and kept["KAGGLE_SKILL_READ_ONLY"] == "1"

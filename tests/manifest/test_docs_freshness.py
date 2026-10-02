@@ -131,21 +131,39 @@ def test_recorded_sessions_say_what_they_are():
         assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", session["recorded"])
         assert session["question"].strip() and session["answer"].strip() and session["steps"]
         for step in session["steps"]:
-            assert step["command"].startswith("python3 "), "the command as it was run"
+            assert "python3 " in step["command"] and "kaggle_skill.py" in step["command"], (
+                "the command as it was run"
+            )
             assert step["output"].strip()
+            assert len(step["output"].splitlines()) <= 26, "only the lines a demo shows"
+        assert not re.search(r"[\w.+-]+@[\w-]+\.\w+", path.read_text(encoding="utf-8")), (
+            f"{path.name} holds an email address"
+        )
         for pattern in SECRET_PATTERNS:
             assert not pattern.search(path.read_text(encoding="utf-8")), path.name
 
 
-def test_vesuvius_demo_has_readme_gif_preview_and_cast_source():
-    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+def test_vesuvius_demo_has_gif_preview_and_cast_source():
+    """The README shows the recorded session about writeups; this one is in the library."""
+    library = (REPO_ROOT / "docs" / "demo" / "README.md").read_text(encoding="utf-8")
     cast = REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast"
     gif = REPO_ROOT / "docs" / "demo" / "media" / "vesuvius-top-writeups.gif"
 
     assert cast.exists(), "Vesuvius demo source cast must be committed"
-    assert "docs/demo/vesuvius-top-writeups.cast" in readme
-    assert "docs/demo/media/vesuvius-top-writeups.gif" in readme
+    assert "vesuvius-top-writeups.cast" in library
+    assert "media/vesuvius-top-writeups.gif" in library
     assert gif.exists() and gif.stat().st_size > 0
+
+
+@pytest.mark.parametrize("name", ["agent-brief", "agent-submit", "agent-solutions"])
+def test_recorded_sessions_have_a_cast_a_gif_and_a_place_in_the_docs(name):
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    library = (REPO_ROOT / "docs" / "demo" / "README.md").read_text(encoding="utf-8")
+    assert (REPO_ROOT / "docs" / "demo" / f"{name}.cast").exists()
+    gif = REPO_ROOT / "docs" / "demo" / "media" / f"{name}.gif"
+    assert gif.exists() and gif.stat().st_size > 0
+    assert f"docs/demo/media/{name}.gif" in readme and f"docs/demo/sessions/{name}.json" in readme
+    assert f"media/{name}.gif" in library and f"sessions/{name}.json" in library
 
 
 def test_claude_install_docs_use_kaggle_skill_marketplace():
@@ -270,11 +288,20 @@ def test_command_demos_run_the_entry_point():
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
 def test_cast_blocks_open_and_close_with_the_same_random_tag(cast: Path):
-    """Casts show real output, so Kaggle text in them sits in properly closed blocks."""
+    """Casts show real output, so Kaggle text in them sits in properly closed blocks.
+
+    A recorded session can leave its last block open: the agent itself cut the
+    output there (``| head -c 6000``), so the closing tag was never printed.
+    """
     text = _cast_text(cast)
     opened = re.findall(r"<untrusted-content-([0-9a-f]{8}) ", text)
     closed = re.findall(r"</untrusted-content-([0-9a-f]{8})>", text)
-    assert opened == closed, f"{cast.name}: blocks opened {opened} but closed {closed}"
+    if cast.stem.startswith("agent-"):
+        assert all(tag in opened for tag in closed) and len(opened) - len(closed) <= 1, (
+            f"{cast.name}: blocks opened {opened} but closed {closed}"
+        )
+    else:
+        assert opened == closed, f"{cast.name}: blocks opened {opened} but closed {closed}"
     assert "<untrusted-content " not in text and "</untrusted-content>" not in text, (
         f"{cast.name} shows the old fixed tag; rebuild it with tools/build_casts.py"
     )

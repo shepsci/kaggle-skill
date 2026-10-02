@@ -263,7 +263,8 @@ def write_gate(
     if blocked:
         print("This cannot be done as given. See the error above.")
     else:
-        print("Add --yes to do it, after the user has confirmed.")
+        # The request that led here is not the yes: the user has not seen this plan.
+        print("Show this to the user and wait for their yes. Then run it again with --yes.")
     return EXIT_OK
 
 

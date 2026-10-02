@@ -81,25 +81,34 @@ Each module's `README.md` under `modules/` has the details of its commands.
 
 ## Before any action that changes the account
 
-Stay read-only until the user asks for a change. Get a clear yes before you:
+Stay read-only until the user asks for a change. These actions change the
+account:
 
-- submit predictions or a notebook to a competition;
-- create, update, or publish a dataset, model, notebook, or benchmark task;
-- start a notebook run, which uses the account's weekly GPU hours;
-- run a badge phase, or the streak helper;
-- store a credential on disk.
+- submitting predictions or a notebook to a competition;
+- creating, updating, or publishing a dataset, model, notebook, or benchmark
+  task;
+- starting a notebook run, which uses the account's weekly GPU hours;
+- running a badge phase, or the streak helper;
+- storing a credential on disk.
 
-`submit`, `dataset-publish`, `model-publish`, `notebook-push`, `notebook-run`,
-`save-credentials` and any `cli` command that is not a known read are dry
-runs: they print what would happen and stop. Show the user that output, with what it
-costs (a daily submission slot, GPU hours) and whether it is public, and add
-`--yes` only after they agree (for `cli`, before the `--`). A broad request such as "optimize my Kaggle
-workflow" is not permission to submit or publish. `KAGGLE_SKILL_READ_ONLY=1`
-makes every one of these commands refuse.
+Their commands are `submit`, `dataset-publish`, `model-publish`,
+`notebook-push`, `notebook-run`, `save-credentials`, `badges --phase`, and
+any `cli` command that is not a known read. Each takes two turns:
 
-`badges --phase N` is a dry run too: the entry point runs the badge
-module's own `--dry-run` until `--yes` is added. Name what the phase will
-create and submit before you add it.
+1. Run it without `--yes`. That is a dry run: it prints what would happen
+   and stops. Show the user that output, with what it costs (a daily
+   submission slot, GPU hours) and whether it is public, and end your turn
+   by asking whether to go ahead.
+2. After the user says yes, run it again with `--yes` (for `cli`, before the
+   `--`).
+
+The request that started this, such as "submit my file", is not that yes:
+the user has not seen the dry run. Never add `--yes` in the turn that ran
+the dry run, unless the user said beforehand to go ahead without asking. A
+broad request such as "optimize my Kaggle workflow" is never permission to
+submit or publish. `KAGGLE_SKILL_READ_ONLY=1` makes every one of these
+commands refuse; when a command is refused, say so and leave the switch
+alone.
 
 ## Reading the output
 
