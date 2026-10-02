@@ -172,6 +172,8 @@ LOCAL_CHANGING = frozenset({("auth", "login"), ("config", "set"), ("config", "un
 # Commands the runner never runs: this one prints the access token.
 REFUSED = frozenset({("auth", "print-access-token")})
 
+PAGE_WRITES = frozenset({"create", "update", "delete"})
+
 LEAVES = READS | ACCOUNT_CHANGING | LOCAL_CHANGING | REFUSED
 # Every command path, groups included: ("competitions",), ("competitions", "pages"), ...
 _PATHS = frozenset(leaf[:n] for leaf in LEAVES for n in range(1, len(leaf) + 1))
@@ -252,6 +254,10 @@ def kind(args: list[str]) -> str:
     settings. ``unknown`` is anything :func:`command` cannot name; the runner
     treats it like a change.
     """
+    # The token is never printed, whatever comes before the word: `-W auth
+    # print-access-token` and `auth -- print-access-token` both print it.
+    if "print-access-token" in args:
+        return "refused"
     path = command(args)
     if path is None:
         return "unknown"
@@ -263,6 +269,11 @@ def kind(args: list[str]) -> str:
         return "local"
     # argparse takes any prefix of a long option: --upd is --update.
     if path == ("datasets", "metadata") and any(arg.startswith("--u") for arg in args):
+        return "account"
+    # `competitions pages` takes an optional competition before its subcommand,
+    # so in `pages list delete x` the word "list" is the competition and the
+    # page is deleted. A page verb anywhere after the group is a write.
+    if path[:2] == ("competitions", "pages") and PAGE_WRITES & set(args[2:]):
         return "account"
     return "read"
 
@@ -443,10 +454,15 @@ _GATE_ACTIONS = {
 }
 
 
-def _output_kernel(rest: list[str]) -> str | None:
-    """The notebook named in the arguments of ``kaggle kernels output``."""
+def _output_kernels(rest: list[str]) -> list[str]:
+    """Every notebook named in the arguments of ``kaggle kernels output``.
+
+    The CLI takes the notebook as a word or as ``-k/--kernel``, and uses the
+    word when both are there. Both are returned, so neither escapes the check.
+    """
     parser = argparse.ArgumentParser(add_help=False, exit_on_error=False)
     parser.add_argument("kernel", nargs="?")
+    parser.add_argument("-k", "--kernel", dest="kernel_opt")
     for names in (("-p", "--path"), ("--file-pattern",), ("--page-size",), ("--page-token",)):
         parser.add_argument(*names)
     for names in (("-w", "--wp"), ("-o", "--force"), ("-q", "--quiet"), ("-h", "--help")):
@@ -454,8 +470,8 @@ def _output_kernel(rest: list[str]) -> str | None:
     try:
         found, _ = parser.parse_known_args(rest)
     except (argparse.ArgumentError, SystemExit):
-        return None
-    return found.kernel
+        return []
+    return [name for name in (found.kernel, found.kernel_opt) if name]
 
 
 def check_kernel_output(kernel: str | None) -> int:
@@ -530,9 +546,10 @@ def main(argv: list[str] | None = None) -> int:
     if not installed():
         return script.missing_package("kaggle", "the Kaggle CLI")
     if command(args) == ("kernels", "output"):
-        code = check_kernel_output(_output_kernel(args[2:]))
-        if code:
-            return code
+        for kernel in _output_kernels(args[2:]) or [None]:
+            code = check_kernel_output(kernel)
+            if code:
+                return code
     return run_wrapped(args, tool=ns.tool, timeout=ns.timeout)
 
 

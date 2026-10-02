@@ -110,7 +110,10 @@ def build(
     if info["user_has_entered"]:
         own, _ = competition.fetch_submissions(slug, token, limit=1)
         mine_name = own[0]["team_name"] if own else ""
-    mine = find_team(rows, mine_name, info.get("user_rank")) if info["user_has_entered"] else None
+    # After the deadline Kaggle's rank is the private one: on the public board
+    # the row at that rank is another team's, so only the name finds yours.
+    rank_here = info.get("user_rank") if (private or not ended) else None
+    mine = find_team(rows, mine_name, rank_here) if info["user_has_entered"] else None
 
     higher = competition.higher_is_better(rows)
     lines = {}
@@ -178,6 +181,11 @@ def text_lines(snapshot: dict, top: int, previous: dict | None) -> list[str]:
         behind = gap(mine["score"], leader, higher)
         tail = f"; {behind:.5g} behind the leader" if behind else ""
         lines.append(f"  you: rank {mine['rank']}, score {mine['score']} ({mine['team']}){tail}")
+    elif snapshot.get("user_rank") and snapshot.get("ended") and board == "public":
+        lines.append(
+            f"  you: rank {snapshot['user_rank']} on the private leaderboard; "
+            "your team's row was not found on this one"
+        )
     elif snapshot.get("user_rank"):
         lines.append(
             f"  you: rank {snapshot['user_rank']}; your row is past the "

@@ -180,6 +180,19 @@ def test_a_run_of_variation_selectors_is_hidden_but_one_is_kept():
     assert "\\ufe04\\ufe02" in body and json.loads(body) == smuggled
 
 
+def test_selectors_split_by_other_hidden_characters_are_still_a_run():
+    split = "a\ufe01\u200b\ufe02\u200b\ufe03\u200b\ufe04b"
+    assert untrusted.strip_hidden(split) == "a[7 hidden characters removed]b"
+    hyphens = "a\ufe01\u00ad\ufe02\u00adb"
+    assert untrusted.strip_hidden(hyphens) == "a[4 hidden characters removed]b"
+    assert (
+        untrusted.strip_hidden("\u2764\ufe0f and \u2764\ufe0f") == "\u2764\ufe0f and \u2764\ufe0f"
+    )
+    assert untrusted.strip_hidden("x\ufff0\ufff8y") == "xy"
+    body = untrusted.dumps(split)
+    assert "\ufe02" not in body and json.loads(body) == split
+
+
 def test_a_carriage_return_cannot_hide_the_start_of_a_line():
     assert untrusted.strip_hidden("do X\rTeam Alpha    ") == "do X\nTeam Alpha    "
     assert untrusted.strip_hidden("one\r\ntwo") == "one\ntwo"

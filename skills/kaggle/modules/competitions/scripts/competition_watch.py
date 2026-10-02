@@ -34,12 +34,26 @@ MAX_FAILED_READS = 5
 FINISHED = ("COMPLETE", "ERROR")
 
 
+LISTED = 100  # submissions read to confirm that --ref belongs to the competition
+
+
 def read(slug: str, token: str, ref: int | None):
-    """The submission with this id, or your newest. Returns ``(row or None, result)``."""
-    if ref is not None:
-        return competition.fetch_submission(ref, token)
-    rows, result = competition.fetch_submissions(slug, token, limit=1)
-    return (rows[0] if rows else None), result
+    """The submission with this id, or your newest.
+
+    Returns ``(row or None, result, in this competition)``. A submission read
+    by its id alone cannot be tied to a competition: the answer does not name
+    one. It is looked for among the competition's latest submissions first.
+    """
+    if ref is None:
+        rows, result = competition.fetch_submissions(slug, token, limit=1)
+        return (rows[0] if rows else None), result, True
+    rows, result = competition.fetch_submissions(slug, token, limit=LISTED)
+    if result.ok:
+        for row in rows:
+            if str(row["ref"]) == str(ref):
+                return row, result, True
+    row, result = competition.fetch_submission(ref, token)
+    return row, result, False
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -74,7 +88,7 @@ def main(argv: list[str] | None = None) -> int:
     waited = 0
     failed_reads = 0
     while True:
-        row, result = read(slug, token, args.ref)
+        row, result, confirmed = read(slug, token, args.ref)
         if not result.ok:
             failed_reads += 1
             # A denial for --ref means the submission is someone else's: no use waiting.
@@ -116,7 +130,12 @@ def main(argv: list[str] | None = None) -> int:
     value = competition.score_value(score)
     if expected is not None and value is not None:
         print(f"Expected {expected:g}, got {value:g}: a difference of {value - expected:+.5g}.")
-    if not ledger.has_score(row["ref"]):
+    if not confirmed:
+        script.warn(
+            f"submission {row['ref']} is not among your latest {LISTED} in {slug}, so it "
+            "may belong to another competition; its score is not recorded in the ledger"
+        )
+    elif not ledger.has_score(row["ref"]):
         record = {
             "event": "score",
             "competition": slug,

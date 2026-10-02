@@ -406,6 +406,19 @@ def test_after_the_deadline_the_private_board_is_offered(load, fake_mcp, run_mai
     assert code == 2 and "only after the deadline" in err
 
 
+def test_after_the_deadline_the_private_rank_does_not_pick_a_public_row(
+    load, fake_mcp, run_main, blocks
+):
+    """Kaggle's rank is the private one then; the public row at that rank is someone else's."""
+    ended = {**FACTS, "deadline": _iso(days=-3), "user_rank": 404}
+    answers = _leaderboard_answers(facts=ended)
+    answers["search_competition_submissions"] = {"submissions": []}
+    fake_mcp(answers, token="tok")
+    body = blocks(run_main(load("competition_leaderboard"), "x", "--no-save")[1])[0].body
+    assert "you: rank 404 on the private leaderboard" in body
+    assert "team 404" not in body.split("you:", 1)[1].splitlines()[0]
+
+
 def test_a_medal_note_with_no_direction_counts_only_ranks(load, fake_mcp, run_main, blocks):
     rows = _board(step=0)
     rows[522]["team_name"] = "my team"
@@ -530,6 +543,18 @@ def test_titanics_sample_is_found_in_the_download_folder(
     _csv(Path("submission.csv"), "id,target\n1,1\n2,0\n3,1\n")
     code, out, _ = run_main(load("competition_validate"), "titanic", "submission.csv")
     assert code == 0 and "against the sample gender_submission.csv" in blocks(out)[0].body
+
+
+def test_a_submission_in_the_data_folder_is_not_compared_with_its_sibling(
+    load, run_main, fake_mcp, tmp_path, monkeypatch
+):
+    monkeypatch.chdir(tmp_path)
+    Path("data").mkdir()
+    _csv(Path("data/submission.csv"), "id,target\n1,1\n")
+    _csv(Path("data/submission_old.csv"), "id,target\n1,0\n")
+    fake_mcp({}, token="")
+    code, _, err = run_main(load("competition_validate"), "titanic", "data/submission.csv")
+    assert code == 4 and "no sample submission to compare with" in err
 
 
 def test_an_earlier_submission_is_never_taken_for_the_sample(load):
@@ -804,11 +829,24 @@ def test_watch_reports_a_failed_submission(watch, fake_mcp, run_main, blocks):
 
 
 def test_watch_a_named_submission_and_the_error_exits(watch, fake_mcp, run_main, mcp_response):
-    # A named submission is read by its id, so an old one is found too.
-    state = fake_mcp({"get_competition_submission": _submission(8, "0.4")}, token="tok")
+    # A named submission is looked for in the competition first.
+    rows = {"submissions": [_submission(9, "0.5"), _submission(8, "0.4")]}
+    state = fake_mcp({"search_competition_submissions": rows}, token="tok")
     code, out, _ = run_main(watch, "titanic", "--ref", "8")
     assert code == 0 and "submission 8: COMPLETE" in out
-    assert state.calls[0].request == {"ref": 8}
+    assert [r["ref"] for r in ledger.read()] == [8]
+    # An older one is read by its id, shown, and not recorded: it may be another competition's.
+    state = fake_mcp(
+        {
+            "search_competition_submissions": {"submissions": []},
+            "get_competition_submission": _submission(7, "0.3"),
+        },
+        token="tok",
+    )
+    code, out, err = run_main(watch, "titanic", "--ref", "7")
+    assert code == 0 and "submission 7: COMPLETE" in out
+    assert state.calls[-1].request == {"ref": 7}
+    assert "not recorded in the ledger" in err and [r["ref"] for r in ledger.read()] == [8]
     denied = {
         "result": {
             "content": [{"type": "text", "text": "Permission 'submissions.get' was denied"}],

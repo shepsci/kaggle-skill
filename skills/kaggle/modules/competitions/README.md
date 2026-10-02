@@ -87,7 +87,9 @@ python3 scripts/kaggle_skill.py ledger
   `./.kaggle-skill/ledger.jsonl`. A code competition takes
   `--notebook OWNER/NAME --version N` instead of a file.
 - `watch` waits until the submission is scored, prints the score, records it,
-  and reports the difference from `--expect`.
+  and reports the difference from `--expect`. `--ref ID` watches another of
+  your submissions; one that is not among your latest 100 in the competition
+  is shown but not recorded, since it may belong to another competition.
 - `ledger` shows the record.
 
 Submit only after the user confirms. Read

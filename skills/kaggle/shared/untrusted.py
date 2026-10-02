@@ -47,14 +47,15 @@ _RETURN_RE = re.compile(r"\r\n?")
 # supplement.
 _HIDDEN = (
     "\x7f-\x9f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f"
-    "\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0\ufff9-\ufffb"
+    "\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0\ufff0-\ufffb"
     "\U0001bca0-\U0001bca3\U0001d173-\U0001d17a"
     "\ud800-\udfff\ue000-\uf8ff\U000e0000-\U000e0fff\U000f0000-\U0010ffff"
 )
 # One variation selector after a character picks how it is drawn (the emoji
 # style of a heart). Two or more in a row carry nothing a reader sees, and a
-# run of them can spell out bytes, so a run counts as hidden.
-_SELECTOR_RUN = "[\ufe00-\ufe0f]{2,}"
+# run of them can spell out bytes, so a run counts as hidden, also when other
+# hidden characters sit between the selectors.
+_SELECTOR_RUN = f"[\ufe00-\ufe0f](?:[{_HIDDEN}]*[\ufe00-\ufe0f])+"
 _HIDDEN_RUN_RE = re.compile(f"(?:[{_HIDDEN}]|{_SELECTOR_RUN})+")
 _LINE_SEPARATOR_RE = re.compile("[\u2028\u2029]")
 _JSON_ESCAPE_RE = re.compile(f"[<>\u2028\u2029{_HIDDEN}]|{_SELECTOR_RUN}")

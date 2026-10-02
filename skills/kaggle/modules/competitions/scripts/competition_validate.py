@@ -78,6 +78,7 @@ def find_local_sample(slug: str, submission: Path) -> Path | None:
         (Path("downloads") / slug, True),
         (Path(slug), True),
     ]
+    own = submission.parent.resolve()
     for folder, loose in folders:
         try:
             names = sorted(
@@ -87,7 +88,8 @@ def find_local_sample(slug: str, submission: Path) -> Path | None:
             )
         except OSError:
             continue
-        found = pick_sample(names, loose=loose)
+        # The submission's own folder holds earlier submissions, even when it is ./data.
+        found = pick_sample(names, loose=loose and folder.resolve() != own)
         if found:
             return folder / found
     return None

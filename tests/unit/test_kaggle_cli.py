@@ -388,6 +388,34 @@ def test_the_runner_gates_what_it_cannot_name(kaggle_calls, capsys, monkeypatch,
     assert calls() == []
 
 
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["competitions", "pages", "list", "delete", "my-comp", "--page-name", "rules", "-y"],
+        ["c", "pages", "list", "create", "my-comp"],
+        ["competitions", "pages", "list", "update", "my-comp"],
+    ],
+)
+def test_a_page_verb_after_the_group_is_a_write(args):
+    """`pages` takes an optional competition first: `pages list delete` deletes a page."""
+    assert kaggle_cli.kind(args) == "account"
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["auth", "print-access-token"],
+        ["-W", "auth", "print-access-token"],
+        ["auth", "--", "print-access-token"],
+    ],
+)
+def test_the_token_is_refused_however_it_is_asked_for(kaggle_calls, capsys, args):
+    calls = kaggle_calls('echo "KGAT_secret"\n')
+    assert kaggle_cli.kind(args) == "refused"
+    assert kaggle_cli.main(["--yes", "--", *args]) == 5
+    assert calls() == [] and "KGAT" not in capsys.readouterr().out
+
+
 def test_the_runner_never_prints_the_token(kaggle_calls, capsys):
     calls = kaggle_calls('echo "KGAT_secret"\n')
     assert kaggle_cli.main(["--yes", "--", "auth", "print-access-token"]) == 5
@@ -405,6 +433,20 @@ def test_the_runner_checks_output_names_before_kernels_output(kaggle_calls, caps
     assert "../../.bashrc" in capsys.readouterr().err
     assert [call[:2] for call in calls()] == [["kernels", "files"]], "nothing was downloaded"
     assert calls()[0][2] == "o/k"
+
+
+def test_both_ways_of_naming_the_notebook_are_checked(kaggle_calls, capsys):
+    """`-k safe/nb evil/nb`: the CLI downloads evil/nb, so evil/nb must be checked too."""
+    calls = kaggle_calls(
+        'case "$1 $2 $3" in\n'
+        '  "kernels files evil/nb") echo \'[{"name": "../../.bashrc", "size": 1}]\' ;;\n'
+        '  "kernels files"*) echo \'[{"name": "ok.csv", "size": 1}]\' ;;\n'
+        '  *) echo "downloaded" ;;\n'
+        "esac\n"
+    )
+    code = kaggle_cli.main(["--", "kernels", "output", "-k", "safe/nb", "evil/nb", "-p", "out"])
+    assert code == 5 and "../../.bashrc" in capsys.readouterr().err
+    assert all(call[:2] == ["kernels", "files"] for call in calls()), "nothing was downloaded"
 
 
 def test_the_runner_says_when_the_cli_is_missing(monkeypatch, capsys):

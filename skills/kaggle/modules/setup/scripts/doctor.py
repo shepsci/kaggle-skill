@@ -136,7 +136,11 @@ def collect(verify: bool, network: bool) -> dict:
     report["works"] = {
         "public_reads": reachable,
         "account_reads": reachable and token_ready,
-        "cli_commands": cli_ready and signed_in and up("api.kaggle.com"),
+        # Downloads and the files a submission or an upload sends go through storage.
+        "cli_commands": cli_ready
+        and signed_in
+        and up("api.kaggle.com")
+        and up("storage.googleapis.com"),
         "kagglehub_downloads": report["packages"]["kagglehub"]["ok"]
         and up("api.kaggle.com")
         and up("storage.googleapis.com"),

@@ -71,7 +71,8 @@ submission gives a non-zero exit status and is not recorded.
 `watch` checks every 30 seconds until Kaggle has scored the submission, for
 up to 30 minutes (`--timeout`). It prints the public score, records it, and
 reports the difference from `--expect`. Exit status 124 means it is still
-being scored: run `watch` again.
+being scored: run `watch` again. Exit status 4 means the last check could not
+read the submission, so its state is not known.
 
 `--expect` is the score your own validation predicts. A large difference
 between it and the public score is worth telling the user about: it points at

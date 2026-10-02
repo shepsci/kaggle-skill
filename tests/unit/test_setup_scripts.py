@@ -357,6 +357,19 @@ def test_doctor_counts_a_blocked_download_host(doctor, run_main, monkeypatch):
     assert "no   dataset and model downloads with kagglehub" in out
 
 
+def test_doctor_counts_a_blocked_file_host_for_the_cli(doctor, run_main, monkeypatch):
+    monkeypatch.setenv("KAGGLE_API_TOKEN", TOKEN)
+
+    def no_storage(method, url, **kwargs):
+        if "storage.googleapis.com" in url:
+            raise net.RequestError("connection", "gaierror")
+        return net.Response(200, {}, "", url)
+
+    monkeypatch.setattr(net, "request", no_storage)
+    code, out, _ = run_main(doctor)
+    assert code == 1 and "no   downloads, submissions" in out
+
+
 def test_doctor_sees_an_oauth_login_behind_a_legacy_key(doctor, run_main, monkeypatch, tmp_path):
     """The account reads send the OAuth token even when kaggle.json is found first."""
     kaggle_dir = Path.home() / ".kaggle"
