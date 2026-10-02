@@ -26,8 +26,19 @@ def test_codex_plugin_manifest_paths_and_version():
     assert plugin["version"] == _pyproject_version()
     assert (REPO_ROOT / plugin["skills"]).resolve().is_dir()
     assert (REPO_ROOT / plugin["mcpServers"]).resolve().is_file()
-    assert plugin["interface"]["displayName"] == "Kaggle Skill"
+    assert plugin["interface"]["displayName"] == "Kaggle (unofficial)"
     assert plugin["interface"]["privacyPolicyURL"].startswith("https://")
+    assert plugin["interface"]["brandColor"].upper() != "#20BEFF", (
+        "Kaggle's own blue would suggest an official plugin"
+    )
+
+
+def test_claude_listing_fields_are_set():
+    plugin = _json(".claude-plugin/plugin.json")
+    assert plugin["displayName"] == "Kaggle (unofficial)"
+    assert plugin["documentationUrl"].startswith("https://github.com/shepsci/kaggle-skill")
+    assert plugin["supportUrl"] == "https://github.com/shepsci/kaggle-skill/issues"
+    assert (REPO_ROOT / plugin["icon"]).is_file()
 
 
 def test_codex_repo_marketplace_lists_kaggle_plugin():

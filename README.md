@@ -14,6 +14,9 @@ Codex and other agents that load `SKILL.md` packages. Not affiliated with,
 endorsed by, or sponsored by Kaggle or Google.
 
 <!-- hero:start -->
+![A competition on one screen](docs/demo/media/competition-brief.gif)
+
+What the agent runs and what comes back. [Cast](docs/demo/competition-brief.cast).
 <!-- hero:end -->
 
 ## What you need
@@ -99,6 +102,17 @@ token or an OAuth login. A legacy `kaggle.json` key covers the Kaggle CLI but
 not the commands that read your standing.
 
 <!-- demos:start -->
+## See it work
+
+Solution writeups of the top teams, by rank ([cast](docs/demo/vesuvius-top-writeups.cast)):
+
+![Solution writeups of the top teams](docs/demo/media/vesuvius-top-writeups.gif)
+
+Install in Claude Code and run a first command ([cast](docs/demo/install-and-demo.cast)):
+
+![Install and first command](docs/demo/media/install-and-demo.gif)
+
+The demos show real output; the [demo library](docs/demo/README.md) says how each is made.
 <!-- demos:end -->
 
 ## Update and uninstall

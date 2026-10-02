@@ -87,8 +87,16 @@ def _count(value: Any) -> str:
         return "not given"
 
 
-def fact_lines(info: dict[str, Any], now: datetime | None = None, signed_in: bool = False) -> list:
-    """The facts as aligned ``label: value`` lines, most asked first."""
+def fact_lines(
+    info: dict[str, Any],
+    now: datetime | None = None,
+    signed_in: bool = False,
+    extra: list[tuple[str, str]] | None = None,
+) -> list:
+    """The facts as aligned ``label: value`` lines, most asked first.
+
+    ``extra`` rows are added at the end and aligned with the rest.
+    """
     now = now or text.now_utc()
     deadline = text.parse_time(info.get("deadline"))
     rows: list[tuple[str, str]] = [
@@ -124,6 +132,7 @@ def fact_lines(info: dict[str, Any], now: datetime | None = None, signed_in: boo
             rows.append(("you", "not entered"))
     if deadline is not None and deadline < now:
         rows.append(("state", "ended"))
+    rows += extra or []
     width = max(len(label) for label, _ in rows) + 1
     return [f"  {label + ':':<{width}} {value}" for label, value in rows]
 

@@ -165,12 +165,118 @@ def test_gif_screen_wraps_and_scrolls():
     ]
 
 
-def test_every_cast_file_has_a_definition_in_the_builder(tmp_path):
+def test_every_cast_file_has_a_definition_or_a_recorded_session(tmp_path):
     import build_casts
 
     defined = {cast.name for cast in build_casts.casts(tmp_path)}
+    recorded = {session["name"] for session in build_casts.sessions()}
     committed = {path.stem for path in (REPO_ROOT / "docs" / "demo").glob("*.cast")}
-    assert committed == defined
+    assert committed == defined | recorded
+    assert not defined & recorded
+
+
+def test_long_lines_wrap_at_words_under_their_own_text():
+    import build_casts
+
+    cols = build_casts.COLS
+    line = "  deadline:    " + "word " * 12
+    rows = build_casts._wrap_row(line.rstrip())
+    assert all(len(row) <= cols for row in rows) and len(rows) == 2
+    assert rows[1].startswith(" " * 15 + "word"), "the continuation sits under the value"
+    assert build_casts._wrap_row("short") == ["short"]
+    url = "  url: https://www.kaggle.com/" + "x" * 60
+    rows = build_casts._wrap_row(url)
+    assert rows[0].startswith("  url: https://") and "".join(r.strip() for r in rows).endswith("x")
+
+
+def test_the_screen_is_narrow_enough_to_read_on_a_phone():
+    """48 columns: GitHub shrinks the image to about 343 pixels on a phone."""
+    import build_casts
+
+    assert build_casts.COLS <= 60
+    font = build_casts._font()
+    width = build_casts.COLS * font.getlength("M") + 36
+    assert build_casts.FONT_SIZE * 343 / width >= 10.5
+
+
+SESSION = {
+    "name": "agent-example",
+    "title": "An example",
+    "recorded": "2026-10-02",
+    "agent": "Claude Code (Claude Opus 5.5)",
+    "agent_short": "Claude",
+    "question": "What is the metric of the Titanic competition on Kaggle?",
+    "steps": [
+        {
+            "command": "python3 scripts/kaggle_skill.py brief titanic",
+            "output": '<untrusted-content-0a1b2c3d source="kaggle-mcp">\n'
+            + "\n".join(f"line {n}" for n in range(30))
+            + "\n</untrusted-content-0a1b2c3d>",
+            "show_lines": 4,
+        }
+    ],
+    "answer": "Categorization accuracy.\n- It is the share of passengers predicted correctly.",
+}
+
+
+def test_a_recorded_session_becomes_events_without_running_anything(monkeypatch):
+    import build_casts
+
+    def forbidden(*args, **kwargs):
+        raise AssertionError("a session is a recording; nothing may be run")
+
+    monkeypatch.setattr(build_casts.subprocess, "run", forbidden)
+    events = build_casts.session_events(SESSION)
+    text = "".join(event[2] for event in events).replace("\r\n", "\n")
+    assert text.startswith("You\n  What is the metric")
+    assert "Claude runs\n  $ python3 scripts/kaggle_skill.py brief titanic\n" in text
+    assert "  line 2\n  … (27 more lines)\n  </untrusted-content-0a1b2c3d>" in text
+    assert "  - It is the share of passengers" in text and text.rstrip().endswith("correctly.")
+    stamps = [event[0] for event in events]
+    assert stamps == sorted(stamps) and stamps[-1] <= 15
+
+
+def test_a_session_as_markdown_for_the_readme():
+    import build_casts
+
+    markdown = build_casts.session_markdown(SESSION)
+    assert markdown.splitlines()[0] == (
+        "> **You:** What is the metric of the Titanic competition on Kaggle?"
+    )
+    assert "`python3 scripts/kaggle_skill.py brief titanic`" in markdown
+    assert markdown.splitlines()[-1].startswith("> - It is the share")
+    assert all(line.startswith(">") for line in markdown.splitlines())
+
+
+def test_a_session_file_must_be_complete(tmp_path):
+    import build_casts
+
+    path = tmp_path / "broken.json"
+    path.write_text(json.dumps({"name": "x"}))
+    with pytest.raises(ValueError, match="has no 'title'"):
+        build_casts.load_session(path)
+
+
+def test_readme_blocks_use_a_recorded_session_only_when_its_gif_exists(monkeypatch, tmp_path):
+    import build_casts
+
+    monkeypatch.setattr(build_casts, "MEDIA_DIR", tmp_path)
+    hero = {**SESSION, "name": build_casts.HERO_SESSION}
+    blocks = build_casts.readme_blocks({hero["name"]: hero})
+    assert "competition-brief.gif" in blocks["hero"], "no GIF yet: the command demo stands in"
+    (tmp_path / f"{build_casts.HERO_SESSION}.gif").write_bytes(b"GIF89a")
+    blocks = build_casts.readme_blocks({hero["name"]: hero})
+    assert "> **You:** What is the metric" in blocks["hero"]
+    assert f"docs/demo/media/{build_casts.HERO_SESSION}.gif" in blocks["hero"]
+    assert "Recorded 2026-10-02 in Claude Code (Claude Opus 5.5)" in blocks["hero"]
+    assert "install-and-demo.gif" in blocks["demos"]
+
+    text = "a\n<!-- hero:start -->\nold\n<!-- hero:end -->\nb\n"
+    assert build_casts._replace_block(text, "hero", "new") == (
+        "a\n<!-- hero:start -->\nnew\n<!-- hero:end -->\nb\n"
+    )
+    with pytest.raises(ValueError):
+        build_casts._replace_block("no markers", "hero", "x")
 
 
 # ── check_oauth_registration ─────────────────────────────────────────────────

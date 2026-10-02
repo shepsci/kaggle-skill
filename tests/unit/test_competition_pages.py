@@ -245,7 +245,7 @@ def test_brief_prints_the_facts_in_a_few_hundred_characters(
         "submit with: a file",
         "medals:      none",
         "tags:        tabular, beginner",
-        "pages (characters): rules (",
+        "pages:       rules (",
     ):
         assert expected in body, expected
     assert "you:" not in body, "nothing about the account without a credential"
@@ -282,7 +282,7 @@ def test_brief_marks_an_ended_competition_and_closed_submissions(brief, fake_mcp
 def test_brief_still_works_when_the_pages_call_fails(brief, fake_mcp, run_main, blocks):
     fake_mcp({"get_competition": FACTS})
     code, out, _ = run_main(brief, "titanic")
-    assert code == 0 and "pages (characters)" not in blocks(out)[0].body
+    assert code == 0 and "pages:" not in blocks(out)[0].body
 
 
 def test_brief_json_and_full(brief, fake_mcp, run_main, blocks):
@@ -336,6 +336,7 @@ def test_brief_says_how_much_data_there_is(brief, fake_mcp, run_main, blocks):
         }
     )
     mod_out = run_main(brief, "rsna-knee")[1]
-    assert "  data: 819,640 files, 569.8 GB (.dcm 569.8 GB, .csv 9.2 MB)" in blocks(mod_out)[0].body
+    body = blocks(mod_out)[0].body
+    assert "  data:        819,640 files, 569.8 GB (.dcm 569.8 GB, .csv 9.2 MB)" in body
     info = blocks(run_main(brief, "rsna-knee", "--json")[1])[0].json()
     assert info["data"]["bytes"] == 569764475800 and info["data"]["types"][0]["extension"] == ".dcm"

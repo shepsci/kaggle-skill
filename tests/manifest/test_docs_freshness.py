@@ -93,7 +93,9 @@ def test_readme_demo_links_to_committed_cast_source():
     )
 
 
-def test_readme_first_embedded_image_is_vesuvius_demo():
+def test_readme_first_embedded_image_shows_an_answer():
+    """Most visitors see only the top of the README. The first demo there is the recorded
+    agent session when there is one, and the competition brief until then: never an install."""
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     images = [
         image
@@ -101,7 +103,38 @@ def test_readme_first_embedded_image_is_vesuvius_demo():
         if image.startswith("docs/demo/")
     ]
     assert images, "README should embed at least one demo image"
-    assert images[0] == "docs/demo/media/vesuvius-top-writeups.gif"
+    session = REPO_ROOT / "docs" / "demo" / "sessions" / "agent-brief.json"
+    expected = "agent-brief" if session.exists() else "competition-brief"
+    assert images[0] == f"docs/demo/media/{expected}.gif"
+    assert len(images) <= 4, "a few demos; the rest are in the demo library"
+
+
+def test_readme_demo_blocks_are_what_the_builder_writes():
+    """The blocks between the markers are generated: run tools/build_casts.py --readme."""
+    import sys
+
+    sys.path.insert(0, str(REPO_ROOT / "tools"))
+    import build_casts
+
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    recorded = {session["name"]: session for session in build_casts.sessions()}
+    for name, body in build_casts.readme_blocks(recorded).items():
+        assert build_casts._replace_block(readme, name, body) == readme, (
+            f"the {name} block in README.md is stale"
+        )
+
+
+def test_recorded_sessions_say_what_they_are():
+    for path in sorted((REPO_ROOT / "docs" / "demo" / "sessions").glob("*.json")):
+        session = json.loads(path.read_text(encoding="utf-8"))
+        assert path.stem == session["name"]
+        assert re.fullmatch(r"\d{4}-\d{2}-\d{2}", session["recorded"])
+        assert session["question"].strip() and session["answer"].strip() and session["steps"]
+        for step in session["steps"]:
+            assert step["command"].startswith("python3 "), "the command as it was run"
+            assert step["output"].strip()
+        for pattern in SECRET_PATTERNS:
+            assert not pattern.search(path.read_text(encoding="utf-8")), path.name
 
 
 def test_vesuvius_demo_has_readme_gif_preview_and_cast_source():
@@ -145,8 +178,9 @@ def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
 
     header = json.loads(lines[0])
     assert header["version"] == 2
-    assert header["width"] >= 80
-    assert header["height"] >= 20
+    # Narrow on purpose: the GIF has to be readable at a phone's width.
+    assert 40 <= header["width"] <= 60
+    assert header["height"] >= 16
 
     previous_time = -1.0
     duration = 0.0
@@ -171,8 +205,8 @@ def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
         )
 
     assert event_count > 0
-    assert 4.0 <= duration <= 90.0, (
-        f"{cast.relative_to(REPO_ROOT)} duration should be readable and under 90 seconds"
+    assert 2.0 <= duration <= 15.0, (
+        f"{cast.relative_to(REPO_ROOT)} should be short: about ten seconds, fifteen at most"
     )
 
 
@@ -216,16 +250,22 @@ def test_vesuvius_cast_demonstrates_top_three_writeup_previews():
     text = _cast_text(REPO_ROOT / "docs" / "demo" / "vesuvius-top-writeups.cast")
     required = [
         "vesuvius-challenge-surface-detection",
-        "--top-k 3",
+        "--top 3",
         "--preview",
-        '"rank": 1',
-        '"rank": 2',
-        '"rank": 3',
-        '"preview"',
-        '"excerpt"',
+        "#1",
+        "#2",
+        "#3",
+        "solution writeups linked from",
+        "/writeups/",
     ]
     missing = [term for term in required if term not in text]
     assert not missing, f"Vesuvius demo is missing expected proof points: {missing}"
+
+
+def test_command_demos_run_the_entry_point():
+    for name in ("vesuvius-top-writeups", "competition-brief", "install-and-demo"):
+        text = _cast_text(REPO_ROOT / "docs" / "demo" / f"{name}.cast")
+        assert "$ python3 scripts/kaggle_skill.py " in text, name
 
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))
@@ -244,7 +284,6 @@ def test_casts_that_print_kaggle_text_show_a_block():
     for name in (
         "vesuvius-top-writeups",
         "competition-brief",
-        "hackathon-writeups",
         "install-and-demo",
     ):
         text = _cast_text(REPO_ROOT / "docs" / "demo" / f"{name}.cast")
@@ -255,8 +294,6 @@ def test_casts_show_the_current_version_and_surface():
     codex = _cast_text(REPO_ROOT / "docs" / "demo" / "codex-install.cast")
     version = json.loads((REPO_ROOT / ".claude-plugin" / "plugin.json").read_text())["version"]
     assert f'"version": "{version}"' in codex, "rebuild the casts after a version change"
-    mcp = _cast_text(REPO_ROOT / "docs" / "demo" / "mcp-config.cast")
-    assert '"type": "http"' in mcp and "Authorization" not in mcp and "Bearer" not in mcp
 
 
 @pytest.mark.parametrize("cast", sorted((REPO_ROOT / "docs" / "demo").glob("*.cast")))

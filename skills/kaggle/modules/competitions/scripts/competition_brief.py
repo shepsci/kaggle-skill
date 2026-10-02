@@ -86,24 +86,31 @@ def main(argv: list[str] | None = None) -> int:
         untrusted.emit_json(info, indent=indent, **attrs)
         return script.EXIT_OK
 
+    extra: list[tuple[str, str]] = []
+    if info["data"]:
+        kinds = ", ".join(
+            f"{k['extension'] or 'other'} {text.human_size(k['bytes'])}"
+            for k in info["data"]["types"][:4]
+        )
+        extra.append(
+            (
+                "data",
+                f"{info['data']['files']:,} files, {text.human_size(info['data']['bytes'])} "
+                f"({kinds})",
+            )
+        )
+    if info["pages"]:
+        first, *rest = info["pages"]
+        names = [f"{first['name']} ({first['chars']:,} characters)"]
+        names += [f"{p['name']} ({p['chars']:,})" for p in rest]
+        extra.append(("pages", ", ".join(names)))
+
     with untrusted.Block(**attrs) as block:
         block.write(info["title"])
         if info["description"]:
             block.write(info["description"])
-        for line in competition.fact_lines(info, signed_in=bool(token)):
+        for line in competition.fact_lines(info, signed_in=bool(token), extra=extra):
             block.write(line)
-        if info["data"]:
-            kinds = ", ".join(
-                f"{k['extension'] or 'other'} {text.human_size(k['bytes'])}"
-                for k in info["data"]["types"][:4]
-            )
-            block.write(
-                f"  data: {info['data']['files']:,} files, "
-                f"{text.human_size(info['data']['bytes'])} ({kinds})"
-            )
-        if info["pages"]:
-            names = ", ".join(f"{p['name']} ({p['chars']:,})" for p in info["pages"])
-            block.write(f"  pages (characters): {names}")
     return script.EXIT_OK
 
 
