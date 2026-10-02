@@ -1,34 +1,41 @@
 # Notebooks
 
-Publishing notebooks, running them on Kaggle, waiting for the run, and
+Pushing notebooks, running them on Kaggle, waiting for the run, and
 downloading the output.
 
 ```bash
-bash modules/notebooks/scripts/cli_publish.sh ./notebook-dir
-bash modules/notebooks/scripts/cli_execute.sh ./notebook-dir username/kernel-slug ./output 3600
-bash modules/notebooks/scripts/poll_kernel.sh username/kernel-slug ./output 30 3600
+python3 scripts/kaggle_skill.py notebook-push ./notebook-dir          # dry run
+python3 scripts/kaggle_skill.py notebook-run ./notebook-dir --yes
+python3 scripts/kaggle_skill.py notebook-wait username/notebook-name --timeout 7200
 ```
 
-- `cli_publish.sh` pushes the folder. Pushing also starts a run.
-- `cli_execute.sh` pushes, waits for the run, and downloads the output. The
-  last argument is the longest time to wait, in seconds.
-- `poll_kernel.sh` waits for a run that already started: output folder,
-  seconds between checks, longest time to wait.
+- `notebook-push` pushes the folder as a new version. Pushing also starts a
+  run.
+- `notebook-run` pushes, waits for the run, and downloads the output.
+- `notebook-wait` waits for a run that has already started, then downloads
+  its output. `--no-output` only waits.
+
+`--timeout` is the longest wait in seconds (default 3600) and `--interval`
+the time between checks (default 30). The output goes to `--out`, by default
+`./downloads/<notebook-name>-output`.
 
 The folder needs `kernel-metadata.json` (`kaggle kernels init -p <dir>` writes
-a template). Its `id` must be the `username/kernel-slug` you pass.
+a template). The notebook's name is read from its `id`, so the run that is
+watched is the one that was pushed.
 
-Before a push, confirm with the user: the notebook's visibility, its data
-sources, whether it uses a GPU, and the expected run time. A GPU run uses the
-account's weekly quota (`kaggle quota`), and only two GPU runs can be active
-at once.
+Without `--yes`, `notebook-push` and `notebook-run` only print what would be
+pushed: the notebook, its visibility, whether it uses a GPU, whether the
+internet is on, and its competition. Show that to the user before `--yes`. A
+GPU run uses the account's weekly hours (`status <competition>` shows them),
+and only two GPU runs can be active at once.
 
-## What the scripts check
+## What the commands check
 
-- A push that the CLI rejects ("Kernel push error") stops the script. The CLI
-  itself exits with 0 in that case.
+- A push that the CLI rejects ("Kernel push error") stops the command. The
+  CLI itself exits with 0 in that case.
 - The status is read from the quoted word in the CLI's status line, so a
   notebook whose name contains "complete" or "error" is not misread.
+- When a run fails, the last 40 lines of its log are printed, not all of it.
 - Output is downloaded only after the file names are checked: a name that
   would land outside the output folder stops the download (exit status 5).
 - The notebook folder is checked for credential files before the push
@@ -38,9 +45,12 @@ at once.
 
 | Code | Meaning |
 |---|---|
-| 0 | Output downloaded |
+| 0 | Output downloaded; or a dry run |
 | 1 | The push failed, or the run failed or was cancelled |
-| 2 | Wrong arguments |
+| 2 | Wrong arguments, or no credential |
 | 4 | The status or the output listing could not be read |
 | 5 | Refused for safety |
-| 124 | Still running after the longest wait. Run `poll_kernel.sh` to keep waiting |
+| 124 | Still running after the longest wait. Run `notebook-wait` to keep waiting |
+
+The scripts are `scripts/notebook_push.py`, `scripts/notebook_run.py` and
+`scripts/notebook_wait.py`.

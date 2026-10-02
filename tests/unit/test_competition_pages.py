@@ -226,7 +226,11 @@ def test_brief_prints_the_facts_in_a_few_hundred_characters(
     state = fake_mcp({"get_competition": FACTS, "list_competition_pages": PAGE_SET})
     code, out, err = run_main(brief, "titanic")
     assert code == 0 and err == ""
-    assert [call.tool for call in state.calls] == ["get_competition", "list_competition_pages"]
+    assert [call.tool for call in state.calls] == [
+        "get_competition",
+        "list_competition_pages",
+        "get_competition_data_files_summary",
+    ]
     assert all(call.token == "" for call in state.calls)
     [block] = blocks(out)
     body = block.body
@@ -312,3 +316,26 @@ def test_the_scripts_use_the_tools_they_say(repo_root):
         json.dumps("list_competition_pages")
         in (repo_root / "skills/kaggle/shared/competition.py").read_text()
     )
+
+
+def test_brief_says_how_much_data_there_is(brief, fake_mcp, run_main, blocks):
+    summary = {
+        "file_summary_info": {
+            "total_file_count": "819640",
+            "file_types": [
+                {"extension": ".csv", "file_count": "5", "total_size": "9151736"},
+                {"extension": ".dcm", "file_count": "819635", "total_size": "569755324064"},
+            ],
+        }
+    }
+    fake_mcp(
+        {
+            "get_competition": FACTS,
+            "list_competition_pages": PAGE_SET,
+            "get_competition_data_files_summary": summary,
+        }
+    )
+    mod_out = run_main(brief, "rsna-knee")[1]
+    assert "  data: 819,640 files, 569.8 GB (.dcm 569.8 GB, .csv 9.2 MB)" in blocks(mod_out)[0].body
+    info = blocks(run_main(brief, "rsna-knee", "--json")[1])[0].json()
+    assert info["data"]["bytes"] == 569764475800 and info["data"]["types"][0]["extension"] == ".dcm"

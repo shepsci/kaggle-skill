@@ -103,7 +103,7 @@ the user explicitly asks for the full lifecycle.
 Benchmarks have discussion topics:
 
 ```bash
-python3 modules/discussions/scripts/forums.py resource-topics benchmarks kaggle/chess
+python3 scripts/kaggle_skill.py discussions resource-topics benchmarks kaggle/chess
 ```
 
 Use this when a benchmark task fails or produces surprising results. Topic

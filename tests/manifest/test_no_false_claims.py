@@ -146,7 +146,7 @@ def _candidate_script_paths(doc: Path, raw_target: str) -> list[Path]:
     if "$" in target or target.startswith(("http://", "https://")):
         return []
     candidates = [REPO_ROOT / target]
-    if target.startswith(("modules/", "shared/")):
+    if target.startswith(("modules/", "shared/", "scripts/")):
         candidates.append(SKILL_ROOT / target)
     if target.startswith(("scripts/", "./", "../")):
         candidates.append(doc.parent / target)

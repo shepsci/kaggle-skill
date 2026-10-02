@@ -330,7 +330,7 @@ them. The full schema of any tool is in the `tools/list` answer.
 ## Common sequences
 
 **Read a competition's rules and metric.** `list_competition_pages`. No
-credential. Script: `modules/competitions/scripts/competition_pages.py`.
+credential. Commands: `brief` and `pages`.
 
 **Retrieve hackathon writeups.**
 
@@ -343,11 +343,18 @@ credential. Script: `modules/competitions/scripts/competition_pages.py`.
    part of the row's `url`.
 5. `get_resolved_writeup_links`: hosts, judges, and admins only.
 
-Scripts: `modules/competitions/hackathons/scripts/`.
+Commands: `hackathon`, `writeups`, `writeup`.
 
 **Find solution writeups for a finished competition.** `search_content` with
-`filters.query` and `filters.competitionIds`, or the leaderboard script
-`modules/discussions/scripts/leaderboard_writeups.py`. No credential.
+`filters.query` and `filters.competitionIds`, or the `solutions` command,
+which reads the leaderboard's writeup links. No credential.
+
+**Where you stand in a competition.** `get_competition` (with a credential
+it adds `user_has_entered` and `user_rank`), `search_competition_submissions`,
+`get_competition_leaderboard` (at most 200 rows a call, no rank field: the
+rank is the position), and `get_accelerator_quota`. Command: `status`.
+There is no tool for the number of submissions left today; the Kaggle CLI's
+`competitions submission-limits` has it.
 
 **There is no tool that creates or edits a writeup.** That is done on
 kaggle.com.

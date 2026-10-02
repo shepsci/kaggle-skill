@@ -48,7 +48,7 @@ specific one. An upload creates the model and the variation if they are new,
 and a new version if they exist. New models are private.
 
 Everything in the folder is uploaded except what `ignore_patterns` matches.
-The skill's `kagglehub_publish.py` refuses a folder that holds a credential
+The skill's `model-publish` command refuses a folder that holds a credential
 file.
 
 Use `sigstore=True` only when `kagglehub[signing]` is installed and the user

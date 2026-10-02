@@ -22,10 +22,34 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import competition, credentials, mcp_client, script, untrusted  # noqa: E402
+from shared import competition, credentials, mcp_client, script, text, untrusted  # noqa: E402
 
 SOURCE = "kaggle-mcp"
 TOOL = competition.FACTS_TOOL
+
+
+def data_facts(slug: str) -> dict | None:
+    """How much data the competition has, or None when Kaggle does not say."""
+    result = mcp_client.request(
+        "get_competition_data_files_summary", {"competitionName": slug}, token=""
+    )
+    summary = result.data.get("file_summary_info") if isinstance(result.data, dict) else None
+    if not result.ok or not isinstance(summary, dict):
+        return None
+    try:
+        types = [
+            {
+                "extension": str(kind.get("extension") or ""),
+                "files": int(kind.get("file_count") or 0),
+                "bytes": int(kind.get("total_size") or 0),
+            }
+            for kind in summary.get("file_types") or []
+        ]
+        files = int(summary.get("total_file_count") or 0)
+    except (TypeError, ValueError, AttributeError):
+        return None
+    types.sort(key=lambda kind: kind["bytes"], reverse=True)
+    return {"files": files, "bytes": sum(kind["bytes"] for kind in types), "types": types}
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -56,6 +80,7 @@ def main(argv: list[str] | None = None) -> int:
     # here is not worth failing the brief for.
     pages = competition.pages_of(competition.fetch_pages(slug, token).data)
     info["pages"] = [{"name": p.get("name"), "chars": len(p.get("content") or "")} for p in pages]
+    info["data"] = data_facts(slug)
 
     if args.json:
         untrusted.emit_json(info, indent=indent, **attrs)
@@ -67,6 +92,15 @@ def main(argv: list[str] | None = None) -> int:
             block.write(info["description"])
         for line in competition.fact_lines(info, signed_in=bool(token)):
             block.write(line)
+        if info["data"]:
+            kinds = ", ".join(
+                f"{k['extension'] or 'other'} {text.human_size(k['bytes'])}"
+                for k in info["data"]["types"][:4]
+            )
+            block.write(
+                f"  data: {info['data']['files']:,} files, "
+                f"{text.human_size(info['data']['bytes'])} ({kinds})"
+            )
         if info["pages"]:
             names = ", ".join(f"{p['name']} ({p['chars']:,})" for p in info["pages"])
             block.write(f"  pages (characters): {names}")
