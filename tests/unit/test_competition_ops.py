@@ -517,6 +517,31 @@ def test_the_sample_is_found_past_the_first_page_of_files(
     assert [c.request.get("pageToken") for c in state.calls] == [None, "p2"]
 
 
+def test_titanics_sample_is_found_in_the_download_folder(
+    load, run_main, blocks, tmp_path, monkeypatch
+):
+    """Titanic's sample is gender_submission.csv, which the usual name pattern misses."""
+    monkeypatch.chdir(tmp_path)
+    Path("downloads/titanic").mkdir(parents=True)
+    for name in ("train.csv", "test.csv"):
+        _csv(Path("downloads/titanic") / name, "id,x\n1,2\n")
+    _csv(Path("downloads/titanic/gender_submission.csv"), SAMPLE)
+    _csv(Path("submission_v1.csv"), SAMPLE)
+    _csv(Path("submission.csv"), "id,target\n1,1\n2,0\n3,1\n")
+    code, out, _ = run_main(load("competition_validate"), "titanic", "submission.csv")
+    assert code == 0 and "against the sample gender_submission.csv" in blocks(out)[0].body
+
+
+def test_an_earlier_submission_is_never_taken_for_the_sample(load):
+    pick = load("competition_validate").pick_sample
+    assert pick(["submission_v1.csv", "submission_v2.csv"], loose=True) is None
+    assert pick(["submission_v1.csv"], loose=False) is None
+    assert pick(["gender_submission.csv", "train.csv"], loose=True) == "gender_submission.csv"
+    assert pick(["sample_submission.csv", "gender_submission.csv"], loose=True) == (
+        "sample_submission.csv"
+    )
+
+
 def test_validate_finds_a_local_sample_and_handles_a_byte_order_mark(
     load, run_main, blocks, tmp_path, monkeypatch
 ):

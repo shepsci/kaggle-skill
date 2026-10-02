@@ -15,7 +15,9 @@ it cannot check a format rule that only the evaluation page states.
 The sample is the file given with --sample. Without it the script looks for a
 file named like sample_submission next to the submission and in ./data,
 ./input and ./downloads/<competition>, and then downloads it from Kaggle,
-which needs the Kaggle CLI, a credential and the accepted rules.
+which needs the Kaggle CLI, a credential and the accepted rules. In a data
+folder, and in Kaggle's file list, the only CSV with "submission" in its name
+also counts: Titanic's sample is gender_submission.csv.
 
 Exit status: 0 every check passed (warnings allowed), 1 a check failed, 2 the
 file is missing or is not a CSV, 4 no sample submission could be found.
@@ -50,25 +52,44 @@ MAX_LISTING_PAGES = 50  # 200 file names a page
 csv.field_size_limit(2**31 - 1)
 
 
+def pick_sample(names: list[str], *, loose: bool) -> str | None:
+    """The sample submission among file names, or None.
+
+    A name like sample_submission.csv wins. With ``loose``, for a folder of
+    downloaded data or Kaggle's file list, the only CSV with "submission" in
+    its name counts too. Not next to the submission: your own earlier
+    submissions sit there.
+    """
+    csvs = [name for name in names if name.lower().endswith(".csv")]
+    named = [name for name in csvs if SAMPLE_NAME_RE.search(Path(name).name)]
+    if named:
+        return min(named, key=len)
+    loose_named = [name for name in csvs if "submission" in Path(name).name.lower()]
+    return loose_named[0] if loose and len(loose_named) == 1 else None
+
+
 def find_local_sample(slug: str, submission: Path) -> Path | None:
     """A sample submission in the usual places, or None."""
     folders = [
-        submission.parent,
-        Path("."),
-        Path("data"),
-        Path("input"),
-        Path("downloads") / slug,
-        Path(slug),
+        (submission.parent, False),
+        (Path("."), False),
+        (Path("data"), True),
+        (Path("input"), True),
+        (Path("downloads") / slug, True),
+        (Path(slug), True),
     ]
-    for folder in folders:
+    for folder, loose in folders:
         try:
-            candidates = sorted(p for p in folder.iterdir() if p.is_file())
+            names = sorted(
+                p.name
+                for p in folder.iterdir()
+                if p.is_file() and p.resolve() != submission.resolve()
+            )
         except OSError:
             continue
-        for path in candidates:
-            if path.suffix.lower() == ".csv" and SAMPLE_NAME_RE.search(path.name):
-                if path.resolve() != submission.resolve():
-                    return path
+        found = pick_sample(names, loose=loose)
+        if found:
+            return folder / found
     return None
 
 
@@ -89,10 +110,9 @@ def download_sample(slug: str, folder: Path) -> tuple[Path | None, str]:
         if not files or not page_token:
             break
         request = {**request, "pageToken": page_token}
-    matches = [n for n in names if SAMPLE_NAME_RE.search(n) and n.lower().endswith(".csv")]
-    if not matches:
+    name = pick_sample(names, loose=True)
+    if not name:
         return None, "the competition has no file named like sample_submission.csv"
-    name = min(matches, key=len)
     if "/" in name or "\\" in name or name.startswith("."):
         return None, "the sample submission is inside a folder; download it and pass --sample"
     if not kaggle_cli.installed():
