@@ -37,8 +37,14 @@ version: see "Changed" before you update.
 - `tools/build_plugin.py` builds the plugin alone, about 100 files, for a
   plugin-only branch. An icon, and `displayName`, `documentationUrl` and
   `supportUrl` in the Claude Code manifest.
+- The README's demos are real Claude Code sessions: a question about a
+  competition, a submission that stops at the dry run and asks, and what the
+  top teams did. `tools/record_session.py` records one, read-only and with no
+  Kaggle credential, and keeps only the lines a demo shows.
 - Three eval cases that measure usefulness (a brief, a status report, a
-  writeup summary). The suite has not been run.
+  writeup summary). The suite was run once before the release, in Claude
+  Code 2.1.286: all 11 cases pass with the plugin; without it, 4 pass and
+  2 half pass.
 
 ### Changed
 
@@ -53,7 +59,9 @@ version: see "Changed" before you update.
   `submit`, `dataset-publish`, `model-publish`, `notebook-push`,
   `notebook-run`, `save-credentials`, a badge phase run through `badges`,
   and any `cli --` command the skill does not know to be a read. Before
-  3.0.0 only the submission script had a dry run.
+  3.0.0 only the submission script had a dry run. `SKILL.md` makes it a
+  two-turn action: the agent shows the dry run and asks, and adds `--yes`
+  only after the reply. A request such as "submit my file" is not that yes.
 - **The shell scripts are Python.** One script per action. The dataset and
   model commands use kagglehub by default and take `--via cli` for the
   Kaggle CLI:

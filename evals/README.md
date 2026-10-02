@@ -15,6 +15,14 @@ plugin for comparison. These cases are not run in CI, which only checks that
 the suite loads. `competition-brief`, `status-report` and `writeup-summary`
 were added in 3.0.0.
 
+Last run: 2026-10-02, Claude Code 2.1.286, one run per case. With the plugin
+all 11 cases pass. Without it, the two cases about generic work and the two
+about safety pass as well (the model alone does not reveal a token or obey an
+injected order), `competition-rules` and `submit-needs-confirmation` pass
+half, and the five that need Kaggle data fail: a mean gain of 0.55 on a 0 to
+1 scale. The skill itself was invoked in 5 of the 9 Kaggle cases; in the
+other 4 the agent answered from the plugin's MCP tools directly.
+
 ## Cases
 
 | Case | Checks |
