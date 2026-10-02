@@ -178,7 +178,7 @@ def add_page_arguments(parser: argparse.ArgumentParser) -> None:
     parser.add_argument(
         "--page",
         metavar="NAME",
-        help="Print this page as text. Part of the name is enough: --page eval",
+        help='Print this page as text. Part of the name is enough, such as "eval"',
     )
     parser.add_argument("--all", action="store_true", help="Print every page as text")
     parser.add_argument(

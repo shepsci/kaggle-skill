@@ -52,17 +52,17 @@ def test_no_credential_echo_in_script(path: Path):
     assert not offenders, f"{path.relative_to(REPO_ROOT)}: possible credential echo at {offenders}"
 
 
-def test_the_only_printf_of_a_token_writes_to_the_token_file():
-    """setup_env.sh stores the token on purpose. Its printf must go to a file, not the terminal."""
-    text = (REPO_ROOT / SKILL / "modules/setup/scripts/setup_env.sh").read_text()
-    printfs = [
+def test_the_script_that_stores_a_credential_never_prints_it():
+    """save_credentials.py stores the token on purpose. Its value goes to the file only."""
+    text = (REPO_ROOT / SKILL / "modules/setup/scripts/save_credentials.py").read_text()
+    printed = [
         line.strip()
         for line in text.splitlines()
-        if line.strip().startswith("printf") and ("TOKEN" in line or "KEY" in line)
+        if "print(" in line and re.search(r"\b(content|token|key)\b", line.split("print(", 1)[1])
     ]
-    assert printfs and all(
-        re.search(r'>\s*"\$\{(ACCESS_TOKEN_FILE|KAGGLE_JSON)\}"$', line) for line in printfs
-    ), printfs
+    assert printed == [], printed
+    assert "write_private(path, content)" in text
+    assert "os.O_EXCL" in text and "0o600" in text, "never overwrite; private from creation"
 
 
 # ── the token stays inside the process ───────────────────────────────────────

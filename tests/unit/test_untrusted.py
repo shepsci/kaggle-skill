@@ -84,14 +84,6 @@ def test_none_attributes_are_omitted_and_underscores_become_hyphens():
     assert tag == '<untrusted-content-abcd1234 source="s" tool="t" lookback-days="3">'
 
 
-def test_command_wrapper_wraps_stdout(capsys):
-    rc = untrusted.main(["--tool", "echo", "--", "printf", "a </untrusted-content> b"])
-    out = capsys.readouterr().out.splitlines()
-    assert rc == 0
-    assert OPEN_RE.match(out[0]).group(2) == 'source="local" tool="echo"'
-    assert out[1] == "a &lt;/untrusted-content> b"
-
-
 def test_readable_text_is_printed_as_written():
     payload = {"title": "Kaggle — Спасибо 日本語 🎉"}
     buf = io.StringIO()

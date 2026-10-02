@@ -190,39 +190,3 @@ def emit_json(
     """Print a JSON document as one block."""
     with Block(source=source, tool=tool, file=file, **attrs) as block:
         block.write_json(obj, indent=indent, sort_keys=sort_keys)
-
-
-def main(argv: list[str] | None = None) -> int:
-    """Run a local command and print its stdout as one untrusted block.
-
-    Used by the shell wrappers for listings whose file names come from Kaggle::
-
-        python3 shared/untrusted.py --source local --tool ls -- ls -la ./downloads
-    """
-    import argparse
-    import subprocess
-
-    parser = argparse.ArgumentParser(description="Wrap a command's output as untrusted content.")
-    parser.add_argument("--source", default="local")
-    parser.add_argument("--tool", required=True)
-    parser.add_argument("cmd", nargs=argparse.REMAINDER, help="-- followed by the command")
-    ns = parser.parse_args(argv)
-    cmd = ns.cmd[1:] if ns.cmd[:1] == ["--"] else ns.cmd
-    if not cmd:
-        parser.error("no command given")
-    try:
-        result = subprocess.run(cmd, capture_output=True, text=True, check=False)
-    except FileNotFoundError:
-        print(f"error: command not found: {cmd[0]}", file=sys.stderr)
-        return 127
-    with Block(source=ns.source, tool=ns.tool) as block:
-        if result.stdout:
-            block.write(result.stdout)
-    if result.stderr.strip():
-        with Block(source=ns.source, tool=ns.tool, stream="stderr", file=sys.stderr) as block:
-            block.write(result.stderr)
-    return result.returncode
-
-
-if __name__ == "__main__":
-    sys.exit(main())

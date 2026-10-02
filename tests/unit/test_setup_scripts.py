@@ -1,19 +1,18 @@
-"""Tests for the setup scripts: the credential checker, setup_env.sh, network_check.sh."""
+"""Tests for the setup scripts: the credential checker, save_credentials.py, doctor.py."""
 
 from __future__ import annotations
 
 import json
-import os
 import stat
-import subprocess
 from pathlib import Path
 
 import pytest
-from conftest import write_stub
+
+from shared import net
 
 CHECKER = "skills/kaggle/modules/setup/scripts/check_all_credentials.py"
-SETUP_ENV = "skills/kaggle/modules/setup/scripts/setup_env.sh"
-NETWORK_CHECK = "skills/kaggle/modules/setup/scripts/network_check.sh"
+SAVE = "skills/kaggle/modules/setup/scripts/save_credentials.py"
+DOCTOR = "skills/kaggle/modules/setup/scripts/doctor.py"
 
 TOKEN = "KGAT_0123456789abcdef0123456789abcdef"
 
@@ -38,7 +37,7 @@ def _snapshot(root: Path) -> dict[str, tuple[int, int, bytes]]:
 
 def test_checker_reports_nothing_found_and_how_to_fix_it(run_script):
     result = run_script(CHECKER)
-    assert result.returncode == 1
+    assert result.returncode == 2
     assert "No Kaggle credentials found" in result.stdout
     assert "kaggle auth login" in result.stdout
 
@@ -101,7 +100,7 @@ def test_checker_changes_nothing_on_disk(run_script):
 
 def test_checker_ignores_dotenv_files_it_was_not_pointed_at(run_script):
     Path(".env").write_text(f"KAGGLE_API_TOKEN={TOKEN}\n")
-    assert run_script(CHECKER).returncode == 1
+    assert run_script(CHECKER).returncode == 2
 
     named = Path("kaggle.env")
     named.write_text(f"KAGGLE_API_TOKEN={TOKEN}\nHTTPS_PROXY=http://evil.example\n")
@@ -146,7 +145,7 @@ def test_verify_fails_for_a_revoked_legacy_key_that_config_view_still_accepts(
         "esac\n"
     )
     result = run_script(CHECKER, "--verify")
-    assert result.returncode == 1
+    assert result.returncode == 2
     assert "[FAIL] Kaggle did not accept what is configured." in result.stdout
     assert "Verified" not in result.stdout
 
@@ -154,7 +153,7 @@ def test_verify_fails_for_a_revoked_legacy_key_that_config_view_still_accepts(
 def test_verify_fails_when_the_cli_cannot_sign_in(run_script, stub_kaggle):
     stub_kaggle('echo "401 Unauthorized" >&2\nexit 1\n')
     result = run_script(CHECKER, "--verify", env={"KAGGLE_API_TOKEN": TOKEN})
-    assert result.returncode == 1
+    assert result.returncode == 2
     assert "[FAIL] Kaggle did not accept what is configured." in result.stdout
 
 
@@ -163,15 +162,31 @@ def test_token_that_looks_like_another_kind_is_pointed_out(run_script):
     assert "looks like: OAuth refresh token" in result.stdout
 
 
-# ── setup_env.sh ─────────────────────────────────────────────────────────────
+# ── save_credentials.py ──────────────────────────────────────────────────────
 
 
 def _mode(path: Path) -> int:
     return stat.S_IMODE(path.stat().st_mode)
 
 
-def test_setup_env_saves_the_token_with_private_permissions(run_script):
-    result = run_script(SETUP_ENV, env={"KAGGLE_API_TOKEN": TOKEN})
+def test_saving_is_a_dry_run_that_never_shows_the_value(run_script):
+    result = run_script(SAVE, env={"KAGGLE_API_TOKEN": TOKEN})
+    assert result.returncode == 0, result.stderr
+    assert result.stdout.startswith("Dry run. Nothing was sent to disk.")
+    assert "from:   KAGGLE_API_TOKEN" in result.stdout
+    assert "/.kaggle/access_token (mode 600)" in result.stdout
+    assert TOKEN not in result.stdout + result.stderr
+    assert not (Path.home() / ".kaggle").exists()
+
+
+def test_help_writes_nothing_even_with_a_token_in_the_environment(run_script):
+    result = run_script(SAVE, "--help", env={"KAGGLE_API_TOKEN": TOKEN})
+    assert result.returncode == 0 and "usage" in result.stdout.lower()
+    assert not (Path.home() / ".kaggle").exists()
+
+
+def test_yes_saves_the_token_with_private_permissions(run_script):
+    result = run_script(SAVE, "--yes", env={"KAGGLE_API_TOKEN": TOKEN})
     assert result.returncode == 0, result.stderr
     token_file = Path.home() / ".kaggle" / "access_token"
     assert token_file.read_text() == TOKEN
@@ -180,134 +195,180 @@ def test_setup_env_saves_the_token_with_private_permissions(run_script):
     assert TOKEN not in result.stdout + result.stderr
 
 
-def test_setup_env_never_overwrites_an_existing_file(run_script):
+def test_an_existing_file_is_never_overwritten(run_script):
     token_file = _kaggle_dir() / "access_token"
     token_file.write_text("KGAT_existing")
-    result = run_script(SETUP_ENV, env={"KAGGLE_API_TOKEN": TOKEN})
+    result = run_script(SAVE, "--yes", env={"KAGGLE_API_TOKEN": TOKEN})
     assert result.returncode == 0
     assert token_file.read_text() == "KGAT_existing"
     assert "left unchanged" in result.stdout
 
 
-def test_setup_env_writes_valid_legacy_json(run_script):
-    result = run_script(SETUP_ENV, env={"KAGGLE_USERNAME": "alice", "KAGGLE_KEY": "e" * 32})
+def test_a_legacy_key_is_saved_as_valid_json(run_script):
+    env = {"KAGGLE_USERNAME": 'al"ice\\', "KAGGLE_KEY": "e" * 32}
+    result = run_script(SAVE, "--yes", env=env)
     assert result.returncode == 0, result.stderr
     kaggle_json = Path.home() / ".kaggle" / "kaggle.json"
-    assert json.loads(kaggle_json.read_text()) == {"username": "alice", "key": "e" * 32}
+    assert json.loads(kaggle_json.read_text()) == {"username": 'al"ice\\', "key": "e" * 32}
     assert _mode(kaggle_json) == 0o600
     assert "e" * 32 not in result.stdout + result.stderr
 
 
-def test_setup_env_refuses_values_that_would_break_the_json(run_script):
-    result = run_script(SETUP_ENV, env={"KAGGLE_USERNAME": 'al"ice', "KAGGLE_KEY": "k"})
-    assert result.returncode == 1
-    assert not (Path.home() / ".kaggle" / "kaggle.json").exists()
-
-
-def test_setup_env_with_nothing_configured_writes_nothing(run_script):
-    result = run_script(SETUP_ENV)
+def test_with_nothing_configured_nothing_is_written(run_script):
+    result = run_script(SAVE, "--yes")
     assert result.returncode == 0
     assert "kaggle auth login" in result.stdout
     assert not (Path.home() / ".kaggle").exists()
 
 
-def test_setup_env_parses_the_env_file_and_never_runs_it(run_script, tmp_path):
+def test_the_env_file_is_parsed_and_never_run(run_script, tmp_path):
     marker = tmp_path / "pwned"
     env_file = tmp_path / "kaggle.env"
-    env_file.write_text(
-        f"touch {marker}\n"
-        f"KAGGLE_USERNAME=$(touch {marker})\n"
-        f"PATH=/nonexistent\n"
-        f"export KAGGLE_API_TOKEN='{TOKEN}'\n"
+    env_file.write_bytes(
+        (
+            f"touch {marker}\r\n"
+            f"KAGGLE_USERNAME=$(touch {marker})\r\n"
+            "PATH=/nonexistent\r\n"
+            "KAGGLE_API_ENVIRONMENT=LOCALHOST\r\n"
+            f"export KAGGLE_API_TOKEN='{TOKEN}'\r\n"
+        ).encode()
     )
-    result = run_script(SETUP_ENV, env={"KAGGLE_ENV_FILE": str(env_file)})
+    result = run_script(SAVE, "--yes", env={"KAGGLE_ENV_FILE": str(env_file)})
     assert result.returncode == 0, result.stderr
     assert not marker.exists()
     assert (Path.home() / ".kaggle" / "access_token").read_text() == TOKEN
 
 
-def test_setup_env_does_not_store_a_path_as_if_it_were_the_token(run_script, tmp_path):
+def test_a_path_is_not_stored_as_if_it_were_the_token(run_script, tmp_path):
     """KAGGLE_API_TOKEN may name a token file. The path itself is not a token."""
     token_file = tmp_path / "my-token"
     token_file.write_text(TOKEN)
-    result = run_script(SETUP_ENV, env={"KAGGLE_API_TOKEN": str(token_file)})
+    result = run_script(SAVE, "--yes", env={"KAGGLE_API_TOKEN": str(token_file)})
     assert result.returncode == 0
     assert "names a token file" in result.stdout
     assert not (Path.home() / ".kaggle" / "access_token").exists()
 
 
-def test_setup_env_reads_an_env_file_with_windows_line_ends(run_script, tmp_path):
-    env_file = tmp_path / "kaggle.env"
-    env_file.write_bytes(
-        f'KAGGLE_API_TOKEN="{TOKEN}"\r\nKAGGLE_API_ENVIRONMENT=LOCALHOST\r\n'.encode()
-    )
-    result = run_script(SETUP_ENV, env={"KAGGLE_ENV_FILE": str(env_file)})
-    assert result.returncode == 0, result.stderr
-    assert (Path.home() / ".kaggle" / "access_token").read_text() == TOKEN
-
-
-def test_setup_env_ignores_a_dotenv_it_was_not_pointed_at(run_script):
+def test_a_dotenv_it_was_not_pointed_at_is_ignored(run_script):
     Path(".env").write_text(f"KAGGLE_API_TOKEN={TOKEN}\n")
-    result = run_script(SETUP_ENV)
+    result = run_script(SAVE, "--yes")
     assert result.returncode == 0
     assert not (Path.home() / ".kaggle").exists()
 
 
-def test_sourcing_setup_env_is_refused_and_leaves_the_shell_alone(repo_root):
-    script = repo_root / SETUP_ENV
-    result = subprocess.run(
-        [
-            "bash",
-            "-c",
-            f'source "{script}"; echo "rc=$?"; echo "still running"; set -o | grep errexit',
-        ],
-        capture_output=True,
-        text=True,
-        env={**os.environ, "KAGGLE_API_TOKEN": TOKEN},
-        check=False,
-    )
-    assert "rc=1" in result.stdout
-    assert "still running" in result.stdout
-    assert "errexit        \toff" in result.stdout or "errexit         off" in result.stdout
-    assert "do not source it" in result.stderr
+def test_the_read_only_switch_refuses_to_store_a_credential(run_script):
+    env = {"KAGGLE_API_TOKEN": TOKEN, "KAGGLE_SKILL_READ_ONLY": "1"}
+    result = run_script(SAVE, "--yes", env=env)
+    assert result.returncode == 5 and result.stdout.startswith("Refused:")
     assert not (Path.home() / ".kaggle").exists()
 
 
-# ── network_check.sh ─────────────────────────────────────────────────────────
+# ── doctor.py ────────────────────────────────────────────────────────────────
 
 
-def _stub_curl(hermetic, body: str):
-    write_stub(hermetic, "curl", "#!/bin/sh\n" + body)
+@pytest.fixture
+def doctor(load_script, monkeypatch):
+    module = load_script(DOCTOR)
+    monkeypatch.setattr(module, "package_version", {"kaggle": "2.2.4", "kagglehub": "1.0.2"}.get)
 
+    def reachable(method, url, **kwargs):
+        return net.Response(200, {}, "", url)
 
-def test_network_check_passes_when_every_host_answers(run_script, hermetic, tmp_path):
-    log = tmp_path / "curl.log"
-    _stub_curl(
-        hermetic, f'for a in "$@"; do last="$a"; done\necho "$last" >> "{log}"\nprintf 200\n'
+    monkeypatch.setattr(net, "request", reachable)
+    monkeypatch.setattr(
+        module.mcp_client, "mcp_list_tools", lambda **kw: {"result": {"tools": [{}] * 71}}
     )
-    result = run_script(NETWORK_CHECK)
-    assert result.returncode == 0
-    assert log.read_text().split() == [
-        "https://api.kaggle.com",
-        "https://www.kaggle.com",
-        "https://storage.googleapis.com",
-    ]
-    assert "All Kaggle endpoints reachable" in result.stdout
+    return module
 
 
-def test_any_http_status_counts_as_reachable(run_script, hermetic):
-    _stub_curl(hermetic, "printf 404\n")
-    assert run_script(NETWORK_CHECK).returncode == 0
+def test_doctor_with_everything_in_place(doctor, run_main, monkeypatch):
+    monkeypatch.setenv("KAGGLE_API_TOKEN", TOKEN)
+    code, out, err = run_main(doctor)
+    assert code == 0 and err == "" and TOKEN not in out
+    for expected in (
+        "kaggle package",
+        "API token from KAGGLE_API_TOKEN",
+        "found; add --verify to ask Kaggle",
+        "Kaggle MCP server",
+        "71 tools",
+        "yes  public reads",
+        "yes  reads on your account",
+        "yes  downloads, submissions, notebooks, publishing",
+        "yes  dataset and model downloads with kagglehub",
+    ):
+        assert expected in out, expected
 
 
-def test_network_check_names_dns_and_connection_failures(run_script, hermetic):
-    _stub_curl(hermetic, "printf 000\nexit 6\n")
-    result = run_script(NETWORK_CHECK)
-    assert result.returncode == 1
-    assert result.stdout.count("DNS resolution failed") == 3
+def test_doctor_on_a_bare_machine_says_what_still_works(doctor, run_main, monkeypatch):
+    monkeypatch.setattr(doctor, "package_version", lambda name: None)
+    monkeypatch.setattr(doctor.kaggle_cli, "installed", lambda: False)
+    code, out, _ = run_main(doctor)
+    assert code == 0, "public reads work, so this is not a failure"
+    assert "not installed: python3 -m pip install 'kaggle>=2.2.4'" in out
+    assert "not installed: python3 -m pip install 'kagglehub>=1.0.2'" in out
+    assert "none found" in out
+    assert "yes  public reads" in out
+    assert "no   reads on your account" in out
+    assert "no   downloads, submissions" in out
+    assert "No credential: sign in with `kaggle auth login`" in out
 
-    _stub_curl(hermetic, "printf 000\nexit 28\n")
-    result = run_script(NETWORK_CHECK)
-    assert result.returncode == 1
-    assert "curl exit 28" in result.stdout
-    assert "3 host(s) unreachable" in result.stdout
+
+def test_doctor_explains_a_legacy_key(doctor, run_main, monkeypatch):
+    monkeypatch.setenv("KAGGLE_USERNAME", "alice")
+    monkeypatch.setenv("KAGGLE_KEY", "e" * 32)
+    code, out, _ = run_main(doctor)
+    assert code == 0 and "e" * 32 not in out
+    assert "legacy API key from KAGGLE_USERNAME + KAGGLE_KEY" in out
+    assert "no   reads on your account" in out
+    assert "yes  downloads, submissions" in out
+    assert "The credential is a legacy API key." in out
+
+
+def test_doctor_reports_an_unreachable_host(doctor, run_main, monkeypatch):
+    def unreachable(method, url, **kwargs):
+        if "api.kaggle.com" in url:
+            raise net.RequestError("connection", "gaierror")
+        return net.Response(200, {}, "", url)
+
+    monkeypatch.setattr(net, "request", unreachable)
+    monkeypatch.setattr(
+        doctor.mcp_client, "mcp_list_tools", lambda **kw: {"error": {"message": "x"}}
+    )
+    code, out, _ = run_main(doctor)
+    assert code == 1
+    assert "NOT reachable (gaierror)" in out and "no   public reads" in out
+    assert "allow outbound HTTPS" in out
+
+
+def test_doctor_points_out_a_certificate_problem(doctor, run_main, monkeypatch):
+    def failing(method, url, **kwargs):
+        raise net.RequestError("certificate")
+
+    monkeypatch.setattr(net, "request", failing)
+    out = run_main(doctor)[1]
+    assert "NOT reachable (certificate)" in out and "certifi" in out
+
+
+def test_doctor_verify_and_json(doctor, run_main, monkeypatch, stub_kaggle):
+    monkeypatch.setenv("KAGGLE_API_TOKEN", TOKEN)
+    stub_kaggle(
+        'case "$1" in\n  config) echo "- username: alice" ;;\n  quota) echo "GPU 1h" ;;\nesac\n'
+    )
+    code, out, _ = run_main(doctor, "--verify", "--skip-network")
+    assert code == 0 and "accepted by Kaggle as alice" in out
+    assert "www.kaggle.com" not in out, "--skip-network contacts nobody"
+
+    stub_kaggle('echo "Authentication required to call the Kaggle API." >&2\nexit 1\n')
+    code, out, _ = run_main(doctor, "--verify", "--skip-network", "--json")
+    report = json.loads(out)
+    assert code == 2 and report["verified"] is False
+    assert report["works"]["account_reads"] is False and TOKEN not in out
+
+
+def test_doctor_reads_and_changes_nothing(run_script):
+    home = Path.home()
+    before = sorted(str(p) for p in home.rglob("*"))
+    result = run_script(DOCTOR, "--skip-network", env={"KAGGLE_API_TOKEN": TOKEN})
+    assert result.returncode == 0, result.stderr
+    assert sorted(str(p) for p in home.rglob("*")) == before
+    assert TOKEN not in result.stdout + result.stderr

@@ -31,7 +31,7 @@ from pathlib import Path
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from shared import untrusted  # noqa: E402
+from shared import script, untrusted  # noqa: E402
 
 SCRUBBED_ENV_VARS = ("VERBOSE", "VERBOSE_OUTPUT", "KAGGLE_API_ENVIRONMENT")
 
@@ -87,6 +87,49 @@ WRITE_COMMANDS = frozenset(
         ("models", "instances", "versions", "delete"),
     }
 )
+# Every command that changes the Kaggle account. The runner below asks for
+# --yes before it runs one. The words are the CLI's own names; aliases are
+# folded first. `datasets metadata` changes the account only with --update.
+ACCOUNT_CHANGING = frozenset(
+    {
+        ("auth", "revoke"),
+        ("benchmarks", "tasks", "delete"),
+        ("benchmarks", "tasks", "publish"),
+        ("benchmarks", "tasks", "push"),
+        ("benchmarks", "tasks", "run"),
+        ("competitions", "create"),
+        ("competitions", "data", "update"),
+        ("competitions", "launch"),
+        ("competitions", "pages", "create"),
+        ("competitions", "pages", "delete"),
+        ("competitions", "pages", "update"),
+        ("competitions", "settings", "update"),
+        ("competitions", "solution", "create"),
+        ("competitions", "submit"),
+        ("datasets", "create"),
+        ("datasets", "delete"),
+        ("datasets", "version"),
+        ("files", "upload"),
+        ("kernels", "delete"),
+        ("kernels", "push"),
+        ("models", "create"),
+        ("models", "delete"),
+        ("models", "update"),
+        ("models", "instances", "create"),
+        ("models", "instances", "delete"),
+        ("models", "instances", "update"),
+        ("models", "instances", "versions", "create"),
+        ("models", "instances", "versions", "delete"),
+    }
+)
+_GROUP_ALIASES = {
+    "b": "benchmarks",
+    "c": "competitions",
+    "d": "datasets",
+    "f": "forums",
+    "k": "kernels",
+    "m": "models",
+}
 _NEXT_TOKEN_RE = re.compile(r"^Next [Pp]age [Tt]oken\s*[=:]\s*(\S+)\s*$")
 
 
@@ -131,6 +174,37 @@ def is_write_command(args: list[str]) -> bool:
             arg = "instances"
         words.append(_ALIASES.get(arg, arg))
     return any(tuple(words[:n]) in WRITE_COMMANDS for n in range(2, len(words) + 1))
+
+
+def command_words(args: list[str]) -> list[str]:
+    """The command part of ``args`` in the CLI's own names: aliases are folded."""
+    words: list[str] = []
+    for arg in args:
+        if arg.startswith("-") or len(words) == 4:
+            break
+        words.append(arg)
+    if not words:
+        return words
+    words[0] = _GROUP_ALIASES.get(words[0], words[0])
+    if len(words) > 1:
+        group, second = words[0], words[1]
+        if group == "models" and second in ("i", "v", "variations"):
+            words[1] = "instances"
+        elif group == "benchmarks" and second == "t":
+            words[1] = "tasks"
+        elif group == "kernels" and second == "update":
+            words[1] = "push"
+    if len(words) > 2 and words[:2] == ["models", "instances"] and words[2] == "v":
+        words[2] = "versions"
+    return words
+
+
+def changes_account(args: list[str]) -> bool:
+    """True when ``kaggle <args>`` creates, changes, submits, publishes or deletes."""
+    words = command_words(args)
+    if any(tuple(words[:n]) in ACCOUNT_CHANGING for n in range(2, len(words) + 1)):
+        return True
+    return words[:2] == ["datasets", "metadata"] and "--update" in args
 
 
 def json_rows(stdout: str) -> tuple[list | None, str | None]:
@@ -205,6 +279,30 @@ def run(args: list[str], *, timeout: float | None = None) -> subprocess.Complete
     return result
 
 
+# What the CLI prints when it has no credential, or the server rejects the one it has.
+_NO_CREDENTIAL_RE = re.compile(
+    r"Authentication required|401 Client Error|Unauthenticated|Could not find kaggle\.json",
+    re.IGNORECASE,
+)
+_DENIED_RE = re.compile(r"403 Client Error|Forbidden|Permission .* denied", re.IGNORECASE)
+
+
+def exit_code(result: subprocess.CompletedProcess) -> int:
+    """The exit code a script should return for a finished CLI call.
+
+    The CLI exits 1 for nearly every failure. This reads its message, so that
+    a missing or rejected credential is 2 and a denial is 3, as in SKILL.md.
+    """
+    if result.returncode in (0, NOT_FOUND_EXIT, 124):
+        return result.returncode
+    output = f"{result.stdout}\n{result.stderr}"
+    if _NO_CREDENTIAL_RE.search(output):
+        return 2
+    if _DENIED_RE.search(output):
+        return 3
+    return result.returncode
+
+
 def run_wrapped(
     args: list[str], *, tool: str, source: str = "kaggle-cli", timeout: float | None = None
 ) -> int:
@@ -219,7 +317,30 @@ def run_wrapped(
             block.write(result.stderr)
     if result.returncode != 0:
         print(f"kaggle exited with status {result.returncode}", file=sys.stderr)
-    return result.returncode
+    return exit_code(result)
+
+
+def print_folder(folder: Path, *, limit: int = 40) -> None:
+    """List what is in ``folder``, as untrusted content: Kaggle chose the file names."""
+    try:
+        files = sorted(p for p in Path(folder).rglob("*") if p.is_file())
+    except OSError:
+        return
+    total = sum(p.stat().st_size for p in files)
+    with untrusted.Block(source="local", tool="ls", folder=str(folder)) as block:
+        block.write(f"{len(files)} files, {_size(total)} in {folder}:")
+        for path in files[:limit]:
+            block.write(f"  {_size(path.stat().st_size):>10}  {path.relative_to(folder)}")
+        if len(files) > limit:
+            block.write(f"  ... and {len(files) - limit} more")
+
+
+def _size(count: float) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if count < 1000:
+            return f"{count:.0f} {unit}" if unit == "B" else f"{count:.1f} {unit}"
+        count /= 1000
+    return f"{count:.1f} TB"
 
 
 def unsafe_kernel_output_names(kernel: str, *, max_pages: int = 20) -> list[str] | None:
@@ -256,8 +377,10 @@ def unsafe_kernel_output_names(kernel: str, *, max_pages: int = 20) -> list[str]
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Run the Kaggle CLI with a scrubbed environment and wrapped output.",
+        epilog="A command that changes the account is a dry run until --yes comes before the --.",
     )
     parser.add_argument("--tool", default="kaggle", help="Label for the untrusted-content block")
+    script.add_yes(parser)
     parser.add_argument(
         "--raw",
         action="store_true",
@@ -299,6 +422,16 @@ def main(argv: list[str] | None = None) -> int:
     args = ns.args[1:] if ns.args[:1] == ["--"] else ns.args
     if not args:
         parser.error("no kaggle arguments given")
+    if changes_account(args):
+        gate = script.write_gate(
+            ns.yes,
+            action="run a Kaggle CLI command that changes the account",
+            details=[("command", " ".join(["kaggle", *args]))],
+        )
+        if gate is not None:
+            return gate
+    if not installed():
+        return script.missing_package("kaggle", "the Kaggle CLI")
 
     if ns.raw:
         result = run(args, timeout=ns.timeout)
@@ -308,7 +441,7 @@ def main(argv: list[str] | None = None) -> int:
                 source="kaggle-cli", tool=ns.tool, stream="stderr", file=sys.stderr
             ) as block:
                 block.write(result.stderr)
-        return result.returncode
+        return exit_code(result)
     return run_wrapped(args, tool=ns.tool, timeout=ns.timeout)
 
 

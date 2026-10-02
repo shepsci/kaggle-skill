@@ -63,6 +63,34 @@ def find_secret_files(folder: Path) -> list[str]:
     return sorted(found)
 
 
+def folder_facts(folder: Path) -> tuple[int, int]:
+    """How many files an upload of ``folder`` would send, and their total size."""
+    count = size = 0
+    for root, dirs, files in os.walk(folder):
+        at_top = Path(root) == folder
+        dirs[:] = [
+            d for d in dirs if d not in SKIPPED_ANYWHERE and not (at_top and d in SKIPPED_AT_TOP)
+        ]
+        for name in files:
+            try:
+                size += (Path(root) / name).stat().st_size
+            except OSError:
+                continue
+            count += 1
+    return count, size
+
+
+def describe(folder: Path) -> str:
+    """``./data (12 files, 3.4 MB)`` for a dry run."""
+    count, size = folder_facts(folder)
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1000 or unit == "GB":
+            amount = f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+            break
+        size /= 1000
+    return f"{folder} ({count} files, {amount})"
+
+
 def check(folder: Path) -> int:
     if not folder.is_dir():
         print("error: the upload folder is not a directory", file=sys.stderr)
