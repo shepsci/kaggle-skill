@@ -352,6 +352,10 @@ def test_oauth_check_says_when_kaggle_cannot_be_reached(monkeypatch, capsys):
 
 def test_the_plugin_only_build_holds_the_plugin_and_nothing_else(tmp_path, repo_root):
     """What a marketplace or the directory would install from the plugin branch."""
+    import shutil
+
+    if not (repo_root / ".git").exists() or not shutil.which("git"):
+        pytest.skip("the build copies what git tracks; this is not a git checkout")
     target = tmp_path / "plugin"
     files = build_plugin.build(target)
     top = {name.split("/")[0] for name in files}
