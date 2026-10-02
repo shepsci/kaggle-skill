@@ -2,7 +2,17 @@
 
 All notable changes to this project are documented in this file.
 
-## 2.5.0 - 2026-09-30
+## 2.5.1 - 2026-10-02
+
+Small fixes after the 2.5.0 release, from what the Claude directory's and
+ClawHub's scans reported.
+
+- `.claude-plugin/plugin.json` names the privacy policy (`privacyPolicyUrl`).
+- The ClawHub badge in the README points at the skill's current page.
+- The credential order in `cli-reference.md` is worded so that a scanner does
+  not read the variable name `KAGGLE_API_TOKEN` as a token.
+
+## 2.5.0 - 2026-10-02
 
 Fixes found by running the skill against today's Kaggle CLI (2.2.4) and MCP
 server (71 tools), plus a refresh of every reference.

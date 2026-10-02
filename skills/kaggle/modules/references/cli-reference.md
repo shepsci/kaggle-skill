@@ -20,11 +20,12 @@ kaggle --version
 
 The CLI tries credentials in this order and uses the first that works:
 
-1. API token: `KAGGLE_API_TOKEN` (the token, or the path of a file holding
-   it), then `~/.kaggle/access_token`.
-2. Legacy key: `KAGGLE_USERNAME` + `KAGGLE_KEY`, then `kaggle.json` in
-   `KAGGLE_CONFIG_DIR` or `~/.kaggle`.
-3. OAuth login: `kaggle auth login`, saved in `~/.kaggle/credentials.json`.
+1. An API token, read from the variable `KAGGLE_API_TOKEN` (which holds the
+   token, or the path of a file with it), then from `~/.kaggle/access_token`.
+2. A legacy key, read from `KAGGLE_USERNAME` and `KAGGLE_KEY`, then from
+   `kaggle.json` in `KAGGLE_CONFIG_DIR` or `~/.kaggle`.
+3. An OAuth login made with `kaggle auth login`, saved in
+   `~/.kaggle/credentials.json`.
 
 ```bash
 kaggle auth login

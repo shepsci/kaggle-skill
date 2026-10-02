@@ -70,3 +70,31 @@ def test_public_plugin_metadata_has_affiliation_disclaimer():
 
     for value in public_strings:
         assert disclaimer in value.lower()
+
+
+def test_claude_plugin_names_the_privacy_policy():
+    """The Claude directory warns when plugin.json has no privacyPolicyUrl."""
+    url = _json(".claude-plugin/plugin.json")["privacyPolicyUrl"]
+    assert url == "https://github.com/shepsci/kaggle-skill/blob/main/PRIVACY.md"
+    assert (REPO_ROOT / "PRIVACY.md").is_file()
+
+
+def test_readme_links_to_the_skill_page_on_clawhub():
+    """ClawHub serves skills under the owner's handle; the old /skills/<slug> address
+    shows "page not found"."""
+    readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    assert "https://clawhub.ai/shepsci/skills/kaggle" in readme
+    assert "clawhub.ai/skills/kaggle" not in readme
+
+
+def test_skill_docs_do_not_put_a_name_where_a_scanner_expects_a_secret():
+    """A line shaped like "API token: `KAGGLE_API_TOKEN`" is read by registry scanners
+    as a token written into the file. Name the variable in a sentence instead."""
+    shape = re.compile(r"(token|key|secret|password)[^`|\n]{0,12}:\s*`[^`]+`", re.IGNORECASE)
+    hits = [
+        f"{path.relative_to(REPO_ROOT)}:{number}"
+        for path in sorted((REPO_ROOT / "skills" / "kaggle").rglob("*.md"))
+        for number, line in enumerate(path.read_text(encoding="utf-8").splitlines(), 1)
+        if shape.search(line)
+    ]
+    assert not hits, hits
