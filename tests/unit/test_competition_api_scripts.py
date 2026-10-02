@@ -201,14 +201,14 @@ def test_category_filter_asks_only_for_those_categories(listing, fake_mcp, run_m
     assert code == 2 and "unknown category" in err
 
 
-def test_mine_lists_entered_competitions_without_the_window(
-    listing, fake_mcp, run_main, blocks
-):
+def test_mine_lists_entered_competitions_without_the_window(listing, fake_mcp, run_main, blocks):
     comps = [_comp("old-one", deadline=_iso(-400), enabled_date=_iso(-500), user_has_entered=True)]
     state = fake_mcp({"search_competitions": _answers(*comps)}, token="tok")
     code, out, _ = run_main(listing, "--mine")
     assert code == 0 and state.calls[0].request == {"group": "entered", "page": 1}
-    assert blocks(out)[0].body.splitlines()[0] == "1 competitions you have entered: 0 active, 1 ended."
+    assert (
+        blocks(out)[0].body.splitlines()[0] == "1 competitions you have entered: 0 active, 1 ended."
+    )
     assert "lookback-days" not in blocks(out)[0].attrs
 
 
@@ -311,7 +311,10 @@ def test_details_report_sizes_votes_and_teams(details, fake_mcp, run_main, block
     code, out, err = run_main(details, "titanic", "--top", "2")
     assert code == 0 and err == ""
     requests = {call.tool: call.request for call in state.calls}
-    assert requests["list_competition_data_files"] == {"competitionName": "titanic", "pageSize": 200}
+    assert requests["list_competition_data_files"] == {
+        "competitionName": "titanic",
+        "pageSize": 200,
+    }
     assert requests["get_competition_leaderboard"] == {"competitionName": "titanic", "pageSize": 2}
     assert requests["search_notebooks"] == {
         "competition": "titanic",

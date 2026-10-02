@@ -302,9 +302,7 @@ def main(argv: list[str] | None = None) -> int:
                 scope = "matching the search"
             else:
                 scope = f"in the last {args.days} days"
-            block.write(
-                f"{total} competitions {scope}: {active} active, {total - active} ended."
-            )
+            block.write(f"{total} competitions {scope}: {active} active, {total - active} ended.")
             if shown:
                 for line in text_lines(shown):
                     block.write(line)

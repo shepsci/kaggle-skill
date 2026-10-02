@@ -268,9 +268,7 @@ def test_brief_with_a_credential_says_where_you_stand(brief, fake_mcp, run_main,
     assert "entry closes: 2029-12-01 00:00 UTC" in body
 
 
-def test_brief_marks_an_ended_competition_and_closed_submissions(
-    brief, fake_mcp, run_main, blocks
-):
+def test_brief_marks_an_ended_competition_and_closed_submissions(brief, fake_mcp, run_main, blocks):
     facts = {**FACTS, "deadline": "2020-01-01T00:00:00Z", "submissions_disabled": True}
     fake_mcp({"get_competition": facts, "list_competition_pages": PAGE_SET})
     body = blocks(run_main(brief, "titanic")[1])[0].body
@@ -310,6 +308,7 @@ def test_host_text_stays_inside_the_block(brief, fake_mcp, run_main, blocks, out
 
 
 def test_the_scripts_use_the_tools_they_say(repo_root):
-    assert json.dumps("list_competition_pages") in (
-        repo_root / "skills/kaggle/shared/competition.py"
-    ).read_text()
+    assert (
+        json.dumps("list_competition_pages")
+        in (repo_root / "skills/kaggle/shared/competition.py").read_text()
+    )

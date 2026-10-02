@@ -217,17 +217,69 @@ def test_failure_after_the_first_page_keeps_rows_and_exits_1(mod, mcp_response, 
     assert "incomplete" in err
 
 
-def test_line_output_is_one_json_object_per_row_inside_one_block(mod, mcp_response, capsys, blocks):
+def _roster(mcp_response):
     def handler(tool, request):
         if tool == "list_hackathon_tracks":
             return mcp_response("list_hackathon_tracks_ok")
         return mcp_response("list_hackathon_write_ups_ok")
 
-    rc, out, _, _ = _run(mod, ["--competition", "x"], handler, capsys)
+    return handler
+
+
+def test_default_output_is_a_few_lines_per_writeup(mod, mcp_response, capsys, blocks, outside):
+    rc, out, _, _ = _run(mod, ["example-hackathon", "--winners"], _roster(mcp_response), capsys)
     assert rc == 0
     [block] = blocks(out)
-    rows = [json.loads(line) for line in block.body.splitlines()]
-    assert rows[0]["awarded_prizes"] == ["Clinical Workflow Automation: Winner (1 of 2)"]
+    lines = block.body.splitlines()
+    assert lines[0] == "1 winning writeups in example-hackathon:"
+    assert lines[1] == "      5001  Team Alpha — Team Alpha"
+    assert lines[2] == "            won: Clinical Workflow Automation: Winner (1 of 2)"
+    assert lines[3].strip() == (
+        "https://www.kaggle.com/competitions/example-hackathon/writeups/team-alpha-writeup"
+    )
+    assert "thumbnail" not in out and "collaborators" not in out
+    assert outside(out).strip() == "Read one with fetch_writeup.py <writeup id>."
+
+
+def test_json_rows_are_short_and_full_rows_are_complete(mod, mcp_response, capsys, blocks):
+    _, out, _, _ = _run(mod, ["example-hackathon", "--json"], _roster(mcp_response), capsys)
+    document = blocks(out)[0].json()
+    assert document["fetched"] == 1 and document["truncated"] is False
+    assert set(document["rows"][0]) == {
+        "writeup_id",
+        "slug",
+        "title",
+        "subtitle",
+        "team_name",
+        "authors",
+        "tracks",
+        "prizes",
+        "url",
+    }
+    assert document["rows"][0]["prizes"] == ["Clinical Workflow Automation: Winner (1 of 2)"]
+    short = len(out)
+    _, out, _, _ = _run(mod, ["example-hackathon", "--full"], _roster(mcp_response), capsys)
+    full = blocks(out)[0].json()["rows"][0]
+    assert full["collaborators"] and "row_id" in full
+    assert len(out) > short
+
+
+def test_the_limit_cuts_the_text_listing_only(mod, capsys, blocks, outside):
+    rows = [
+        {"id": n, "write_up": {"id": 100 + n, "title": f"T{n}"}, "team": {"team_name": f"team{n}"}}
+        for n in range(5)
+    ]
+
+    def handler(tool, request):
+        if tool == "list_hackathon_tracks":
+            return _ok({"tracks": []})
+        return _ok({"hackathon_write_ups": rows, "total_count": 5})
+
+    _, out, _, _ = _run(mod, ["x", "--limit", "2"], handler, capsys)
+    assert len(blocks(out)[0].body.splitlines()) == 3
+    assert "Showing 2 of 5. Add --limit 5 for all." in outside(out)
+    _, out, _, _ = _run(mod, ["x", "--limit", "2", "--json"], handler, capsys)
+    assert len(blocks(out)[0].json()["rows"]) == 5
 
 
 def test_script_does_not_call_get_hackathon_write_up(repo_root):

@@ -1,30 +1,35 @@
 #!/usr/bin/env python3
-"""Fetch a full writeup body from Kaggle's MCP server.
+"""Read one Kaggle writeup: title, authors, the body, and its links.
 
-Fallback chain:
-    1. get_writeup          (--writeup-id)
-    2. get_writeup_by_topic (--topic-id)
-    3. get_writeup_by_slug  (--competition + --slug)
+    fetch_writeup.py 123456
+    fetch_writeup.py https://www.kaggle.com/competitions/<competition>/writeups/<slug>
+    fetch_writeup.py --topic-id 654321
+    fetch_writeup.py --competition <competition> --slug <slug>
 
-At least one identifier path must be supplied. If multiple are given, they are
-tried in the order above and the first success wins. Prints the writeup as
-JSON inside one untrusted-content block.
+The identifiers are tried in this order and the first that answers wins:
+`get_writeup` (writeup id), `get_writeup_by_topic` (forum topic id),
+`get_writeup_by_slug` (competition and slug). Published writeups are public:
+no credential is needed.
 
-`get_hackathon_write_up` is not part of the chain: it takes the roster row id
-(`row_id` from list_writeups.py), not the writeup id, and needs the
-competition name as well.
+The body is printed once, as Markdown. --json gives the same fields as JSON
+and --full the server's whole answer, which holds the body twice (Markdown
+and HTML) and the authors' profile data.
+
+`get_hackathon_write_up` is not used: it takes the roster row id (`row_id`
+from list_writeups.py), not the writeup id, and needs the competition name.
 """
 
 from __future__ import annotations
 
 import argparse
+import re
 import sys
 from pathlib import Path
 
 SKILL_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials, untrusted  # noqa: E402
+from shared import credentials, script, text, untrusted  # noqa: E402
 from shared.mcp_client import (  # noqa: E402
     EXIT_DENIED,
     EXIT_FAILED,
@@ -67,17 +72,116 @@ def is_role_gated(resp: dict) -> bool:
     return is_denied(resp)
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--writeup-id", type=int, help="Try get_writeup first")
-    parser.add_argument("--topic-id", type=int, help="Try get_writeup_by_topic")
-    parser.add_argument("--competition", help="Used with --slug for get_writeup_by_slug")
-    parser.add_argument("--slug", help="Used with --competition for get_writeup_by_slug")
-    parser.add_argument("--pretty", action="store_true")
-    args = parser.parse_args()
+_WRITEUP_URL_RE = re.compile(r"/competitions/([^/?#]+)/writeups/([^/?#]+)")
+_TOPIC_URL_RE = re.compile(r"/discussions?/(?:[^/?#]+/)?(\d+)")
 
+
+def parse_target(target: str) -> dict:
+    """Read a writeup id, a writeup URL or a discussion URL into identifiers."""
+    target = target.strip()
+    if target.isdigit():
+        return {"writeup_id": int(target)}
+    match = _WRITEUP_URL_RE.search(target)
+    if match:
+        return {"competition": match.group(1), "slug": match.group(2)}
+    match = _TOPIC_URL_RE.search(target)
+    if match:
+        return {"topic_id": int(match.group(1))}
+    raise ValueError("give a writeup id, a writeup URL or a discussion URL")
+
+
+def summarize(endpoint: str, payload: dict) -> dict:
+    """The writeup reduced to what a reader needs. The body appears once."""
+    message = payload.get("message") if isinstance(payload.get("message"), dict) else {}
+    # `content` is the same body rendered as HTML.
+    body = message.get("raw_markdown") or text.html_to_text(message.get("content") or "")
+    votes = message.get("votes") if isinstance(message.get("votes"), dict) else {}
+    links = []
+    for link in payload.get("write_up_links") or []:
+        if isinstance(link, dict) and link.get("url"):
+            links.append(
+                {"title": link.get("title") or link.get("description") or "", "url": link["url"]}
+            )
+    return {
+        "endpoint": endpoint,
+        "writeup_id": payload.get("id"),
+        "topic_id": payload.get("topic_id"),
+        "slug": payload.get("slug"),
+        "title": payload.get("title") or "",
+        "subtitle": payload.get("subtitle") or "",
+        "authors": payload.get("authors") or "",
+        "url": text.absolute_url(payload.get("url")),
+        "published": payload.get("publish_time") or payload.get("create_time"),
+        "votes": votes.get("total_votes"),
+        "license": (payload.get("license") or {}).get("name")
+        if isinstance(payload.get("license"), dict)
+        else None,
+        "body": body,
+        "links": links,
+    }
+
+
+def text_lines(summary: dict, max_chars: int = 0) -> tuple[list[str], int]:
+    """The writeup as text. Returns ``(lines, characters of the body left out)``."""
+    lines = [f"# {summary['title']}"]
+    if summary["subtitle"]:
+        lines.append(summary["subtitle"])
+    facts = [f"by {summary['authors']}"] if summary["authors"] else []
+    if summary["published"]:
+        facts.append(f"published {text.day(summary['published'])}")
+    if summary["votes"] is not None:
+        facts.append(f"{summary['votes']} votes")
+    if facts:
+        lines.append(" · ".join(facts))
+    if summary["url"]:
+        lines.append(summary["url"])
+    body = summary["body"]
+    cut = 0
+    if max_chars and len(body) > max_chars:
+        cut = len(body) - max_chars
+        body = body[:max_chars].rstrip()
+    lines += ["", body]
+    if summary["links"]:
+        lines += ["", "Links:"]
+        lines += [
+            f"- {link['title'] + ': ' if link['title'] else ''}{link['url']}"
+            for link in summary["links"]
+        ]
+    return lines, cut
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Read one Kaggle writeup: title, authors, the body, and its links.",
+        epilog="No credential is needed for a published writeup.",
+    )
+    parser.add_argument(
+        "target", nargs="?", help="A writeup id, a writeup URL, or a discussion URL"
+    )
+    parser.add_argument("--writeup-id", type=int, help="The writeup id (get_writeup)")
+    parser.add_argument("--topic-id", type=int, help="The forum topic id (get_writeup_by_topic)")
+    parser.add_argument("--competition", help="With --slug: the competition (get_writeup_by_slug)")
+    parser.add_argument("--slug", help="With --competition: the writeup slug")
+    parser.add_argument(
+        "--max-chars",
+        type=int,
+        default=0,
+        metavar="N",
+        help="Cut the body after N characters (default: no limit)",
+    )
+    script.add_json(parser)
+    script.add_full(parser)
+    args = parser.parse_args(argv)
+
+    if args.target:
+        try:
+            for key, value in parse_target(args.target).items():
+                if getattr(args, key) is None:
+                    setattr(args, key, value)
+        except ValueError as exc:
+            parser.error(str(exc))
     if not (args.writeup_id or args.topic_id or (args.competition and args.slug)):
-        parser.error("supply --writeup-id, --topic-id, or --competition+--slug")
+        parser.error("give a writeup id or URL, --topic-id, or --competition with --slug")
 
     credentials.load_configured_env_file()
     token = resolve_token()
@@ -100,13 +204,24 @@ def main() -> int:
         if status != "ok":
             continue
         payload = extract_json(resp)
-        if payload is None:
+        if not isinstance(payload, dict):
             # A success with no JSON body is not a writeup. Try the next path.
             attempts[-1] = (endpoint, "empty", resp)
             continue
-        untrusted.emit_json(
-            {"endpoint": endpoint, "data": payload}, source=SOURCE, tool=endpoint, indent=indent
-        )
+        attrs = {"source": SOURCE, "tool": endpoint}
+        if args.full:
+            untrusted.emit_json({"endpoint": endpoint, "data": payload}, indent=indent, **attrs)
+            return 0
+        summary = summarize(endpoint, payload)
+        if args.json:
+            untrusted.emit_json(summary, indent=indent, **attrs)
+            return 0
+        lines, cut = text_lines(summary, args.max_chars)
+        with untrusted.Block(**attrs) as block:
+            for line in lines:
+                block.write(line)
+        if cut:
+            print(f"The body was cut: {cut:,} more characters. Drop --max-chars to read it all.")
         return 0
 
     last_resp = attempts[-1][2]

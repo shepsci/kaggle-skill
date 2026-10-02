@@ -270,7 +270,11 @@ class Result:
 
 
 def request(
-    tool: str, request: dict[str, Any] | None = None, *, token: str | None = None, timeout: float = 30
+    tool: str,
+    request: dict[str, Any] | None = None,
+    *,
+    token: str | None = None,
+    timeout: float = 30,
 ) -> Result:
     """Call a tool with ``{"request": {...}}`` arguments and classify the answer.
 

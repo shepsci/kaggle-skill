@@ -74,9 +74,106 @@ def test_success_prints_one_block_with_the_writeup(mod, mcp_response, capsys, bl
     assert rc == 0
     [block] = blocks(out)
     assert block.attrs == {"source": "kaggle-mcp", "tool": "get_writeup"}
-    assert block.json()["data"]["title"] == "Team Alpha"
+    assert block.body.splitlines() == [
+        "# Team Alpha",
+        "Our approach",
+        "by Alice Example · published 2026-02-24 · 3 votes",
+        "https://www.kaggle.com/competitions/example-hackathon/writeups/team-alpha-writeup",
+        "",
+        "# Team Alpha",
+        "",
+        "Full writeup body here.",
+    ]
     assert outside(out).strip() == ""
     assert calls[0][2] == "", "a public writeup is fetched without a token"
+
+
+def test_the_body_is_printed_once_and_profile_data_is_left_out(mod, mcp_response, capsys, blocks):
+    rc, out, _, _ = _run(mod, ["5001"], {"get_writeup": mcp_response("get_writeup_ok")}, capsys)
+    assert rc == 0
+    assert out.count("Full writeup body here.") == 1
+    assert "thumbnail" not in out and "progression_opt_out" not in out and "<h1>" not in out
+
+
+def test_json_is_a_summary_and_full_is_the_servers_answer(mod, mcp_response, capsys, blocks):
+    responses = {"get_writeup": mcp_response("get_writeup_ok")}
+    _, out, _, _ = _run(mod, ["5001", "--json"], responses, capsys)
+    summary = blocks(out)[0].json()
+    assert summary == {
+        "endpoint": "get_writeup",
+        "writeup_id": 5001,
+        "topic_id": 9001,
+        "slug": "team-alpha-writeup",
+        "title": "Team Alpha",
+        "subtitle": "Our approach",
+        "authors": "Alice Example",
+        "url": "https://www.kaggle.com/competitions/example-hackathon/writeups/team-alpha-writeup",
+        "published": "2026-02-24T15:04:05.813Z",
+        "votes": 3,
+        "license": "CC0: Public Domain",
+        "body": "# Team Alpha\n\nFull writeup body here.",
+        "links": [],
+    }
+    _, out, _, _ = _run(mod, ["5001", "--full"], responses, capsys)
+    full = blocks(out)[0].json()
+    assert full["endpoint"] == "get_writeup"
+    assert full["data"]["message"]["content"].startswith("<h1>")
+
+
+@pytest.mark.parametrize(
+    "target, calls_expected",
+    [
+        ("5001", [("get_writeup", {"request": {"writeUpId": 5001}})]),
+        (
+            "https://www.kaggle.com/competitions/example-hackathon/writeups/team-alpha-writeup",
+            [
+                (
+                    "get_writeup_by_slug",
+                    {
+                        "request": {
+                            "competitionName": "example-hackathon",
+                            "slug": "team-alpha-writeup",
+                        }
+                    },
+                )
+            ],
+        ),
+        (
+            "https://www.kaggle.com/competitions/titanic/discussion/429948",
+            [("get_writeup_by_topic", {"request": {"forumTopicId": 429948}})],
+        ),
+    ],
+)
+def test_the_target_can_be_an_id_or_a_url(mod, mcp_response, capsys, target, calls_expected):
+    ok = mcp_response("get_writeup_ok")
+    responses = {
+        name: ok for name in ("get_writeup", "get_writeup_by_topic", "get_writeup_by_slug")
+    }
+    rc, _, _, calls = _run(mod, [target], responses, capsys)
+    assert rc == 0 and [(c[0], c[1]) for c in calls] == calls_expected
+
+
+def test_a_target_that_is_neither_exits_2(mod, capsys):
+    with pytest.raises(SystemExit) as caught:
+        _run(mod, ["not a writeup"], {}, capsys)
+    assert caught.value.code == 2
+
+
+def test_links_and_a_cut_body(mod, capsys, blocks, outside):
+    import json
+
+    payload = {
+        "id": 7,
+        "title": "T",
+        "message": {"content": "<p>" + "word " * 100 + "</p>"},
+        "write_up_links": [{"title": "Code", "url": "https://www.kaggle.com/code/a/b"}],
+    }
+    response = {"result": {"content": [{"type": "text", "text": json.dumps(payload)}]}}
+    rc, out, _, _ = _run(mod, ["7", "--max-chars", "50"], {"get_writeup": response}, capsys)
+    body = blocks(out)[0].body
+    assert rc == 0 and "- Code: https://www.kaggle.com/code/a/b" in body
+    assert "<p>" not in body, "an HTML body is converted when there is no Markdown"
+    assert "The body was cut: 449 more characters." in outside(out)
 
 
 def test_chain_falls_through_to_the_next_identifier(mod, mcp_response, capsys, blocks):
@@ -92,7 +189,7 @@ def test_chain_falls_through_to_the_next_identifier(mod, mcp_response, capsys, b
     )
     assert rc == 0
     assert [c[0] for c in calls] == ["get_writeup", "get_writeup_by_topic", "get_writeup_by_slug"]
-    assert blocks(out)[0].json()["endpoint"] == "get_writeup_by_slug"
+    assert blocks(out)[0].attrs["tool"] == "get_writeup_by_slug"
 
 
 def test_not_found_exits_1_and_prints_nothing_on_stdout(mod, mcp_response, capsys, blocks):
@@ -148,12 +245,14 @@ def test_hostile_writeup_cannot_close_its_block(mod, capsys, blocks, outside):
             "isError": False,
         }
     }
-    rc, out, _, _ = _run(mod, ["--writeup-id", "1"], {"get_writeup": response}, capsys)
-    assert rc == 0
-    [block] = blocks(out)
+    for flags in ([], ["--json"], ["--full"]):
+        rc, out, _, _ = _run(mod, ["--writeup-id", "1", *flags], {"get_writeup": response}, capsys)
+        assert rc == 0
+        [block] = blocks(out)
+        assert "evil.example" in block.body, "the text is kept, as data"
+        assert "evil.example" not in outside(out)
+        assert "</untrusted-content>" not in out
     assert block.json()["data"]["title"] == hostile, "the data survives unchanged"
-    assert "evil.example" not in outside(out)
-    assert "</untrusted-content>" not in out
 
 
 def test_script_never_calls_get_hackathon_write_up(repo_root):

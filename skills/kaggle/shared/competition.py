@@ -231,9 +231,7 @@ def print_pages(
 
     if not selected:
         if args.json:
-            listing = [
-                {"name": p.get("name"), "chars": len(p.get("content") or "")} for p in pages
-            ]
+            listing = [{"name": p.get("name"), "chars": len(p.get("content") or "")} for p in pages]
             untrusted.emit_json({"competition": slug, "pages": listing}, indent=indent, **attrs)
             return script.EXIT_OK
         with untrusted.Block(**attrs) as block:

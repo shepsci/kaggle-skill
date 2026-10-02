@@ -135,7 +135,11 @@ def test_the_opener_has_no_redirect_follower():
         (TimeoutError("slow"), "timeout", ""),
         (urllib.error.URLError(TimeoutError("slow")), "timeout", ""),
         (urllib.error.URLError(ssl.SSLCertVerificationError("bad cert")), "certificate", ""),
-        (urllib.error.URLError(ConnectionRefusedError("x")), "connection", "ConnectionRefusedError"),
+        (
+            urllib.error.URLError(ConnectionRefusedError("x")),
+            "connection",
+            "ConnectionRefusedError",
+        ),
         (ConnectionResetError("secret header value"), "connection", "ConnectionResetError"),
     ],
 )
