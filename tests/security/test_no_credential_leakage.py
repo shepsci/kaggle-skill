@@ -2,13 +2,16 @@
 
 from __future__ import annotations
 
+import email.message
+import io
 import json
 import re
 import subprocess
+import urllib.error
+import urllib.request
 from pathlib import Path
 
 import pytest
-import requests
 
 from shared import credentials, kaggle_cli, mcp_client
 
@@ -65,38 +68,57 @@ def test_the_only_printf_of_a_token_writes_to_the_token_file():
 # ── the token stays inside the process ───────────────────────────────────────
 
 
+class _Stream(io.BytesIO):
+    status = 200
+
+    def __init__(self, body: bytes = b'data: {"result": {}, "id": 1}\n') -> None:
+        super().__init__(body)
+        self.headers = email.message.Message()
+        self.headers["Content-Type"] = "text/event-stream"
+
+
 def test_mcp_call_does_not_start_a_process_or_put_the_token_in_a_url(monkeypatch):
-    seen = {}
+    seen = []
 
-    def fake_post(url, json=None, headers=None, timeout=None, allow_redirects=None):
-        seen.update(url=url, headers=headers, body=json, allow_redirects=allow_redirects)
-
-        class Response:
-            status_code = 200
-            headers = {"Content-Type": "text/event-stream"}
-            text = 'data: {"result": {}, "id": 1}\n'
-
-        return Response()
+    def fake_open(self, req, timeout=None):
+        seen.append(req)
+        return _Stream()
 
     def forbidden(*args, **kwargs):
         raise AssertionError("no child process may be started for an MCP call")
 
-    monkeypatch.setattr(requests, "post", fake_post)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", fake_open)
     monkeypatch.setattr(subprocess, "run", forbidden)
     monkeypatch.setattr(subprocess, "Popen", forbidden)
     mcp_client.mcp_call("get_competition", {"request": {"competitionName": "titanic"}}, token=TOKEN)
-    assert seen["url"] == "https://www.kaggle.com/mcp"
-    assert TOKEN not in seen["url"] and TOKEN not in json.dumps(seen["body"])
-    assert seen["headers"]["Authorization"] == f"Bearer {TOKEN}"
-    assert seen["allow_redirects"] is False, "a redirect must not carry the token to another host"
+    (req,) = seen
+    assert req.full_url == "https://www.kaggle.com/mcp"
+    assert TOKEN not in req.full_url and TOKEN not in req.data.decode()
+    assert req.get_header("Authorization") == f"Bearer {TOKEN}"
+
+
+def test_a_redirect_does_not_carry_the_token_to_another_host(monkeypatch):
+    seen = []
+
+    def redirecting_open(self, req, timeout=None):
+        seen.append(req.full_url)
+        headers = email.message.Message()
+        headers["Location"] = "https://evil.example/mcp"
+        raise urllib.error.HTTPError(req.full_url, 307, "Temporary Redirect", headers, io.BytesIO())
+
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", redirecting_open)
+    response = mcp_client.mcp_call("authorize", {}, token=TOKEN)
+    assert seen == ["https://www.kaggle.com/mcp"], "the redirect must not be followed"
+    assert response["error"]["message"] == "HTTP 307"
 
 
 def test_transport_errors_do_not_echo_request_details(monkeypatch):
-    def failing_post(*args, **kwargs):
-        raise requests.ConnectionError(f"failed for headers Authorization: Bearer {TOKEN}")
+    def failing_open(self, req, timeout=None):
+        raise ConnectionError(f"failed for headers Authorization: Bearer {TOKEN}")
 
-    monkeypatch.setattr(requests, "post", failing_post)
+    monkeypatch.setattr(urllib.request.OpenerDirector, "open", failing_open)
     response = mcp_client.mcp_call("authorize", {}, token=TOKEN)
+    assert response["error"]["message"] == "connection failed: ConnectionError"
     assert TOKEN not in json.dumps(response)
 
 

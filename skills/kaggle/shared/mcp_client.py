@@ -11,6 +11,9 @@ is built around:
   message. Success is never inferred from the message text.
 - Public read tools answer without credentials, and an invalid bearer is
   treated as anonymous.
+
+Only the standard library is used, so the public reads work on a Python with
+no packages installed.
 """
 
 from __future__ import annotations
@@ -19,13 +22,14 @@ import json
 import re
 import sys
 import time
+from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from shared import credentials, untrusted  # noqa: E402
+from shared import credentials, net, script, untrusted  # noqa: E402
 
 MCP_ENDPOINT = "https://www.kaggle.com/mcp"
 MAX_RETRIES = 2
@@ -73,7 +77,7 @@ def _parse_body(text: str, content_type: str, request_id: int) -> dict[str, Any]
 
 
 def _retry_wait(response: Any, attempt: int) -> float:
-    header = response.headers.get("Retry-After", "")
+    header = response.headers.get("Retry-After", "") or ""
     try:
         wait = float(header)
     except ValueError:
@@ -82,37 +86,38 @@ def _retry_wait(response: Any, attempt: int) -> float:
 
 
 def _post(payload: dict[str, Any], token: str, timeout: float, endpoint: str) -> dict[str, Any]:
-    try:
-        import requests
-    except ModuleNotFoundError:
-        return _error("the requests package is required: python3 -m pip install requests")
-
     headers = {
         "Content-Type": "application/json",
         "Accept": "application/json, text/event-stream",
     }
     if token:
         headers["Authorization"] = f"Bearer {token}"
+    body = json.dumps(payload).encode("utf-8")
 
     for attempt in range(MAX_RETRIES + 1):
         try:
-            response = requests.post(
-                endpoint, json=payload, headers=headers, timeout=timeout, allow_redirects=False
-            )
-        except requests.Timeout:
-            return _error("timeout")
-        except requests.RequestException as exc:
-            return _error(f"connection failed: {type(exc).__name__}")
-        if response.status_code == 429 and attempt < MAX_RETRIES:
+            # net.request never follows a redirect, so the token stays with this host.
+            response = net.request("POST", endpoint, headers=headers, data=body, timeout=timeout)
+        except net.RequestError as exc:
+            if exc.kind == "timeout":
+                return _error("timeout")
+            if exc.kind == "certificate":
+                return _error("certificate check failed", hint=net.CERTIFICATE_HINT)
+            return _error(f"connection failed: {exc.detail}")
+        except ValueError:
+            return _error("the MCP endpoint is not an https URL")
+        if response.status == 429 and attempt < MAX_RETRIES:
             time.sleep(_retry_wait(response, attempt))
             continue
-        if response.status_code != 200:
+        if response.status != 200:
             return _error(
-                f"HTTP {response.status_code}",
-                http_status=response.status_code,
+                f"HTTP {response.status}",
+                http_status=response.status,
                 body=response.text[:300],
             )
-        return _parse_body(response.text, response.headers.get("Content-Type", ""), payload["id"])
+        return _parse_body(
+            response.text, response.headers.get("Content-Type", "") or "", payload["id"]
+        )
     return _error("HTTP 429", http_status=429)
 
 
@@ -228,9 +233,54 @@ def is_denied(resp: dict[str, Any]) -> bool:
     return is_error(resp) and bool(_DENIAL_RE.search(error_message(resp)))
 
 
-EXIT_FAILED = 1
-EXIT_NO_CREDENTIAL = 2
-EXIT_DENIED = 3
+EXIT_FAILED = script.EXIT_FAILED
+EXIT_NO_CREDENTIAL = script.EXIT_NO_CREDENTIAL
+EXIT_DENIED = script.EXIT_DENIED
+
+
+@dataclass
+class Result:
+    """One tool call, reduced to what a script needs."""
+
+    tool: str
+    status: str  # ok | empty | unauthenticated | error: <message> | parse_fail
+    response: dict[str, Any]
+    had_token: bool
+
+    @property
+    def ok(self) -> bool:
+        return self.status == "ok"
+
+    @property
+    def text(self) -> str:
+        return extract_text(self.response)
+
+    @property
+    def data(self) -> Any:
+        """The answer parsed as JSON, or None."""
+        return extract_json(self.response)
+
+    @property
+    def denied(self) -> bool:
+        return is_denied(self.response)
+
+    def fail(self, **attrs: Any) -> int:
+        """Report the failure on standard error and return the exit code."""
+        return print_failure(self.response, tool=self.tool, had_token=self.had_token, **attrs)
+
+
+def request(
+    tool: str, request: dict[str, Any] | None = None, *, token: str | None = None, timeout: float = 30
+) -> Result:
+    """Call a tool with ``{"request": {...}}`` arguments and classify the answer.
+
+    ``token=None`` uses the configured credential, if any; ``token=""`` makes
+    an anonymous call.
+    """
+    if token is None:
+        token = resolve_token()
+    response = mcp_call(tool, {"request": request or {}}, token=token, timeout=timeout)
+    return Result(tool, classify_result(response), response, bool(token))
 
 
 def print_failure(
@@ -276,5 +326,6 @@ def print_failure(
                 file=sys.stderr,
             )
         return EXIT_DENIED
-    print(f"error: {tool} failed", file=sys.stderr)
+    hint = resp.get("error", {}).get("hint") if isinstance(resp.get("error"), dict) else None
+    print(f"error: {tool} failed" + (f". {hint}" if hint else ""), file=sys.stderr)
     return EXIT_FAILED
