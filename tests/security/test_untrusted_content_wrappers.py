@@ -24,15 +24,16 @@ SKILL = "skills/kaggle"
 
 # Scripts that print text written by Kaggle hosts or participants.
 PYTHON_EMITTERS = [
-    f"{SKILL}/modules/competitions/hackathons/scripts/hackathon_overview.py",
     f"{SKILL}/modules/competitions/hackathons/scripts/list_writeups.py",
     f"{SKILL}/modules/competitions/hackathons/scripts/fetch_writeup.py",
-    f"{SKILL}/modules/competitions/scripts/competition_pages.py",
+    f"{SKILL}/modules/competitions/scripts/competition_brief.py",
     f"{SKILL}/modules/competitions/scripts/competition_details.py",
     f"{SKILL}/modules/competitions/scripts/list_competitions.py",
     f"{SKILL}/modules/discussions/scripts/forums.py",
     f"{SKILL}/modules/discussions/scripts/leaderboard_writeups.py",
     f"{SKILL}/modules/badges/scripts/utils.py",
+    # Prints the pages for competition_pages.py and hackathon_overview.py.
+    f"{SKILL}/shared/competition.py",
     f"{SKILL}/shared/kaggle_cli.py",
     f"{SKILL}/shared/mcp_client.py",
 ]

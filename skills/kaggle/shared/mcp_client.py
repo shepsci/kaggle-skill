@@ -283,6 +283,18 @@ def request(
     return Result(tool, classify_result(response), response, bool(token))
 
 
+LEGACY_KEY_HINT = (
+    "       The credential is a legacy API key (kaggle.json). Kaggle's MCP server takes an\n"
+    '       API token or an OAuth login: create a token with "Generate New Token" at\n'
+    "       https://www.kaggle.com/settings, or run `kaggle auth login`."
+)
+
+
+def _only_legacy_key() -> bool:
+    kinds = {cred.kind for cred in credentials.discover()}
+    return kinds == {"legacy_key"}
+
+
 def print_failure(
     resp: dict[str, Any],
     *,
@@ -313,6 +325,8 @@ def print_failure(
             print(
                 f"error: {tool}: the configured Kaggle credential was not accepted", file=sys.stderr
             )
+            if _only_legacy_key():
+                print(LEGACY_KEY_HINT, file=sys.stderr)
         else:
             print(f"error: {tool} needs Kaggle credentials and none were found", file=sys.stderr)
         return EXIT_NO_CREDENTIAL

@@ -19,6 +19,7 @@ PYTHON_ENTRY_POINTS = [
     f"{SKILL}/modules/competitions/hackathons/scripts/fetch_writeup.py",
     f"{SKILL}/modules/competitions/hackathons/scripts/hackathon_overview.py",
     f"{SKILL}/modules/competitions/hackathons/scripts/list_writeups.py",
+    f"{SKILL}/modules/competitions/scripts/competition_brief.py",
     f"{SKILL}/modules/competitions/scripts/competition_details.py",
     f"{SKILL}/modules/competitions/scripts/competition_pages.py",
     f"{SKILL}/modules/competitions/scripts/list_competitions.py",
@@ -56,6 +57,7 @@ NO_HELP = {
 # Imported by the entry points; not run directly.
 LIBRARIES = {
     f"{SKILL}/shared/__init__.py",
+    f"{SKILL}/shared/competition.py",
     f"{SKILL}/shared/credentials.py",
     f"{SKILL}/shared/hub.py",
     f"{SKILL}/shared/mcp_client.py",
@@ -63,7 +65,6 @@ LIBRARIES = {
     f"{SKILL}/shared/script.py",
     f"{SKILL}/shared/text.py",
     f"{SKILL}/shared/lib.sh",
-    f"{SKILL}/modules/competitions/scripts/utils.py",
     f"{SKILL}/modules/badges/scripts/utils.py",
     f"{SKILL}/modules/badges/scripts/badge_registry.py",
     f"{SKILL}/modules/badges/scripts/badge_tracker.py",
