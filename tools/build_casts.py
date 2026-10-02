@@ -318,7 +318,8 @@ def _screen_rows(text: str) -> list[tuple[str, tuple[int, int, int]]]:
     return rows[-ROWS:]
 
 
-_LABEL_RE = re.compile(r"^(\s*(?:[A-Za-z][\w ()]{0,22}:|[-*]|\d+\.|\$|#+|\[\d+\])\s+)\S")
+# A short label near the left edge: `  metric:   value`, a list mark, a prompt.
+_LABEL_RE = re.compile(r"^(\s{0,4}(?:[A-Za-z][\w ()]{0,16}:|[-*]|\d+\.|\$|#+|\[\d+\])\s+)\S")
 
 
 def _wrap_row(line: str) -> list[str]:
@@ -353,6 +354,21 @@ def _screen_lines(text: str) -> list[str]:
     return [row for row, _ in _screen_rows(text)]
 
 
+def _palette():
+    """One palette for every frame: the background, each text colour, and the
+    shades between them that smooth the edges of the letters."""
+    from PIL import Image
+
+    colours = [BACKGROUND]
+    for colour in (TEXT, PROMPT, DIM, ACCENT, BRIGHT):
+        for step in range(1, 7):
+            colours.append(tuple(int(b + (c - b) * step / 6) for b, c in zip(BACKGROUND, colour)))
+    flat = [channel for colour in colours for channel in colour]
+    image = Image.new("P", (1, 1))
+    image.putpalette(flat + [0] * (768 - len(flat)))
+    return image
+
+
 def render_gif(cast_path: Path) -> Path:
     """Render a cast as an animated GIF: one frame per output event."""
     from PIL import Image, ImageDraw
@@ -366,6 +382,7 @@ def render_gif(cast_path: Path) -> Path:
     pad = 18
     size = (int(COLS * cell_w) + 2 * pad, ROWS * cell_h + 2 * pad)
 
+    palette = _palette()
     frames, durations = [], []
     shown = ""
     for index, (stamp, _, data) in enumerate(events):
@@ -374,7 +391,7 @@ def render_gif(cast_path: Path) -> Path:
         draw = ImageDraw.Draw(image)
         for row, (line, colour) in enumerate(_screen_rows(shown)):
             draw.text((pad, pad + row * cell_h), line, font=font, fill=colour)
-        frames.append(image.quantize(colors=16))
+        frames.append(image.quantize(palette=palette, dither=Image.Dither.NONE))
         following = events[index + 1][0] if index + 1 < len(events) else stamp + 3.0
         durations.append(int(max(0.06, min(following - stamp, 2.0)) * 1000))
     durations[-1] = 3500

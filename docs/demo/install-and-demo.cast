@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1790976319, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - Claude Code install and first command"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1790977148, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - Claude Code install and first command"}
 [0.2, "o", "Install in Claude Code, then a first command.\r\n(from a local checkout, in a throwaway\r\n config folder)\r\n\r\n"]
 [1.0, "o", "$ "]
 [1.15, "o", "claude pl"]
@@ -25,9 +25,9 @@
 [4.91, "o", "l.py brie"]
 [4.98, "o", "f titanic"]
 [5.05, "o", "\r\n"]
-[5.4, "o", "<untrusted-content-98146f43 source=\"kaggle-mcp\" tool=\"get_competition\" competition=\"titanic\">\r\nTitanic - Machine Learning from Disaster\r\nStart here! Predict survival on the Titanic and get familiar with ML basics\r\n"]
+[5.4, "o", "<untrusted-content-9212ce00 source=\"kaggle-mcp\" tool=\"get_competition\" competition=\"titanic\">\r\nTitanic - Machine Learning from Disaster\r\nStart here! Predict survival on the Titanic and get familiar with ML basics\r\n"]
 [5.56, "o", "  url:         https://www.kaggle.com/competitions/titanic\r\n  host:        Kaggle\r\n  category:    Getting Started\r\n"]
 [5.72, "o", "  metric:      Categorization Accuracy\r\n  prize:       Knowledge\r\n  deadline:    2030-01-01 00:00 UTC (in 1186 d 2 h)\r\n"]
-[5.88, "o", "  teams:       10,618\r\n  team size:   up to 10\r\n  submissions: 10 a day\r\n"]
-[6.04, "o", "… (5 more lines)\r\n</untrusted-content-98146f43>\r\n"]
+[5.88, "o", "  teams:       10,621\r\n  team size:   up to 10\r\n  submissions: 10 a day\r\n"]
+[6.04, "o", "… (5 more lines)\r\n</untrusted-content-9212ce00>\r\n"]
 [6.2, "o", "\r\n"]
