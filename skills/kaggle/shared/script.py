@@ -213,15 +213,18 @@ def write_gate(
     details: list[tuple[str, str]],
     cost: str = "",
     target: str = "Kaggle",
+    blocked: bool = False,
 ) -> int | None:
     """Print what a write would do, and decide whether it may happen.
 
     Returns None when the caller may go ahead: ``--yes`` was given and the
     read-only switch is off. Otherwise returns the exit code to stop with:
     0 after a dry run, 5 when the read-only switch refused a confirmed write.
+    ``blocked`` means the caller already found a reason the write cannot
+    happen: the plan is printed and ``--yes`` is not offered.
     """
-    refused = yes and read_only()
-    if yes and not refused:
+    refused = yes and read_only() and not blocked
+    if yes and not refused and not blocked:
         print(f"Confirmed with --yes: {action}")
         return None
     if refused:
@@ -236,7 +239,10 @@ def write_gate(
         print(f"  {'cost:':<{width}} {cost}")
     if refused:
         return EXIT_REFUSED
-    print("Add --yes to do it, after the user has confirmed.")
+    if blocked:
+        print("This cannot be done as given. See the error above.")
+    else:
+        print("Add --yes to do it, after the user has confirmed.")
     return EXIT_OK
 
 

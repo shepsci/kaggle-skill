@@ -95,6 +95,11 @@ def kaggle_bin() -> str:
     return os.environ.get("KAGGLE_CLI_BIN") or shutil.which("kaggle") or "kaggle"
 
 
+def installed() -> bool:
+    """True when the Kaggle CLI can be found."""
+    return shutil.which(os.environ.get("KAGGLE_CLI_BIN") or "kaggle") is not None
+
+
 def scrubbed_env(base: dict[str, str] | None = None) -> dict[str, str]:
     """Copy of the environment without the variables that leak or redirect."""
     env = dict(os.environ if base is None else base)

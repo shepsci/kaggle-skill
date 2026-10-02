@@ -9,12 +9,13 @@ so callers print what comes from here inside an untrusted-content block.
 from __future__ import annotations
 
 import argparse
+import json
 import re
 import sys
 from datetime import datetime
 from typing import Any
 
-from shared import mcp_client, script, text, untrusted
+from shared import kaggle_cli, mcp_client, script, text, untrusted
 
 KAGGLE_BASE = "https://www.kaggle.com"
 SOURCE = "kaggle-mcp"
@@ -269,3 +270,159 @@ def print_pages(
                 "Add --max-chars 0 for the whole page."
             )
     return script.EXIT_OK
+
+
+# -- submissions, leaderboard, medals -----------------------------------------
+
+SUBMISSIONS_TOOL = "search_competition_submissions"
+LEADERBOARD_TOOL = "get_competition_leaderboard"
+LEADERBOARD_PAGE = 200  # the most rows the server returns in one call
+
+
+def score_value(value: Any) -> float | None:
+    """A score as a number, or None when it is empty or not a number."""
+    try:
+        return float(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def submission_row(raw: dict[str, Any]) -> dict[str, Any]:
+    """One of your submissions as the server returned it, reduced to plain fields."""
+    return {
+        "ref": raw.get("ref"),
+        "date": raw.get("date"),
+        # The CLI spells the state "SubmissionStatus.COMPLETE"; the server "COMPLETE".
+        "status": str(raw.get("status") or "").rsplit(".", 1)[-1].upper() or "UNKNOWN",
+        "public_score": str(raw.get("public_score") or ""),
+        "private_score": str(raw.get("private_score") or ""),
+        "description": raw.get("description") or "",
+        "file_name": raw.get("file_name") or "",
+        "team_name": raw.get("team_name") or "",
+        "submitted_by": raw.get("submitted_by") or "",
+        "error": raw.get("error_description") or "",
+    }
+
+
+def fetch_submissions(
+    slug: str, token: str | None = None, limit: int = 20
+) -> tuple[list[dict[str, Any]], mcp_client.Result]:
+    """Your latest submissions, newest first. Returns ``(rows, last result)``."""
+    rows: list[dict[str, Any]] = []
+    page_token = None
+    result = mcp_client.request(
+        SUBMISSIONS_TOOL, {"competitionName": slug, "pageSize": min(limit, 100)}, token=token
+    )
+    while result.ok and isinstance(result.data, dict):
+        found = [r for r in result.data.get("submissions") or [] if isinstance(r, dict)]
+        rows += [submission_row(r) for r in found]
+        page_token = result.data.get("next_page_token")
+        if not found or not page_token or len(rows) >= limit:
+            break
+        result = mcp_client.request(
+            SUBMISSIONS_TOOL,
+            {"competitionName": slug, "pageSize": min(limit, 100), "pageToken": page_token},
+            token=token,
+        )
+    return rows[:limit], result
+
+
+def fetch_leaderboard(
+    slug: str, token: str | None = None, rows_wanted: int = LEADERBOARD_PAGE
+) -> tuple[list[dict[str, Any]], bool, mcp_client.Result]:
+    """The public leaderboard from the top. Returns ``(rows, more exist, last result)``.
+
+    The server gives no rank, only the order: the rank is the position.
+    """
+    rows: list[dict[str, Any]] = []
+    request: dict[str, Any] = {"competitionName": slug, "pageSize": LEADERBOARD_PAGE}
+    result = mcp_client.request(LEADERBOARD_TOOL, request, token=token)
+    more = False
+    while result.ok and isinstance(result.data, dict):
+        found = [r for r in result.data.get("submissions") or [] if isinstance(r, dict)]
+        for row in found:
+            rows.append(
+                {
+                    "rank": len(rows) + 1,
+                    "team_id": row.get("team_id"),
+                    "team": row.get("team_name") or "",
+                    "score": str(row.get("score") or ""),
+                    "date": row.get("submission_date"),
+                }
+            )
+        page_token = result.data.get("next_page_token")
+        more = bool(page_token)
+        if not found or not page_token or len(rows) >= rows_wanted:
+            break
+        result = mcp_client.request(
+            LEADERBOARD_TOOL, {**request, "pageToken": page_token}, token=token
+        )
+    return rows, more, result
+
+
+def higher_is_better(rows: list[dict[str, Any]]) -> bool | None:
+    """The direction of the metric, read from the order of the leaderboard.
+
+    None when the rows do not show it: fewer than two scores, or all equal.
+    """
+    scores = [s for s in (score_value(row.get("score")) for row in rows) if s is not None]
+    if len(scores) < 2 or scores[0] == scores[-1]:
+        return None
+    return scores[0] > scores[-1]
+
+
+def best_submission(rows: list[dict[str, Any]], higher: bool | None) -> dict[str, Any] | None:
+    """Your best scored submission, or None when the direction is unknown or nothing scored."""
+    scored = [r for r in rows if score_value(r.get("public_score")) is not None]
+    if not scored or higher is None:
+        return None
+    pick = max if higher else min
+    return pick(scored, key=lambda r: score_value(r["public_score"]))
+
+
+def medal_ranks(team_count: int) -> dict[str, int]:
+    """The last rank that earns each medal, for a competition that awards medals.
+
+    From https://www.kaggle.com/progression/competitions as read on 2026-10-02.
+    Percentages are rounded down, and gold in a competition of 250 teams or
+    more is the top 10 plus one for every 500 teams. The count that matters is
+    the one at the end of the competition.
+    """
+    teams = max(int(team_count or 0), 0)
+    if teams >= 1000:
+        return {"gold": 10 + teams // 500, "silver": teams * 5 // 100, "bronze": teams // 10}
+    if teams >= 250:
+        return {"gold": 10 + teams // 500, "silver": 50, "bronze": 100}
+    if teams >= 100:
+        return {"gold": 10, "silver": teams * 20 // 100, "bronze": teams * 40 // 100}
+    return {"gold": teams // 10, "silver": teams * 20 // 100, "bronze": teams * 40 // 100}
+
+
+def submission_limits(slug: str) -> dict[str, Any] | None:
+    """Kaggle's own count of submissions, from the Kaggle CLI.
+
+    Returns ``{"numTotal": all so far, "numAllowedNow": left today}``, or
+    None when the CLI is not installed or did not answer. The MCP server has
+    no tool for this.
+    """
+    if not kaggle_cli.installed():
+        return None
+    result = kaggle_cli.run(["competitions", "submission-limits", slug, "--json"], timeout=60)
+    if result.returncode != 0:
+        return None
+    start, end = result.stdout.find("{"), result.stdout.rfind("}")
+    if start < 0 or end < start:
+        return None
+    try:
+        limits = json.loads(result.stdout[start : end + 1])
+    except ValueError:
+        return None
+    return limits if isinstance(limits, dict) and "numAllowedNow" in limits else None
+
+
+def seconds(value: Any) -> float | None:
+    """A duration such as ``119679.779s`` as seconds."""
+    try:
+        return float(str(value).strip().rstrip("s"))
+    except (TypeError, ValueError):
+        return None
