@@ -1,80 +1,76 @@
 # Screencasts
 
-Short terminal casts are kept here as replayable `.cast` files. GitHub cannot
-play raw asciinema files inline, so generated GIF previews live in `media/` and
-are embedded in Markdown. The `.cast` files remain the source of truth.
+Short terminal casts of the skill at work. The `.cast` files are the source;
+GitHub cannot play them inline, so each has a GIF in `media/`.
 
-## Watch Order
+The casts are built from real command output by `tools/build_casts.py`. They
+are not recordings of an agent session: they show the commands an agent runs
+and what comes back. Colour codes are removed, long output is cut with a line
+that says how much was left out, and temporary folder paths are shortened.
+Nothing else is edited.
 
-### Vesuvius Top Writeups
+## Solution writeups of the top teams
 
 ![Vesuvius top writeups](media/vesuvius-top-writeups.gif)
 
 Source: [vesuvius-top-writeups.cast](vesuvius-top-writeups.cast)
 
-### Claude Install And First Workflow
+## Claude Code install and first workflow
 
-![Claude install and first workflow](media/install-and-demo.gif)
+![Claude Code install and first workflow](media/install-and-demo.gif)
 
 Source: [install-and-demo.cast](install-and-demo.cast)
 
-### Antigravity CLI Install
-
-![Antigravity CLI install](media/antigravity-install.gif)
-
-Source: [antigravity-install.cast](antigravity-install.cast)
-
-### Antigravity MCP Config
-
-![Antigravity MCP config](media/mcp-config.gif)
-
-Source: [mcp-config.cast](mcp-config.cast)
-
-### Competition Briefing
+## Competition briefing
 
 ![Competition briefing](media/competition-brief.gif)
 
 Source: [competition-brief.cast](competition-brief.cast)
 
-### Hackathon Writeups
+## Hackathon writeups
 
 ![Hackathon writeups](media/hackathon-writeups.gif)
 
 Source: [hackathon-writeups.cast](hackathon-writeups.cast)
 
-### Codex Install
+## Kaggle MCP server entry
+
+![Kaggle MCP server](media/mcp-config.gif)
+
+Source: [mcp-config.cast](mcp-config.cast)
+
+## Codex install
 
 ![Codex install](media/codex-install.gif)
 
 Source: [codex-install.cast](codex-install.cast)
 
-Replay any source cast with:
+## Antigravity CLI and skills.sh
+
+![Antigravity CLI and skills.sh](media/antigravity-install.gif)
+
+Source: [antigravity-install.cast](antigravity-install.cast)
+
+## Replay
 
 ```bash
 asciinema play docs/demo/competition-brief.cast
 ```
 
-Render a GIF preview with:
+## Rebuild
 
 ```bash
-agg docs/demo/competition-brief.cast docs/demo/media/competition-brief.gif
+python3 tools/build_casts.py
+python3 tools/build_casts.py competition-brief
+python3 tools/build_casts.py --gif-only
 ```
 
-If `agg` is unavailable, install it with `brew install agg` (the formula
-exists on Homebrew) or `cargo install --locked agg`, or use the package
-manager documented by the asciinema/agg project.
+The builder needs the Kaggle CLI, Pillow, and a Kaggle credential for the
+roster and forum steps. Casts that use `claude`, `codex`, `agy`, or `npx` are
+skipped when that program is missing. Plugin installs run in throwaway config
+folders, from the local checkout, so the casts can be rebuilt before a
+release is on GitHub. See [demo-script.md](demo-script.md) for what each cast
+runs.
 
-## Recording Notes
-
-- Keep each cast focused on one workflow and under about 90 seconds.
-- Re-record or hand-clean any cast that includes terminal escape/control
-  sequences from progress spinners, cursor movement, or alternate screens.
-- Prefer redacted, deterministic output over long live API payloads.
-- Do not print tokens, credential file names, credential JSON, or environment
-  assignments that include secrets.
-- Re-render GIF previews after editing a cast.
-- Re-run `python3 -m pytest tests/manifest/test_docs_freshness.py -q` before
-  committing any cast.
-
-See [demo-script.md](demo-script.md) for the main README demo command sequence
-and cast-specific recording plans.
+After a rebuild, run `python3 -m pytest tests/manifest -q`. The tests check
+that no cast contains a credential, a control sequence, or stale module paths.

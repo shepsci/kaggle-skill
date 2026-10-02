@@ -1,0 +1,13 @@
+{
+  "result": {
+    "content": [
+      {
+        "type": "text",
+        "text": "Only hosts, judges, or teammates of this hackathon can request writeups."
+      }
+    ],
+    "isError": true
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
+}

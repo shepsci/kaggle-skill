@@ -1,0 +1,615 @@
+{
+ "kaggle_version": "2.2.4",
+ "commands": {
+  "auth": [],
+  "auth login": [
+   "--force",
+   "--no-launch-browser"
+  ],
+  "auth print-access-token": [
+   "--expiration"
+  ],
+  "auth revoke": [
+   "--reason"
+  ],
+  "benchmarks": [],
+  "benchmarks auth": [
+   "--env-file",
+   "--yes"
+  ],
+  "benchmarks init": [
+   "--env-file",
+   "--example-file",
+   "--yes"
+  ],
+  "benchmarks leaderboard": [
+   "--csv",
+   "--download",
+   "--format",
+   "--path",
+   "--quiet",
+   "--show",
+   "--version"
+  ],
+  "benchmarks tasks": [],
+  "benchmarks tasks delete": [
+   "--yes"
+  ],
+  "benchmarks tasks download": [
+   "--force",
+   "--include-source",
+   "--model",
+   "--output"
+  ],
+  "benchmarks tasks list": [
+   "--all",
+   "--name-regex",
+   "--page-size",
+   "--status"
+  ],
+  "benchmarks tasks log": [
+   "--model"
+  ],
+  "benchmarks tasks models": [],
+  "benchmarks tasks publish": [
+   "--no-publish-backing-notebook"
+  ],
+  "benchmarks tasks push": [
+   "--file",
+   "--kaggle-dataset",
+   "--poll-interval",
+   "--verbose",
+   "--wait"
+  ],
+  "benchmarks tasks run": [
+   "--model",
+   "--poll-interval",
+   "--verbose",
+   "--wait"
+  ],
+  "benchmarks tasks status": [
+   "--model"
+  ],
+  "benchmarks topics": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "benchmarks topics list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--search",
+   "--sort-by"
+  ],
+  "benchmarks topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "competitions": [],
+  "competitions create": [
+   "--path"
+  ],
+  "competitions data": [],
+  "competitions data update": [
+   "--ignore-patterns",
+   "--include-hidden",
+   "--message",
+   "--path",
+   "--quiet",
+   "--rerun"
+  ],
+  "competitions download": [
+   "--file",
+   "--force",
+   "--path",
+   "--quiet",
+   "--wp"
+  ],
+  "competitions episodes": [
+   "--csv",
+   "--format",
+   "--quiet"
+  ],
+  "competitions files": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "competitions hosts": [
+   "--csv",
+   "--format",
+   "--quiet"
+  ],
+  "competitions init": [],
+  "competitions launch": [
+   "--at",
+   "--quiet"
+  ],
+  "competitions leaderboard": [
+   "--csv",
+   "--download",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--path",
+   "--quiet",
+   "--show"
+  ],
+  "competitions list": [
+   "--category",
+   "--csv",
+   "--format",
+   "--group",
+   "--page",
+   "--page-size",
+   "--page-token",
+   "--search",
+   "--sort-by"
+  ],
+  "competitions logs": [
+   "--path",
+   "--quiet"
+  ],
+  "competitions pages": [
+   "--content",
+   "--csv",
+   "--format",
+   "--page-name",
+   "--quiet"
+  ],
+  "competitions pages create": [
+   "--file",
+   "--mime-type",
+   "--page-name",
+   "--post-title",
+   "--publish",
+   "--quiet"
+  ],
+  "competitions pages delete": [
+   "--page-name",
+   "--quiet",
+   "--yes"
+  ],
+  "competitions pages list": [
+   "--content",
+   "--csv",
+   "--format",
+   "--page-name",
+   "--quiet"
+  ],
+  "competitions pages update": [
+   "--file",
+   "--mime-type",
+   "--new-name",
+   "--page-name",
+   "--post-title",
+   "--publish",
+   "--quiet",
+   "--unpublish"
+  ],
+  "competitions replay": [
+   "--path",
+   "--quiet"
+  ],
+  "competitions settings": [],
+  "competitions settings get": [
+   "--json",
+   "--quiet"
+  ],
+  "competitions settings update": [
+   "--from-file",
+   "--json",
+   "--quiet"
+  ],
+  "competitions solution": [],
+  "competitions solution create": [
+   "--path",
+   "--quiet"
+  ],
+  "competitions solution status": [
+   "--json",
+   "--quiet"
+  ],
+  "competitions submission-limits": [
+   "--json",
+   "--quiet"
+  ],
+  "competitions submissions": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "competitions submit": [
+   "--file",
+   "--kernel",
+   "--message",
+   "--quiet",
+   "--sandbox",
+   "--version"
+  ],
+  "competitions team-submissions": [
+   "--csv",
+   "--format",
+   "--quiet",
+   "--show"
+  ],
+  "competitions topic-messages": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--quiet",
+   "--sort-by"
+  ],
+  "competitions topics": [
+   "--csv",
+   "--format",
+   "--page",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "competitions topics list": [
+   "--csv",
+   "--format",
+   "--page",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--sort-by"
+  ],
+  "competitions topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "config": [],
+  "config set": [
+   "--name",
+   "--value"
+  ],
+  "config unset": [
+   "--name"
+  ],
+  "config view": [],
+  "datasets": [],
+  "datasets create": [
+   "--dir-mode",
+   "--ignore-patterns",
+   "--keep-tabular",
+   "--path",
+   "--public",
+   "--quiet"
+  ],
+  "datasets delete": [
+   "--yes"
+  ],
+  "datasets download": [
+   "--file",
+   "--force",
+   "--path",
+   "--quiet",
+   "--unzip",
+   "--wp"
+  ],
+  "datasets files": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "datasets init": [
+   "--path"
+  ],
+  "datasets list": [
+   "--csv",
+   "--file-type",
+   "--format",
+   "--license",
+   "--max-size",
+   "--min-size",
+   "--mine",
+   "--page",
+   "--page-size",
+   "--page-token",
+   "--search",
+   "--size",
+   "--sort-by",
+   "--tags",
+   "--user"
+  ],
+  "datasets metadata": [
+   "--path",
+   "--update"
+  ],
+  "datasets status": [
+   "--format"
+  ],
+  "datasets topics": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "datasets topics list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--search",
+   "--sort-by"
+  ],
+  "datasets topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "datasets version": [
+   "--delete-old-versions",
+   "--dir-mode",
+   "--ignore-patterns",
+   "--keep-tabular",
+   "--message",
+   "--path",
+   "--quiet"
+  ],
+  "files": [],
+  "files upload": [
+   "--inbox-path",
+   "--no-compress",
+   "--no-resume"
+  ],
+  "forums": [],
+  "forums list": [
+   "--csv",
+   "--format",
+   "--quiet"
+  ],
+  "forums topics": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "forums topics list": [
+   "--category",
+   "--csv",
+   "--format",
+   "--group",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--search",
+   "--sort-by"
+  ],
+  "forums topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "kernels": [],
+  "kernels delete": [
+   "--yes"
+  ],
+  "kernels files": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "kernels init": [
+   "--path"
+  ],
+  "kernels list": [
+   "--competition",
+   "--csv",
+   "--dataset",
+   "--format",
+   "--kernel-type",
+   "--language",
+   "--mine",
+   "--output-type",
+   "--page",
+   "--page-size",
+   "--page-token",
+   "--parent",
+   "--search",
+   "--sort-by",
+   "--user"
+  ],
+  "kernels logs": [
+   "--follow"
+  ],
+  "kernels output": [
+   "--file-pattern",
+   "--force",
+   "--page-size",
+   "--page-token",
+   "--path",
+   "--quiet",
+   "--wp"
+  ],
+  "kernels pull": [
+   "--metadata",
+   "--path",
+   "--wp"
+  ],
+  "kernels push": [
+   "--accelerator",
+   "--path",
+   "--timeout"
+  ],
+  "kernels status": [],
+  "kernels topics": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "kernels topics list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--search",
+   "--sort-by"
+  ],
+  "kernels topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "models": [],
+  "models create": [
+   "--path"
+  ],
+  "models delete": [
+   "--yes"
+  ],
+  "models get": [
+   "--path"
+  ],
+  "models init": [
+   "--path"
+  ],
+  "models instances": [],
+  "models instances create": [
+   "--dir-mode",
+   "--ignore-patterns",
+   "--path",
+   "--quiet"
+  ],
+  "models instances delete": [
+   "--yes"
+  ],
+  "models instances files": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "models instances get": [
+   "--path"
+  ],
+  "models instances init": [
+   "--path"
+  ],
+  "models instances list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "models instances update": [
+   "--path"
+  ],
+  "models instances versions": [],
+  "models instances versions create": [
+   "--dir-mode",
+   "--ignore-patterns",
+   "--path",
+   "--quiet",
+   "--version-notes"
+  ],
+  "models instances versions delete": [
+   "--yes"
+  ],
+  "models instances versions download": [
+   "--force",
+   "--path",
+   "--quiet",
+   "--untar"
+  ],
+  "models instances versions files": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "models instances versions list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token"
+  ],
+  "models list": [
+   "--csv",
+   "--format",
+   "--owner",
+   "--page-size",
+   "--page-token",
+   "--search",
+   "--sort-by"
+  ],
+  "models topics": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "models topics list": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet",
+   "--search",
+   "--sort-by"
+  ],
+  "models topics show": [
+   "--csv",
+   "--format",
+   "--page-size",
+   "--page-token",
+   "--quiet"
+  ],
+  "models update": [
+   "--path"
+  ],
+  "quota": [
+   "--csv",
+   "--format"
+  ]
+ },
+ "aliases": {
+  "b": "benchmarks",
+  "benchmarks t": "benchmarks tasks",
+  "benchmarks tasks logs": "benchmarks tasks log",
+  "c": "competitions",
+  "d": "datasets",
+  "f": "forums",
+  "k": "kernels",
+  "kernels get": "kernels pull",
+  "kernels update": "kernels push",
+  "m": "models",
+  "models i": "models instances",
+  "models instances v": "models instances versions",
+  "models v": "models instances",
+  "models variations": "models instances"
+ }
+}

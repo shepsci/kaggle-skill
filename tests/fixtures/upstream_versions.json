@@ -1,0 +1,9 @@
+{
+ "checked": "2026-09-30",
+ "packages": {
+  "kaggle": "2.2.4",
+  "kagglehub": "1.0.2",
+  "kagglesdk": "0.1.37",
+  "kaggle-benchmarks": "0.6.1"
+ }
+}

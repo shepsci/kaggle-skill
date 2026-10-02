@@ -1,7 +1,10 @@
-{"version": 2, "width": 100, "height": 24, "timestamp": 1783102600, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/zsh", "TERM": "xterm-256color"}, "title": "kaggle-skill - Antigravity CLI install"}
-[0.100000, "o", "kaggle-skill Antigravity CLI install path\r\nrecommended terminal surface: agy\r\n\r\n"]
-[0.900000, "o", "$ agy --version\r\n"]
-[1.500000, "o", "1.0.16\r\n"]
-[2.400000, "o", "\r\n$ npx skills add shepsci/kaggle-skill\r\n"]
-[4.100000, "o", "# Adds the kaggle skill from shepsci/kaggle-skill to your Antigravity CLI skills directory.\r\n"]
-[5.700000, "o", "\r\nNext prompt in agy: Set up my Kaggle credentials without showing secrets.\r\n"]
+{"version": 2, "width": 100, "height": 30, "timestamp": 1790834804, "idle_time_limit": 1.5, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - Antigravity CLI and skills.sh"}
+[0.2, "o", "kaggle-skill: find the skill with the skills CLI, which Antigravity CLI, Cursor\r\nand other agents use. Listing only; add `-a <agent>` to install.\r\n\r\n"]
+[1.4, "o", "$ agy --version\r\n"]
+[2.3, "o", "1.0.16\r\n"]
+[3.4, "o", "\r\n"]
+[4.0, "o", "$ npx skills add ./kaggle-skill --list\r\n"]
+[4.9, "o", "\r\n███████╗██╗  ██╗██╗██╗     ██╗     ███████╗\r\n██╔════╝██║ ██╔╝██║██║     ██║     ██╔════╝\r\n███████╗█████╔╝ ██║██║     ██║     ███████╗\r\n╚════██║██╔═██╗ ██║██║     ██║     ╚════██║\r\n███████║██║  ██╗██║███████╗███████╗███████║\r\n╚══════╝╚═╝  ╚═╝╚═╝╚══════╝╚══════╝╚══════╝\r\n\r\n┌   skills\r\n│\r\n│  Tip: use the --yes (-y) and --global (-g) flags to install without prompts.\r\n│\r\n"]
+[6.0, "o", "◇  Source: ./kaggle-skill\r\n│\r\n◇  Local path validated\r\n│\r\n◇  Found 1 skill\r\n\r\n│\r\n◇  Available Skills\r\nKaggle\r\n│\r\n│    kaggle\r\n│\r\n"]
+[7.1, "o", "│      Unified Kaggle skill. Use when the user explicitly mentions Kaggle, kaggle.com, a Kaggle URL…\r\n\r\n\r\n│\r\n└  Use --skill <name> to install specific skills\r\n"]
+[8.2, "o", "\r\n"]

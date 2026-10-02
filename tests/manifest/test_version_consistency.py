@@ -32,10 +32,22 @@ def _pyproject_version() -> str:
 
 
 def _skill_md_frontmatter_metadata() -> dict:
+    import yaml
+
     text = (REPO_ROOT / "skills" / "kaggle" / "SKILL.md").read_text(encoding="utf-8")
-    match = re.search(r'^metadata:\s*(\{.*\})\s*$', text, re.MULTILINE)
-    assert match, "skills/kaggle/SKILL.md frontmatter missing a metadata JSON line"
-    return json.loads(match.group(1))
+    frontmatter = yaml.safe_load(text[4 : text.index("\n---\n", 4)])
+    return frontmatter["metadata"]
+
+
+def test_agent_plugins_manifest_matches_canonical_version():
+    assert _json("plugin.json")["version"] == _canonical_version()
+
+
+def test_changelog_has_an_entry_for_the_canonical_version():
+    changelog = (REPO_ROOT / "CHANGELOG.md").read_text(encoding="utf-8")
+    assert re.search(rf"^## \[?{re.escape(_canonical_version())}\]?", changelog, re.MULTILINE), (
+        "CHANGELOG.md has no heading for the current version"
+    )
 
 
 def test_claude_marketplace_entry_matches_canonical_version():
@@ -64,9 +76,8 @@ def test_skill_md_frontmatter_metadata_matches_canonical_version():
 
 DOCS_WITH_LITERAL_VERSION_MENTION = [
     "tests/e2e/INSTALL_CHECKLIST.md",
-    "docs/distribution/claude-community-submission.md",
+    "docs/distribution/README.md",
     "docs/demo/demo-script.md",
-    "docs/demo/record.sh",
 ]
 
 
@@ -77,6 +88,4 @@ def test_docs_mention_the_canonical_version_string():
         text = (REPO_ROOT / rel_path).read_text(encoding="utf-8")
         if canonical not in text:
             missing.append(rel_path)
-    assert not missing, (
-        f"canonical version {canonical!r} not found verbatim in: {missing}"
-    )
+    assert not missing, f"canonical version {canonical!r} not found verbatim in: {missing}"

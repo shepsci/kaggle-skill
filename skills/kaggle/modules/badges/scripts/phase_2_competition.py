@@ -1,5 +1,4 @@
-from typing import Optional
-"""Phase 2: Competition badges (~7 badges).
+"""Phase 2: Competition badges (7 badges).
 
 Earns badges by submitting to various competition types:
   - Competitor, Getting Started Competitor, Playground Competitor
@@ -9,71 +8,71 @@ Earns badges by submitting to various competition types:
 Uses pre-built submission_titanic.csv and finds active competitions via CLI.
 """
 
+from __future__ import annotations
+
 import json
-import os
-import shutil
-import zipfile
 from pathlib import Path
+from typing import Optional
 
 from badge_tracker import set_status, should_attempt
 from utils import (
-    API_DELAY,
     TEMPLATES_DIR,
     make_temp_dir,
     resource_name,
     run_kaggle_cli,
+    show_cli_output,
 )
+
+from shared.safe_extract import safe_extract  # utils puts the skill root on sys.path
 
 
 def _safe_extract(zf_path: Path, dest: Path) -> None:
-    """Extract zf_path into dest with zip-slip protection.
+    """Extract ``zf_path`` into ``dest`` with the shared zip-slip check.
 
-    Rejects any member whose resolved path escapes `dest`. Kaggle is treated
-    as untrusted in our threat model — a malicious or malformed competition
-    zip with `..` in member names must not write outside the temp dir.
+    Raises ValueError, and writes nothing, if a member would land outside
+    ``dest`` or is a symlink. Kaggle archives are untrusted input.
     """
-    dest_real = os.path.realpath(dest)
-    with zipfile.ZipFile(zf_path, "r") as z:
-        for member in z.namelist():
-            target = os.path.realpath(os.path.join(dest_real, member))
-            if not (target == dest_real or target.startswith(dest_real + os.sep)):
-                raise ValueError(
-                    f"refusing to extract {member!r} from {zf_path}: escapes {dest}"
-                )
-        z.extractall(dest)
+    safe_extract(zf_path, dest)
 
 
-def _find_competition_by_category(category: str) -> Optional[str]:
-    """Find an active competition by category.
+def _parse_competition_slugs(stdout: str) -> list[str]:
+    """Competition slugs from `kaggle competitions list --format json` output.
 
-    kaggle CLI v1.8+ outputs full URLs in the ref column:
-      https://www.kaggle.com/competitions/playground-series-s6e2
-    We extract the slug from the URL.
+    The CLI can print a "Next Page Token" line around the JSON, and prints
+    "No competitions found" when the list is empty, so only the JSON array is
+    read. Anything else yields no slugs.
     """
+    start, end = stdout.find("["), stdout.rfind("]")
+    if start < 0 or end < start:
+        return []
+    try:
+        rows = json.loads(stdout[start : end + 1])
+    except ValueError:
+        return []
+    slugs = []
+    for row in rows if isinstance(rows, list) else []:
+        ref = str(row.get("ref", "")) if isinstance(row, dict) else ""
+        slug = ref.rstrip("/").split("/")[-1]
+        if slug:
+            slugs.append(slug)
+    return slugs
+
+
+def _find_competition(*filter_args: str) -> Optional[str]:
+    """First competition the CLI lists for the given filter, or None."""
     result = run_kaggle_cli(
-        ["competitions", "list", "--category", category, "--sort-by", "latestDeadline"],
+        ["competitions", "list", *filter_args, "--sort-by", "latestDeadline", "--format", "json"],
         check=False,
     )
     if result.returncode != 0:
         return None
+    slugs = _parse_competition_slugs(result.stdout)
+    return slugs[0] if slugs else None
 
-    # Parse output — kaggle CLI v1.8 outputs a table with full URLs
-    lines = result.stdout.strip().split("\n")
-    for line in lines:
-        # Skip header and separator lines
-        if line.startswith("ref") or line.startswith("---") or not line.strip():
-            continue
-        parts = line.split()
-        if not parts:
-            continue
-        ref = parts[0]
-        # Extract slug from URL: https://www.kaggle.com/competitions/SLUG
-        if "/competitions/" in ref:
-            return ref.split("/competitions/")[-1].strip("/")
-        # Fallback: treat first column as slug directly
-        if not ref.startswith("-"):
-            return ref
-    return None
+
+def _find_competition_by_category(category: str) -> Optional[str]:
+    """Find an active competition by category (playground, research, ...)."""
+    return _find_competition("--category", category)
 
 
 def _submit_titanic(username: str) -> bool:
@@ -97,12 +96,18 @@ def _submit_titanic(username: str) -> bool:
                 set_status(bid, "failed", "template missing")
             return False
 
-        run_kaggle_cli([
-            "competitions", "submit",
-            "-c", "titanic",
-            "-f", str(submission_file),
-            "-m", "Badge Collector automated submission",
-        ])
+        run_kaggle_cli(
+            [
+                "competitions",
+                "submit",
+                "-c",
+                "titanic",
+                "-f",
+                str(submission_file),
+                "-m",
+                "Badge Collector automated submission",
+            ]
+        )
         print("  [OK] Submitted to Titanic competition")
 
         for bid in actionable:
@@ -136,10 +141,20 @@ def _submit_playground(username: str) -> bool:
 
         # Download competition data to get sample_submission.csv
         tmp = make_temp_dir("-playground")
-        dl_result = run_kaggle_cli([
-            "competitions", "download", comp,
-            "--path", str(tmp),
-        ], check=False)
+        dl_result = run_kaggle_cli(
+            [
+                "competitions",
+                "download",
+                comp,
+                "--path",
+                str(tmp),
+            ],
+            check=False,
+        )
+        if dl_result.returncode != 0:
+            print(f"  [SKIP] Could not download {comp}; accept its rules on kaggle.com first")
+            set_status("playground_competitor", "skipped", f"could not download {comp}")
+            return False
 
         # Find and unzip if needed (zip-slip-safe)
         for zf in tmp.glob("*.zip"):
@@ -159,19 +174,27 @@ def _submit_playground(username: str) -> bool:
             set_status("playground_competitor", "skipped", f"no sample_submission for {comp}")
             return False
 
-        result = run_kaggle_cli([
-            "competitions", "submit",
-            "-c", comp,
-            "-f", str(submission_file),
-            "-m", "Badge Collector playground submission",
-        ], check=False)
+        result = run_kaggle_cli(
+            [
+                "competitions",
+                "submit",
+                "-c",
+                comp,
+                "-f",
+                str(submission_file),
+                "-m",
+                "Badge Collector playground submission",
+            ],
+            check=False,
+        )
 
         if result.returncode == 0:
             print(f"  [OK] Submitted to Playground: {comp}")
             set_status("playground_competitor", "earned", f"competition={comp}")
             return True
         else:
-            print(f"  [FAIL] Playground submission failed for {comp}: {result.stderr[:200]}")
+            print(f"  [FAIL] Playground submission failed for {comp}:")
+            show_cli_output(result)
             set_status("playground_competitor", "failed", f"submit failed for {comp}")
             return False
 
@@ -184,26 +207,20 @@ def _submit_playground(username: str) -> bool:
 def _submit_community(username: str) -> bool:
     """Submit to a Community competition to earn Community Competitor.
 
-    Note: kaggle CLI does not have a 'community' category filter.
-    Valid categories: featured, research, recruitment, gettingStarted, masters, playground.
-    Community competitions often appear under 'research' or the default listing.
-    We try 'research' as the closest match, and also download sample_submission
-    to get the right format.
+    Community competitions are listed with `kaggle competitions list --group community`.
     """
     if not should_attempt("community_competitor"):
         return True
 
     set_status("community_competitor", "attempting")
     try:
-        # Try 'research' category as closest match for community competitions
-        comp = _find_competition_by_category("research")
+        comp = _find_competition("--group", "community")
         if not comp:
-            print("  [SKIP] No active research/community competition found")
-            set_status("community_competitor", "skipped",
-                       "no active research competition (CLI has no 'community' category)")
+            print("  [SKIP] No active community competition found")
+            set_status("community_competitor", "skipped", "no active community competition")
             return False
 
-        print(f"  Found research competition: {comp}")
+        print(f"  Found community competition: {comp}")
 
         # Download sample submission
         tmp = make_temp_dir("-community")
@@ -223,19 +240,27 @@ def _submit_community(username: str) -> bool:
             set_status("community_competitor", "skipped", f"no sample_submission for {comp}")
             return False
 
-        result = run_kaggle_cli([
-            "competitions", "submit",
-            "-c", comp,
-            "-f", str(submission_file),
-            "-m", "Badge Collector community/research submission",
-        ], check=False)
+        result = run_kaggle_cli(
+            [
+                "competitions",
+                "submit",
+                "-c",
+                comp,
+                "-f",
+                str(submission_file),
+                "-m",
+                "Badge Collector community submission",
+            ],
+            check=False,
+        )
 
         if result.returncode == 0:
-            print(f"  [OK] Submitted to research competition: {comp}")
+            print(f"  [OK] Submitted to community competition: {comp}")
             set_status("community_competitor", "earned", f"competition={comp}")
             return True
         else:
-            print(f"  [FAIL] Submission failed: {result.stderr[:200]}")
+            print("  [FAIL] Submission failed:")
+            show_cli_output(result)
             set_status("community_competitor", "failed", f"submit failed for {comp}")
             return False
 
@@ -323,12 +348,16 @@ def _code_submission(username: str) -> bool:
 
         run_kaggle_cli(["kernels", "push", "-p", str(tmp)])
         print(f"  [OK] Code submission notebook pushed: {nb_slug}")
-        print("  NOTE: Notebook will execute on KKB. Check status with:")
-        print(f"    kaggle kernels status {username}/{nb_slug}")
+        print("  [MANUAL] The badges need a submission made from this notebook.")
+        print(f"           When `kaggle kernels status {username}/{nb_slug}` shows COMPLETE,")
+        print("           open the notebook on kaggle.com and choose Submit to competition.")
 
+        # Pushing the notebook is not a submission, so nothing is earned yet.
         for bid in actionable:
-            set_status(bid, "earned", f"notebook={nb_slug}")
-        return True
+            set_status(
+                bid, "skipped", f"notebook={nb_slug} pushed; submit it from the notebook page"
+            )
+        return False
 
     except Exception as e:
         print(f"  [FAIL] Code submission: {e}")
@@ -338,81 +367,18 @@ def _code_submission(username: str) -> bool:
 
 
 def _competition_modeler(username: str) -> bool:
-    """Create a notebook using a model for a competition to earn Competition Modeler."""
+    """Competition Modeler needs a competition notebook that uses a Kaggle model.
+
+    Choosing and attaching a model is the user's decision (many need a licence
+    to be accepted first), so nothing is pushed here.
+    """
     if not should_attempt("competition_modeler"):
         return True
 
-    set_status("competition_modeler", "attempting")
-    try:
-        tmp = make_temp_dir("-comp-model")
-        nb_slug = resource_name("comp-modeler")
-
-        # Create a notebook that references both a competition and a model
-        notebook_content = {
-            "cells": [
-                {
-                    "cell_type": "code",
-                    "execution_count": None,
-                    "metadata": {},
-                    "outputs": [],
-                    "source": [
-                        "import pandas as pd\n",
-                        "\n",
-                        "# Read competition data\n",
-                        "test = pd.read_csv('/kaggle/input/titanic/test.csv')\n",
-                        "\n",
-                        "# Simple prediction using model approach\n",
-                        "submission = pd.DataFrame({\n",
-                        "    'PassengerId': test['PassengerId'],\n",
-                        "    'Survived': 0\n",
-                        "})\n",
-                        "\n",
-                        "submission.to_csv('submission.csv', index=False)\n",
-                        "print('Competition modeler submission created')\n",
-                    ],
-                }
-            ],
-            "metadata": {
-                "kernelspec": {
-                    "display_name": "Python 3",
-                    "language": "python",
-                    "name": "python3",
-                },
-                "language_info": {"name": "python", "version": "3.10.0"},
-            },
-            "nbformat": 4,
-            "nbformat_minor": 4,
-        }
-        (tmp / "notebook.ipynb").write_text(json.dumps(notebook_content, indent=2))
-
-        metadata = {
-            "id": f"{username}/{nb_slug}",
-            "title": nb_slug,
-            "code_file": "notebook.ipynb",
-            "language": "python",
-            "kernel_type": "notebook",
-            "is_private": True,
-            "enable_gpu": False,
-            "enable_tpu": False,
-            "enable_internet": False,
-            "keywords": ["kaggle-badges", "competition", "model"],
-            "competition_sources": ["titanic"],
-            "dataset_sources": [],
-            "kernel_sources": [],
-            "model_sources": [],
-        }
-        (tmp / "kernel-metadata.json").write_text(json.dumps(metadata, indent=2))
-
-        run_kaggle_cli(["kernels", "push", "-p", str(tmp)])
-        print(f"  [OK] Competition modeler notebook pushed: {nb_slug}")
-
-        set_status("competition_modeler", "earned", f"notebook={nb_slug}")
-        return True
-
-    except Exception as e:
-        print(f"  [FAIL] Competition modeler: {e}")
-        set_status("competition_modeler", "failed", str(e))
-        return False
+    print("  [MANUAL] Competition Modeler: in a notebook for any competition, use")
+    print("           Add Input > Models to attach a model, then save a version.")
+    set_status("competition_modeler", "skipped", "needs a model attached in the notebook editor")
+    return False
 
 
 def run(username: str) -> tuple[int, int]:

@@ -1,12 +1,13 @@
 {
-  "jsonrpc": "2.0",
-  "id": 1,
   "result": {
     "content": [
       {
         "type": "text",
-        "text": "{\"tracks\": [{\"id\": 363, \"title\": \"Clinical Workflow Automation\", \"description\": \"...\"}, {\"id\": 364, \"title\": \"Medical Documentation & NLP\"}, {\"id\": 365, \"title\": \"Health Data Analytics\"}]}"
+        "text": "{\"tracks\": [{\"id\": 363, \"title\": \"Clinical Workflow Automation\", \"description\": \"...\", \"prizes\": [{\"id\": 901, \"title\": \"Winner (1 of 2)\", \"type\": \"HACKATHON_TRACK_PRIZE_TYPE_MONETARY\", \"amount_usd\": 10000}, {\"id\": 902, \"title\": \"Winner (2 of 2)\", \"type\": \"HACKATHON_TRACK_PRIZE_TYPE_MONETARY\", \"amount_usd\": 10000, \"order_index\": 1}]}, {\"id\": 364, \"title\": \"Medical Documentation & NLP\", \"description\": \"...\", \"prizes\": [], \"order_index\": 1}, {\"id\": 365, \"title\": \"Health Data Analytics\", \"description\": \"...\", \"prizes\": [], \"order_index\": 2}]}"
       }
-    ]
-  }
+    ],
+    "isError": false
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
 }

@@ -1,0 +1,326 @@
+{
+ "tools": [
+  {
+   "name": "list_hackathon_write_ups",
+   "description": "List hackathon write-up submissions for a competition. Supports filtering by track and winner status.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "competitionIdNullable": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "teamIdNullable": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "publishedNullable": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "winnerNullable": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "templateNullable": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "pageSizeNullable": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "pageTokenNullable": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "skipNullable": {
+        "type": [
+         "integer",
+         "null"
+        ]
+       },
+       "hostOrJudgeNullable": {
+        "type": [
+         "boolean",
+         "null"
+        ]
+       },
+       "competitionNameNullable": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "hackathonTrackIdsSetter": {
+        "type": [
+         "array",
+         "null"
+        ],
+        "items": {
+         "type": "integer"
+        }
+       },
+       "competitionId": {
+        "type": "integer"
+       },
+       "hasCompetitionId": {
+        "type": "boolean"
+       },
+       "teamId": {
+        "type": "integer"
+       },
+       "hasTeamId": {
+        "type": "boolean"
+       },
+       "hackathonTrackIds": {
+        "type": [
+         "array",
+         "null"
+        ],
+        "items": {
+         "type": "integer"
+        }
+       },
+       "published": {
+        "type": "boolean"
+       },
+       "hasPublished": {
+        "type": "boolean"
+       },
+       "winner": {
+        "type": "boolean"
+       },
+       "hasWinner": {
+        "type": "boolean"
+       },
+       "template": {
+        "type": "boolean"
+       },
+       "hasTemplate": {
+        "type": "boolean"
+       },
+       "pageSize": {
+        "type": "integer"
+       },
+       "hasPageSize": {
+        "type": "boolean"
+       },
+       "pageToken": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "hasPageToken": {
+        "type": "boolean"
+       },
+       "skip": {
+        "type": "integer"
+       },
+       "hasSkip": {
+        "type": "boolean"
+       },
+       "readMask": {
+        "type": [
+         "object",
+         "null"
+        ],
+        "properties": {
+         "paths": {
+          "type": [
+           "array",
+           "null"
+          ],
+          "items": {
+           "type": "string"
+          }
+         }
+        }
+       },
+       "hostOrJudge": {
+        "type": "boolean"
+       },
+       "hasHostOrJudge": {
+        "type": "boolean"
+       },
+       "competitionName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "hasCompetitionName": {
+        "type": "boolean"
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  },
+  {
+   "name": "list_hackathon_tracks",
+   "description": "List the tracks for a hackathon competition.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "competitionName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  },
+  {
+   "name": "list_competition_pages",
+   "description": "List the content pages for a competition (overview, rules, evaluation, data description, etc.).",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "pageNameNullable": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "competitionName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "pageName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       },
+       "hasPageName": {
+        "type": "boolean"
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  },
+  {
+   "name": "get_hackathon_overview",
+   "description": "Get all the overview page content for a hackathon competition.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "competitionName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  },
+  {
+   "name": "get_competition",
+   "description": "Get competition metadata.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "competitionName": {
+        "type": [
+         "string",
+         "null"
+        ]
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  },
+  {
+   "name": "get_writeup",
+   "description": "Get a writeup by ID.",
+   "inputSchema": {
+    "type": "object",
+    "properties": {
+     "request": {
+      "type": "object",
+      "properties": {
+       "writeUpId": {
+        "type": "integer"
+       },
+       "readMask": {
+        "type": [
+         "object",
+         "null"
+        ],
+        "properties": {
+         "paths": {
+          "type": [
+           "array",
+           "null"
+          ],
+          "items": {
+           "type": "string"
+          }
+         }
+        }
+       }
+      }
+     }
+    },
+    "required": [
+     "request"
+    ]
+   }
+  }
+ ]
+}

@@ -19,6 +19,7 @@ build/
 # Runtime artifacts
 badge-progress.json
 badge-tmp/
+daily_streak.sh
 comp-report-*.md
 data/
 downloads/
@@ -26,6 +27,9 @@ downloads/
 !skills/kaggle/modules/badges/scripts/templates/submission_titanic.csv
 *.zip
 *.tar.gz
+
+# Eval runs (generated)
+evals/results/
 
 # Test reports (generated)
 tests/test-*-report-*.md

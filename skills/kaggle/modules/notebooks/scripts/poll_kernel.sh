@@ -1,47 +1,58 @@
 #!/usr/bin/env bash
-# Poll a Kaggle kernel for completion and download output.
+# Wait for a Kaggle notebook run to finish, then download its output.
 #
 # Usage:
-#   bash scripts/poll_kernel.sh <kernel-slug> [output-dir] [poll-interval]
+#   bash poll_kernel.sh <owner/kernel> [output-dir] [poll-seconds] [max-wait-seconds]
 #
-# Arguments:
-#   kernel-slug    — e.g., "username/kernel-name"
-#   output-dir     — directory to save output (default: ./kernel-output)
-#   poll-interval  — seconds between status checks (default: 30)
+# Defaults: ./kernel-output, 30 seconds between checks, 3600 seconds in total.
 #
-# Example:
-#   bash scripts/poll_kernel.sh myuser/my-notebook ./output 15
+# Exit status: 0 output downloaded, 1 the run failed or was cancelled,
+# 4 the status or the output listing could not be read, 5 output refused
+# (a file name would escape the output folder), 124 timed out while running.
 
 set -euo pipefail
 
-KERNEL_SLUG="${1:?Usage: poll_kernel.sh <kernel-slug> [output-dir] [poll-interval]}"
+# shellcheck source-path=SCRIPTDIR source=../../../shared/lib.sh
+source "$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)/shared/lib.sh"
+
+usage() {
+    echo "Usage: poll_kernel.sh <owner/kernel> [output-dir] [poll-seconds] [max-wait-seconds]"
+}
+
+if [[ "${1:-}" == "-h" || "${1:-}" == "--help" ]]; then
+    usage
+    exit 0
+fi
+if [[ $# -lt 1 ]]; then
+    usage >&2
+    exit 2
+fi
+
+KERNEL_SLUG="$1"
 OUTPUT_DIR="${2:-./kernel-output}"
 POLL_INTERVAL="${3:-30}"
+MAX_WAIT="${4:-3600}"
 
-echo "Polling kernel: ${KERNEL_SLUG}"
-echo "Output dir:     ${OUTPUT_DIR}"
-echo "Poll interval:  ${POLL_INTERVAL}s"
-echo ""
+if ! is_slug "${KERNEL_SLUG}"; then
+    echo "[FAIL] notebook is not in the expected owner/name form" >&2
+    exit 2
+fi
+if ! is_positive_int "${POLL_INTERVAL}" || ! is_positive_int "${MAX_WAIT}"; then
+    echo "[FAIL] poll-seconds and max-wait-seconds must be positive integers" >&2
+    exit 2
+fi
 
-while true; do
-    STATUS=$(kaggle kernels status "${KERNEL_SLUG}" 2>&1)
-    TIMESTAMP=$(date '+%H:%M:%S')
-    echo "[${TIMESTAMP}] ${STATUS}"
+echo "Polling ${KERNEL_SLUG} every ${POLL_INTERVAL}s for up to ${MAX_WAIT}s"
 
-    if echo "${STATUS}" | grep -qi "complete"; then
-        echo ""
-        echo "Kernel completed successfully!"
-        echo "Downloading output..."
-        mkdir -p "${OUTPUT_DIR}"
-        kaggle kernels output "${KERNEL_SLUG}" --path "${OUTPUT_DIR}"
-        echo "Output saved to ${OUTPUT_DIR}/"
-        ls -la "${OUTPUT_DIR}/"
-        exit 0
-    elif echo "${STATUS}" | grep -qi "error\|cancel"; then
-        echo ""
-        echo "Kernel execution failed or was cancelled."
-        exit 1
-    fi
+rc=0
+kernel_wait "${KERNEL_SLUG}" "${POLL_INTERVAL}" "${MAX_WAIT}" || rc=$?
+case "${rc}" in
+    0) ;;
+    1) echo "The run failed or was cancelled." >&2; exit 1 ;;
+    124) echo "Still running after ${MAX_WAIT}s. Run this script again to keep waiting." >&2; exit 124 ;;
+    *) echo "Could not read the run status." >&2; exit 4 ;;
+esac
 
-    sleep "${POLL_INTERVAL}"
-done
+echo "Run complete. Downloading output to ${OUTPUT_DIR}"
+kernel_output "${KERNEL_SLUG}" "${OUTPUT_DIR}"
+wrap_local ls ls -la "${OUTPUT_DIR}/"

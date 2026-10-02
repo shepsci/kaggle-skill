@@ -1,6 +1,6 @@
 {
   "name": "kaggle",
-  "version": "2.4.0",
+  "version": "2.5.0",
   "description": "Independent, unofficial Kaggle.com workflow plugin: CLI, MCP, competition reports, datasets, models, notebooks, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "author": {
     "name": "shepsci",
@@ -22,7 +22,7 @@
     "data-science"
   ],
   "skills": "./skills/",
-  "mcpServers": "./.mcp.json",
+  "mcpServers": "./.codex-plugin/mcp.json",
   "interface": {
     "displayName": "Kaggle Skill",
     "shortDescription": "Unofficial Kaggle.com workflows: CLI, MCP, forums, writeups, and competitions",

@@ -1,12 +1,13 @@
 {
-  "jsonrpc": "2.0",
-  "id": 1,
   "result": {
     "content": [
       {
         "type": "text",
-        "text": "{\"id\": 5001, \"topic_id\": 9001, \"title\": \"Team Alpha\", \"subtitle\": \"Our approach\", \"message\": {\"raw_markdown\": \"# Team Alpha\\n\\nFull writeup body here.\"}}"
+        "text": "{\"id\": 5001, \"title\": \"Team Alpha\", \"subtitle\": \"Our approach\", \"type\": \"HACKATHON_PROJECT\", \"cover_image_url\": \"/writeups/5001/images/cover\", \"url\": \"/competitions/example-hackathon/writeups/team-alpha-writeup\", \"create_time\": \"2026-02-24T14:51:00.561443100Z\", \"update_time\": \"2026-02-24T15:21:34.475234400Z\", \"content_state\": \"PUBLISHED\", \"license\": {\"id\": 1, \"name\": \"CC0: Public Domain\", \"url\": \"https://creativecommons.org/publicdomain/zero/1.0/\", \"agreement_required\": false}, \"authors\": \"Alice Example\", \"thumbnail_image_url\": \"/writeups/5001/images/thumbnail\", \"collaborators\": [{\"display_name\": \"Alice Example\", \"thumbnail_url\": \"https://storage.googleapis.com/kaggle-avatars/thumbnails/default-thumb.png\", \"url\": \"/alice\", \"user_name\": \"alice\", \"tier\": \"EXPERT\", \"id\": 42, \"profile_url\": \"/alice\", \"performance_tier\": \"EXPERT\", \"user_id\": 42, \"progression_opt_out\": false}], \"publish_time\": \"2026-02-24T15:04:05.813Z\", \"saved_cover_image_url\": \"/writeups/5001/images/cover\", \"saved_thumbnail_image_url\": \"/writeups/5001/images/thumbnail\", \"topic_id\": 9001, \"slug\": \"team-alpha-writeup\", \"message\": {\"id\": 3300001, \"post_date\": \"2026-02-24T15:04:05.813Z\", \"raw_markdown\": \"# Team Alpha\\n\\nFull writeup body here.\", \"content\": \"<h1>Team Alpha</h1><p>Full writeup body here.</p>\", \"parent\": {}, \"author\": {\"display_name\": \"Alice Example\", \"url\": \"/alice\", \"tier\": \"EXPERT\", \"id\": 42, \"progression_opt_out\": false}, \"author_type\": \"OWNER\", \"votes\": {\"total_votes\": 3, \"can_upvote\": true, \"total_upvotes\": 3}}, \"write_up_links\": []}"
       }
-    ]
-  }
+    ],
+    "isError": false
+  },
+  "id": 1,
+  "jsonrpc": "2.0"
 }

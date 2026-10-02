@@ -1,20 +1,24 @@
 # Benchmarks
 
-Use this module for Kaggle benchmark task workflows and benchmark-related MCP
-endpoint notes.
-
-## Common Commands
+Kaggle Benchmarks task commands and the benchmark MCP tools.
 
 ```bash
-kaggle b init -y
-kaggle b t push my-task -f task.py --wait 600
-kaggle b t run my-task -m gemini-2.5-pro --wait
-kaggle b t status my-task
-kaggle b t download my-task --include-source
+kaggle benchmarks init --yes
+kaggle benchmarks tasks push my-task -f task.py --wait
+kaggle benchmarks tasks run my-task -m gemini-2.5-pro --wait
+kaggle benchmarks tasks status my-task
+kaggle benchmarks tasks download my-task --include-source
 ```
 
-Benchmark lifecycle commands can create resources and consume quota. Confirm
-the task name, model, visibility, and expected cost before running them.
+`kaggle b` and `kaggle b t` are the short forms.
+
+Pushing and running tasks creates resources on the account and uses model
+quota. Confirm the task name, the models, and the expected cost with the user
+first.
+
+For writing tasks, use Kaggle's own skills: `write-kaggle-benchmarks` in
+https://github.com/Kaggle/kaggle-skills and the `kaggle-benchmarks` skill in
+https://github.com/Kaggle/kaggle-benchmarks.
 
 ## References
 

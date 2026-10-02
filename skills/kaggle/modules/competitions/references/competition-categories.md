@@ -1,41 +1,55 @@
 # Kaggle Competition Categories
 
-Reference for mapping competition types to API categories.
+How competition types map to what the API and the CLI accept.
 
-## API Category Mapping
+## `--category`
 
-| Competition Type       | API `category` Value | Notes                                              |
-|------------------------|----------------------|----------------------------------------------------|
-| Featured Prediction    | `featured`           | Standard prize competitions                        |
-| Research Prediction    | `research`           | Research-oriented, often with novel evaluation      |
-| Playground             | `playground`         | Learning-focused, smaller prizes or swag            |
-| Getting Started        | `gettingStarted`     | Semi-permanent tutorials (Titanic, Housing, etc.)   |
-| Recruitment            | `recruitment`        | Company-sponsored talent search                     |
-| Masters                | `masters`            | Restricted to Masters/Grandmasters tier             |
-| Simulation             | `featured`           | Tags contain "simulation"; uses agent-based eval    |
-| Game Arena             | `featured` or `all`  | Tags contain "game" or "arena"                      |
-| Featured Hackathon     | `featured`           | Tags contain "hackathon"; shorter duration           |
-| Community              | (varies)             | Catch-all; query `category=""` minus known types    |
+| Competition type | `category` value | Notes |
+|---|---|---|
+| Featured | `featured` | Prize competitions |
+| Research | `research` | Research problems, often with unusual metrics |
+| Playground | `playground` | For practice; small prizes or swag |
+| Getting Started | `gettingStarted` | Long-running tutorials such as Titanic |
+| Recruitment | `recruitment` | Sponsored by a company that is hiring |
+| Masters | `masters` | Limited to Masters and Grandmasters |
 
-## Identifying Special Types
+The accepted values are `all`, `featured`, `research`, `recruitment`,
+`gettingStarted`, `masters`, and `playground`.
 
-Some competition types share the `featured` category but can be distinguished by tags:
+## `--group`
 
-- **Simulation**: Look for tags like `simulation`, `agent`, `game-theory`
-- **Game Arena**: Look for tags like `game`, `arena`, `multi-agent`
-- **Hackathon**: Look for tags like `hackathon`; also tend to have deadlines < 7 days from launch. **Hackathons are classified as active until winners are announced** (no leaderboard — results appear on a Winners tab after judging, often weeks/months after deadline)
-- **Code competitions**: Check `isKernelsSubmissionsOnly == true`
+| Group | What it lists |
+|---|---|
+| `general` | The default: Kaggle-run competitions |
+| `entered` | Competitions you have entered |
+| `community` | Community competitions, which `general` leaves out |
+| `hosted` | Competitions you host |
+| `unlaunched`, `unlaunched_community` | Not yet launched, for hosts |
 
-## Notes on Getting Started Competitions
+`inClass`, which the CLI's help still mentions, is rejected.
 
-Getting Started competitions (Titanic, Housing Prices, Digit Recognizer, etc.) are
-semi-permanent and don't have meaningful "launch" or "completion" dates. They should
-generally be excluded from "recently launched" reports unless specifically requested.
+```bash
+kaggle competitions list --group community --sort-by recentlyCreated --format json
+kaggle competitions list --category playground --sort-by latestDeadline --format json
+```
 
-## Querying Strategy
+`list_competitions.py` queries every category, then no category, then the
+community group, and removes duplicates.
 
-1. Query each specific category (`featured`, `research`, `playground`, etc.) with
-   `sort_by=recentlyCreated` to get the latest in each bucket.
-2. Also query with no category filter (empty string) to catch competitions that may
-   not appear under specific categories.
-3. Deduplicate by slug since the same competition may appear in multiple queries.
+## Types that share a category
+
+Some types are told apart by tags or fields, not by category:
+
+- **Simulation**: tags such as `simulation`. Submissions are agents that play
+  episodes. Only the latest two submissions stay in play.
+- **Hackathon**: tag `hackathon`. Judged from writeups, with no leaderboard.
+  `list_competitions.py` reports a hackathon as active after its deadline,
+  because results appear only when the judges finish.
+- **Code competition**: `is_kernels_submissions_only` is true. Submissions are
+  notebooks.
+
+## Getting Started competitions
+
+Titanic, House Prices, Digit Recognizer and the like have no real start or
+end, and their leaderboards roll over every two months. Leave them out of
+"recently launched" reports unless the user asks for them.

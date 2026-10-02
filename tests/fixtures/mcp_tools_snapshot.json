@@ -1,0 +1,967 @@
+{
+ "endpoint": "https://www.kaggle.com/mcp",
+ "captured": "2026-09-30",
+ "count": 71,
+ "tools": {
+  "authorize": {
+   "wrapper": false,
+   "fields": []
+  },
+  "cancel_notebook_session": {
+   "wrapper": true,
+   "fields": [
+    "kernelSessionId"
+   ]
+  },
+  "create_benchmark_task_from_prompt": {
+   "wrapper": true,
+   "fields": [
+    "assertionDescription",
+    "taskDescription"
+   ]
+  },
+  "create_code_competition_submission": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "fileName",
+    "fileNameNullable",
+    "hasFileName",
+    "hasKernelVersion",
+    "hasSubmissionDescription",
+    "kernelOwner",
+    "kernelSlug",
+    "kernelVersion",
+    "kernelVersionNullable",
+    "submissionDescription",
+    "submissionDescriptionNullable"
+   ]
+  },
+  "create_model": {
+   "wrapper": true,
+   "fields": [
+    "description",
+    "descriptionNullable",
+    "hasDescription",
+    "hasIsPrivate",
+    "hasProvenanceSources",
+    "hasSubtitle",
+    "isPrivate",
+    "isPrivateNullable",
+    "ownerSlug",
+    "provenanceSources",
+    "provenanceSourcesNullable",
+    "publishTime",
+    "slug",
+    "subtitle",
+    "subtitleNullable",
+    "title"
+   ]
+  },
+  "create_notebook_session": {
+   "wrapper": true,
+   "fields": [
+    "dockerImage",
+    "dockerImageNullable",
+    "enableInternet",
+    "enableInternetNullable",
+    "hasDockerImage",
+    "hasEnableInternet",
+    "hasKernelType",
+    "hasLanguage",
+    "hasMachineShape",
+    "kernelType",
+    "kernelTypeNullable",
+    "language",
+    "languageNullable",
+    "machineShape",
+    "machineShapeNullable",
+    "slug"
+   ]
+  },
+  "download_competition_data_file": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "fileName"
+   ]
+  },
+  "download_competition_data_files": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "download_competition_leaderboard": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "download_competition_submission": {
+   "wrapper": true,
+   "fields": [
+    "submissionId"
+   ]
+  },
+  "download_dataset": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "datasetVersionNumber",
+    "datasetVersionNumberNullable",
+    "fileName",
+    "fileNameNullable",
+    "hasDatasetVersionNumber",
+    "hasFileName",
+    "hasHashLink",
+    "hashLink",
+    "hashLinkNullable",
+    "ownerSlug",
+    "raw"
+   ]
+  },
+  "download_hackathon_write_ups": {
+   "wrapper": true,
+   "fields": [
+    "competitionId",
+    "competitionIdNullable",
+    "competitionName",
+    "competitionNameNullable",
+    "hasCompetitionId",
+    "hasCompetitionName"
+   ]
+  },
+  "download_model_variation_version": {
+   "wrapper": true,
+   "fields": [
+    "framework",
+    "hasPath",
+    "instanceSlug",
+    "modelSlug",
+    "ownerSlug",
+    "path",
+    "pathNullable",
+    "versionNumber"
+   ]
+  },
+  "download_notebook_output": {
+   "wrapper": true,
+   "fields": [
+    "filePath",
+    "filePathNullable",
+    "hasFilePath",
+    "hasVersionNumber",
+    "kernelSlug",
+    "ownerSlug",
+    "versionNumber",
+    "versionNumberNullable"
+   ]
+  },
+  "download_notebook_output_zip": {
+   "wrapper": true,
+   "fields": [
+    "kernelSessionId"
+   ]
+  },
+  "get_accelerator_quota": {
+   "wrapper": true,
+   "fields": []
+  },
+  "get_benchmark_leaderboard": {
+   "wrapper": true,
+   "fields": [
+    "benchmarkSlug",
+    "hasVersionNumber",
+    "ownerSlug",
+    "versionNumber",
+    "versionNumberNullable"
+   ]
+  },
+  "get_competition": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "get_competition_data_files_summary": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "get_competition_leaderboard": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasOverridePublic",
+    "hasPageSize",
+    "hasPageToken",
+    "overridePublic",
+    "overridePublicNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable"
+   ]
+  },
+  "get_competition_submission": {
+   "wrapper": true,
+   "fields": [
+    "ref"
+   ]
+  },
+  "get_dataset_files_summary": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "datasetVersionNumber",
+    "datasetVersionNumberNullable",
+    "hasDatasetVersionNumber",
+    "ownerSlug"
+   ]
+  },
+  "get_dataset_info": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "ownerSlug"
+   ]
+  },
+  "get_dataset_metadata": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "ownerSlug"
+   ]
+  },
+  "get_dataset_status": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "ownerSlug"
+   ]
+  },
+  "get_episode_agent_logs": {
+   "wrapper": true,
+   "fields": [
+    "agentIndex",
+    "episodeId"
+   ]
+  },
+  "get_episode_replay": {
+   "wrapper": true,
+   "fields": [
+    "episodeId"
+   ]
+  },
+  "get_forum": {
+   "wrapper": true,
+   "fields": [
+    "forumId",
+    "forumIdNullable",
+    "forumIdOrSlugCase",
+    "forumSlug",
+    "forumSlugNullable",
+    "hasForumId",
+    "hasForumSlug",
+    "hasReadMask",
+    "readMask"
+   ]
+  },
+  "get_forum_topic": {
+   "wrapper": true,
+   "fields": [
+    "forumTopicId",
+    "hasInitialPageSize",
+    "hasStartingCommentId",
+    "includeComments",
+    "initialPageSize",
+    "initialPageSizeNullable",
+    "readMask",
+    "startingCommentId",
+    "startingCommentIdNullable"
+   ]
+  },
+  "get_hackathon_overview": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "get_hackathon_write_up": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hackathonWriteUpId"
+   ]
+  },
+  "get_model": {
+   "wrapper": true,
+   "fields": [
+    "modelSlug",
+    "ownerSlug"
+   ]
+  },
+  "get_model_variation": {
+   "wrapper": true,
+   "fields": [
+    "framework",
+    "instanceSlug",
+    "modelSlug",
+    "ownerSlug"
+   ]
+  },
+  "get_notebook_info": {
+   "wrapper": true,
+   "fields": [
+    "hasVersionLabel",
+    "kernelSlug",
+    "userName",
+    "versionLabel",
+    "versionLabelNullable"
+   ]
+  },
+  "get_notebook_session_status": {
+   "wrapper": true,
+   "fields": [
+    "hasVersionLabel",
+    "kernelSlug",
+    "userName",
+    "versionLabel",
+    "versionLabelNullable"
+   ]
+  },
+  "get_resolved_writeup_links": {
+   "wrapper": true,
+   "fields": [
+    "writeUpId"
+   ]
+  },
+  "get_user_profile": {
+   "wrapper": true,
+   "fields": [
+    "hasUserId",
+    "hasUserName",
+    "userId",
+    "userIdNullable",
+    "userIdentifierCase",
+    "userName",
+    "userNameNullable"
+   ]
+  },
+  "get_writeup": {
+   "wrapper": true,
+   "fields": [
+    "readMask",
+    "writeUpId"
+   ]
+  },
+  "get_writeup_by_slug": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "competitionNameNullable",
+    "forumName",
+    "forumNameNullable",
+    "hasCompetitionName",
+    "hasForumName",
+    "hasUserName",
+    "readMask",
+    "slug",
+    "slugAssociationCase",
+    "userName",
+    "userNameNullable"
+   ]
+  },
+  "get_writeup_by_topic": {
+   "wrapper": true,
+   "fields": [
+    "forumTopicId",
+    "readMask"
+   ]
+  },
+  "list_competition_data_files": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasPageSize",
+    "hasPageToken",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable"
+   ]
+  },
+  "list_competition_data_tree_files": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasPageSize",
+    "hasPageToken",
+    "hasPath",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "path",
+    "pathNullable"
+   ]
+  },
+  "list_competition_pages": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasPageName",
+    "pageName",
+    "pageNameNullable"
+   ]
+  },
+  "list_competition_topics": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasPage",
+    "hasSortBy",
+    "page",
+    "pageNullable",
+    "sortBy",
+    "sortByNullable"
+   ]
+  },
+  "list_dataset_files": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "datasetVersionNumber",
+    "datasetVersionNumberNullable",
+    "hasDatasetVersionNumber",
+    "hasPageSize",
+    "hasPageToken",
+    "ownerSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable"
+   ]
+  },
+  "list_dataset_tree_files": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "datasetVersionNumber",
+    "datasetVersionNumberNullable",
+    "hasDatasetVersionNumber",
+    "hasPageSize",
+    "hasPageToken",
+    "hasPath",
+    "ownerSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "path",
+    "pathNullable"
+   ]
+  },
+  "list_forum_topics": {
+   "wrapper": true,
+   "fields": [
+    "author",
+    "category",
+    "filterCategoryIds",
+    "filterCategoryIdsSetter",
+    "forumId",
+    "forumIdNullable",
+    "group",
+    "hasForumId",
+    "hasSearchQuery",
+    "myActivity",
+    "page",
+    "recency",
+    "searchQuery",
+    "searchQueryNullable",
+    "sortBy"
+   ]
+  },
+  "list_forums": {
+   "wrapper": true,
+   "fields": []
+  },
+  "list_hackathon_tracks": {
+   "wrapper": true,
+   "fields": [
+    "competitionName"
+   ]
+  },
+  "list_hackathon_write_ups": {
+   "wrapper": true,
+   "fields": [
+    "competitionId",
+    "competitionIdNullable",
+    "competitionName",
+    "competitionNameNullable",
+    "hackathonTrackIds",
+    "hackathonTrackIdsSetter",
+    "hasCompetitionId",
+    "hasCompetitionName",
+    "hasHostOrJudge",
+    "hasPageSize",
+    "hasPageToken",
+    "hasPublished",
+    "hasSkip",
+    "hasTeamId",
+    "hasTemplate",
+    "hasWinner",
+    "hostOrJudge",
+    "hostOrJudgeNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "published",
+    "publishedNullable",
+    "readMask",
+    "skip",
+    "skipNullable",
+    "teamId",
+    "teamIdNullable",
+    "template",
+    "templateNullable",
+    "winner",
+    "winnerNullable"
+   ]
+  },
+  "list_model_variation_version_files": {
+   "wrapper": true,
+   "fields": [
+    "framework",
+    "hasPageSize",
+    "hasPageToken",
+    "hasVersionNumber",
+    "instanceSlug",
+    "modelSlug",
+    "ownerSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "versionNumber",
+    "versionNumberNullable"
+   ]
+  },
+  "list_model_variation_versions": {
+   "wrapper": true,
+   "fields": [
+    "framework",
+    "hasPageSize",
+    "hasPageToken",
+    "instanceSlug",
+    "modelSlug",
+    "ownerSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable"
+   ]
+  },
+  "list_model_variations": {
+   "wrapper": true,
+   "fields": [
+    "hasPageSize",
+    "hasPageToken",
+    "modelSlug",
+    "ownerSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable"
+   ]
+  },
+  "list_models": {
+   "wrapper": true,
+   "fields": [
+    "hasOnlyVertexModels",
+    "hasOwner",
+    "hasPageSize",
+    "hasPageToken",
+    "hasSearch",
+    "hasSortBy",
+    "onlyVertexModels",
+    "onlyVertexModelsNullable",
+    "owner",
+    "ownerNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "search",
+    "searchNullable",
+    "sortBy",
+    "sortByNullable"
+   ]
+  },
+  "list_notebook_files": {
+   "wrapper": true,
+   "fields": [
+    "hasPageSize",
+    "hasPageToken",
+    "hasVersionLabel",
+    "kernelSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "userName",
+    "versionLabel",
+    "versionLabelNullable"
+   ]
+  },
+  "list_notebook_session_output": {
+   "wrapper": true,
+   "fields": [
+    "hasPageSize",
+    "hasPageToken",
+    "hasVersionLabel",
+    "kernelSlug",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "userName",
+    "versionLabel",
+    "versionLabelNullable"
+   ]
+  },
+  "list_submission_episodes": {
+   "wrapper": true,
+   "fields": [
+    "submissionId"
+   ]
+  },
+  "list_team_public_submissions": {
+   "wrapper": true,
+   "fields": [
+    "teamId"
+   ]
+  },
+  "list_topic_messages": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "hasPageSize",
+    "hasSortBy",
+    "pageSize",
+    "pageSizeNullable",
+    "sortBy",
+    "sortByNullable",
+    "topicId"
+   ]
+  },
+  "save_notebook": {
+   "wrapper": true,
+   "fields": [
+    "categoryIds",
+    "categoryIdsSetter",
+    "competitionDataSources",
+    "competitionDataSourcesSetter",
+    "datasetDataSources",
+    "datasetDataSourcesSetter",
+    "dockerImage",
+    "dockerImageNullable",
+    "dockerImagePinningType",
+    "dockerImagePinningTypeNullable",
+    "enableGpu",
+    "enableGpuNullable",
+    "enableInternet",
+    "enableInternetNullable",
+    "enableTpu",
+    "enableTpuNullable",
+    "hasDockerImage",
+    "hasDockerImagePinningType",
+    "hasEnableGpu",
+    "hasEnableInternet",
+    "hasEnableTpu",
+    "hasId",
+    "hasIsPrivate",
+    "hasKernelExecutionType",
+    "hasKernelType",
+    "hasLanguage",
+    "hasMachineShape",
+    "hasNewTitle",
+    "hasPriority",
+    "hasSessionTimeoutSeconds",
+    "hasSlug",
+    "hasText",
+    "id",
+    "idNullable",
+    "isPrivate",
+    "isPrivateNullable",
+    "kernelDataSources",
+    "kernelDataSourcesSetter",
+    "kernelExecutionType",
+    "kernelExecutionTypeNullable",
+    "kernelType",
+    "kernelTypeNullable",
+    "language",
+    "languageNullable",
+    "machineShape",
+    "machineShapeNullable",
+    "modelDataSources",
+    "modelDataSourcesSetter",
+    "newTitle",
+    "newTitleNullable",
+    "priority",
+    "priorityNullable",
+    "sessionTimeoutSeconds",
+    "sessionTimeoutSecondsNullable",
+    "slug",
+    "slugNullable",
+    "text",
+    "textNullable"
+   ]
+  },
+  "search_competition_submissions": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "group",
+    "hasPage",
+    "hasPageSize",
+    "hasPageToken",
+    "page",
+    "pageNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "sortBy"
+   ]
+  },
+  "search_competitions": {
+   "wrapper": true,
+   "fields": [
+    "category",
+    "categoryNullable",
+    "group",
+    "groupNullable",
+    "hasCategory",
+    "hasGroup",
+    "hasPage",
+    "hasPageSize",
+    "hasPageToken",
+    "hasSearch",
+    "hasSortBy",
+    "page",
+    "pageNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "search",
+    "searchNullable",
+    "sortBy",
+    "sortByNullable"
+   ]
+  },
+  "search_content": {
+   "wrapper": true,
+   "fields": [
+    "canonicalOrderBy",
+    "canonicalOrderByNullable",
+    "competitionsOrderBy",
+    "competitionsOrderByNullable",
+    "datasetsOrderBy",
+    "datasetsOrderByNullable",
+    "discussionsOrderBy",
+    "discussionsOrderByNullable",
+    "filters",
+    "hasCanonicalOrderBy",
+    "hasCompetitionsOrderBy",
+    "hasDatasetsOrderBy",
+    "hasDiscussionsOrderBy",
+    "hasKernelsOrderBy",
+    "hasModelsOrderBy",
+    "hasUsersOrderBy",
+    "kernelsOrderBy",
+    "kernelsOrderByNullable",
+    "maxPageSize",
+    "modelsOrderBy",
+    "modelsOrderByNullable",
+    "orderByCase",
+    "pageSize",
+    "pageToken",
+    "skip",
+    "usersOrderBy",
+    "usersOrderByNullable"
+   ]
+  },
+  "search_datasets": {
+   "wrapper": true,
+   "fields": [
+    "fileType",
+    "group",
+    "hasMaxSize",
+    "hasMinSize",
+    "hasPage",
+    "hasPageSize",
+    "hasPageToken",
+    "hasSearch",
+    "hasTagIds",
+    "hasUser",
+    "license",
+    "maxSize",
+    "maxSizeNullable",
+    "minSize",
+    "minSizeNullable",
+    "page",
+    "pageNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "search",
+    "searchNullable",
+    "size",
+    "sortBy",
+    "tagIds",
+    "tagIdsNullable",
+    "user",
+    "userNullable",
+    "viewed"
+   ]
+  },
+  "search_notebooks": {
+   "wrapper": true,
+   "fields": [
+    "competition",
+    "competitionNullable",
+    "dataset",
+    "datasetNullable",
+    "group",
+    "hasCompetition",
+    "hasDataset",
+    "hasKernelType",
+    "hasLanguage",
+    "hasOutputType",
+    "hasPage",
+    "hasPageSize",
+    "hasPageToken",
+    "hasParentKernel",
+    "hasSearch",
+    "hasUser",
+    "kernelType",
+    "kernelTypeNullable",
+    "language",
+    "languageNullable",
+    "outputType",
+    "outputTypeNullable",
+    "page",
+    "pageNullable",
+    "pageSize",
+    "pageSizeNullable",
+    "pageToken",
+    "pageTokenNullable",
+    "parentKernel",
+    "parentKernelNullable",
+    "search",
+    "searchNullable",
+    "sortBy",
+    "user",
+    "userNullable"
+   ]
+  },
+  "start_competition_submission_upload": {
+   "wrapper": true,
+   "fields": [
+    "competitionName",
+    "competitionNameNullable",
+    "contentLength",
+    "fileName",
+    "hasCompetitionName",
+    "lastModifiedEpochSeconds"
+   ]
+  },
+  "submit_to_competition": {
+   "wrapper": true,
+   "fields": [
+    "benchmarkModelVersionId",
+    "benchmarkModelVersionIdNullable",
+    "blobFileTokens",
+    "competitionName",
+    "hasBenchmarkModelVersionId",
+    "hasSandbox",
+    "hasSubmissionDescription",
+    "sandbox",
+    "sandboxNullable",
+    "submissionDescription",
+    "submissionDescriptionNullable"
+   ]
+  },
+  "update_dataset_metadata": {
+   "wrapper": true,
+   "fields": [
+    "datasetSlug",
+    "ownerSlug",
+    "settings"
+   ]
+  },
+  "update_model": {
+   "wrapper": true,
+   "fields": [
+    "description",
+    "descriptionNullable",
+    "hasDescription",
+    "hasProvenanceSources",
+    "hasSubtitle",
+    "isPrivate",
+    "modelSlug",
+    "ownerSlug",
+    "provenanceSources",
+    "provenanceSourcesNullable",
+    "publishTime",
+    "subtitle",
+    "subtitleNullable",
+    "title",
+    "updateMask"
+   ]
+  },
+  "update_model_variation": {
+   "wrapper": true,
+   "fields": [
+    "baseModelInstance",
+    "baseModelInstanceNullable",
+    "externalBaseModelUrl",
+    "externalBaseModelUrlNullable",
+    "fineTunable",
+    "fineTunableNullable",
+    "framework",
+    "hasBaseModelInstance",
+    "hasExternalBaseModelUrl",
+    "hasFineTunable",
+    "hasLicenseName",
+    "hasModelInstanceType",
+    "instanceSlug",
+    "licenseName",
+    "licenseNameNullable",
+    "modelInstanceType",
+    "modelInstanceTypeNullable",
+    "modelSlug",
+    "overview",
+    "ownerSlug",
+    "trainingData",
+    "trainingDataSetter",
+    "updateMask",
+    "usage"
+   ]
+  },
+  "upload_dataset_file": {
+   "wrapper": true,
+   "fields": [
+    "contentLength",
+    "fileName",
+    "lastModifiedEpochSeconds"
+   ]
+  }
+ }
+}

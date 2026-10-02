@@ -1,53 +1,83 @@
 # Privacy Policy
 
-**kaggle-skill** — Claude Code Plugin & Agent Skill
+**kaggle-skill**: agent skill and plugin
 
-*Last updated: March 12, 2026*
+*Last updated: 2026-09-30*
 
 ## Summary
 
-This plugin does not collect, store, transmit, or share any personal data. All credentials and data remain on your local machine.
+The skill collects no data. It has no analytics, telemetry, or usage
+reporting. Credentials and downloaded data stay on your machine, and requests
+go from your machine to Kaggle.
 
-## Data Collection
+## Credentials
 
-This plugin collects **no data whatsoever**. There is no analytics, telemetry, tracking, or usage reporting of any kind.
+The skill reads Kaggle credentials from the places the Kaggle CLI uses:
 
-## Credential Storage
-
-Kaggle API credentials are stored locally on your machine in standard locations:
-
+- `KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, and `KAGGLE_KEY` in the environment
 - `~/.kaggle/access_token` (API token)
-- `~/.kaggle/kaggle.json` (legacy credentials)
-- Environment variables (`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`)
+- `~/.kaggle/kaggle.json` (legacy key)
+- `~/.kaggle/credentials.json` (OAuth login from `kaggle auth login`)
 
-Credentials are never logged, echoed, transmitted to third parties, or stored anywhere other than these local files. File permissions are set to owner-only (chmod 600).
+A `.env` file is read only when `KAGGLE_ENV_FILE` names it, and only its
+credential lines (`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`,
+`KAGGLE_CONFIG_DIR`).
 
-## Third-Party Services
+Credentials are sent only to `www.kaggle.com` and `api.kaggle.com`. They are
+not logged, printed, or placed on a command line. One script,
+`setup_env.sh`, writes a credential to disk, and only when you run it: it
+copies the value from your environment to `~/.kaggle` with owner-only
+permissions. The credential checker only reads.
 
-This plugin makes API calls to **Kaggle** (kaggle.com) on your behalf using your credentials. These calls are subject to Kaggle's own privacy policy and terms of service:
+The bundled MCP server entry contains a URL and, for Claude Code, a public
+OAuth client ID. It contains no credential. Signing in to it is handled by
+your agent, not by this skill.
 
-- [Kaggle Terms of Service](https://www.kaggle.com/terms)
-- [Kaggle Privacy Policy](https://www.kaggle.com/privacy)
+## Network requests
 
-The bundled MCP server configuration connects to `https://www.kaggle.com/mcp` using your API token. This connection is between your machine and Kaggle's servers — no data passes through any intermediary.
+The skill's own scripts connect to:
 
-Network requests are made only to:
-- `api.kaggle.com` — Kaggle API endpoints
-- `www.kaggle.com` — Kaggle website and MCP server
-- `storage.googleapis.com` — Dataset and model file downloads
+| Host | For |
+|---|---|
+| `www.kaggle.com` | The MCP server, leaderboard data, and writeup previews |
+| `api.kaggle.com` | The Kaggle CLI and `kagglehub` |
+| `storage.googleapis.com` | Dataset, model, and competition file downloads, through the Kaggle tools |
 
-## Data Processing
+Writeup previews are fetched without a credential, and only from
+`www.kaggle.com`: a writeup link that points anywhere else is not followed.
 
-All data processing happens locally on your machine. Downloaded datasets, models, competition data, and generated reports are stored in your local filesystem only.
+Installing the Python packages contacts PyPI. Installing the plugin contacts
+GitHub. Those are done by `pip` and by your agent.
 
-## Children's Privacy
+The skill does not limit what your agent itself can reach. An agent that
+reads a Kaggle page may decide to open a link in it; that is governed by your
+agent's own permissions.
 
-This plugin is not directed at children under 13 and does not knowingly process data from children.
+## What Kaggle receives
 
-## Changes to This Policy
+Requests made with your credential are tied to your Kaggle account and are
+subject to Kaggle's terms and privacy policy:
 
-Updates to this policy will be reflected in this file and in the plugin's GitHub repository. The "Last updated" date at the top will be revised accordingly.
+- https://www.kaggle.com/terms
+- https://www.kaggle.com/privacy
+
+Submissions, uploads, notebook runs, and badge activity change your Kaggle
+account. The skill asks the agent to get your go-ahead before any of them.
+
+## Data on your machine
+
+Downloads, reports, and the badge progress file are stored where you run the
+scripts. Nothing is uploaded unless you ask for a publish or a submission.
+The publish scripts refuse a folder that contains a credential file.
+
+## Children
+
+The skill is not directed at children under 13.
+
+## Changes
+
+Changes to this policy appear in this file, with the date at the top.
 
 ## Contact
 
-For questions about this privacy policy, open an issue at [github.com/shepsci/kaggle-skill](https://github.com/shepsci/kaggle-skill/issues).
+Open an issue at https://github.com/shepsci/kaggle-skill/issues.

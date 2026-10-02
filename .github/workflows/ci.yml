@@ -1,0 +1,95 @@
+name: CI
+
+# Offline checks only. Nothing here needs a secret or calls Kaggle: the tests
+# run against a stub `kaggle` with the network blocked. Live tests are run by
+# hand (pytest --run-live).
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  tests:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        python-version: ["3.11", "3.12", "3.13"]
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: ${{ matrix.python-version }}
+      - name: Install
+        run: python -m pip install --upgrade pip && python -m pip install ".[dev]"
+      - name: Offline tests
+        run: python -m pytest -q
+
+  lint:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install
+        run: python -m pip install --upgrade pip && python -m pip install ".[dev]"
+      - name: ruff check
+        run: ruff check .
+      - name: ruff format
+        run: ruff format --check .
+      - name: shellcheck
+        run: shellcheck -x skills/kaggle/shared/lib.sh skills/kaggle/modules/*/scripts/*.sh
+      - name: Agent Skills validator
+        run: agentskills validate skills/kaggle
+
+  release-rule:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: The version must change when the skill changes
+        run: python tools/check_release.py
+
+  plugin-validators:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+      - uses: actions/setup-node@v7
+        with:
+          node-version: "24"
+      - uses: actions/setup-python@v7
+        with:
+          python-version: "3.12"
+      - name: Install the agent CLIs
+        run: npm install --global @anthropic-ai/claude-code @openai/codex
+      - name: claude plugin validate (plugin.json)
+        run: claude plugin validate .claude-plugin/plugin.json --strict
+      - name: claude plugin validate (marketplace.json)
+        run: claude plugin validate .claude-plugin/marketplace.json --strict
+      - name: The eval suite loads (no case is run, no model is called)
+        run: |
+          claude plugin eval . --trust-plugin --max-cost-usd 0 --no-publish \
+            --output-dir "$RUNNER_TEMP/eval" > eval-load.txt 2>&1 || true
+          cat eval-load.txt
+          grep -Eq "[0-9]+ cases" eval-load.txt
+          ! grep -q "failed to load" eval-load.txt
+      - name: Install smoke tests
+        env:
+          RUN_CLAUDE_PLUGIN_SMOKE: "1"
+          RUN_CODEX_PLUGIN_SMOKE: "1"
+        run: |
+          python -m pip install --upgrade pip && python -m pip install ".[dev]"
+          python -m pytest tests/e2e -q

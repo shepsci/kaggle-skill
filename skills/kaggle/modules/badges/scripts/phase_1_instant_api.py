@@ -1,4 +1,4 @@
-"""Phase 1: Instant API badges (~20 badges).
+"""Phase 1: Instant API badges (16 badges).
 
 Earns badges via kagglehub and kaggle-cli in a single session:
   - Python Coder, R Coder, API Notebook Creator, Utility Scripter
@@ -10,14 +10,11 @@ Earns badges via kagglehub and kaggle-cli in a single session:
 import json
 import shutil
 import time
-from pathlib import Path
 
 from badge_tracker import set_status, should_attempt
 from utils import (
     API_DELAY,
-    RESOURCE_PREFIX,
     TEMPLATES_DIR,
-    get_kaggle_cli,
     make_temp_dir,
     resource_name,
     run_kaggle_cli,
@@ -328,7 +325,9 @@ def _create_dataset(username: str) -> bool:
                     },
                 }
             ],
-            "description": "Auto-generated dataset for badge collection. Contains sample tabular data.",
+            "description": (
+                "Auto-generated dataset for badge collection. Contains sample tabular data."
+            ),
         }
         (tmp / "dataset-metadata.json").write_text(json.dumps(metadata, indent=2))
 
@@ -412,7 +411,8 @@ def _document_dataset(username: str) -> bool:
         # Create substantial data
         lines = ["id,name,score,grade,date\n"]
         for i in range(1, 21):
-            lines.append(f"{i},student_{i},{50+i},{'A' if i>15 else 'B' if i>10 else 'C'},2024-01-{i:02d}\n")
+            grade = "A" if i > 15 else "B" if i > 10 else "C"
+            lines.append(f"{i},student_{i},{50 + i},{grade},2024-01-{i:02d}\n")
         (tmp / "data.csv").write_text("".join(lines))
 
         # Detailed README
@@ -452,8 +452,8 @@ Auto-generated sample data for testing and demonstration.
             "id": f"{username}/{ds_slug}",
             "subtitle": "Sample student performance data for demonstration",
             "description": "Well-documented sample dataset containing student performance records. "
-                           "Includes scores, grades, and dates for 20 students. "
-                           "Created by Kaggle Badge Collector for badge collection purposes.",
+            "Includes scores, grades, and dates for 20 students. "
+            "Created by Kaggle Badge Collector for badge collection purposes.",
             "licenses": [{"name": "CC0-1.0"}],
             "keywords": [
                 "kaggle-badges",
@@ -470,7 +470,11 @@ Auto-generated sample data for testing and demonstration.
                         "fields": [
                             {"name": "id", "type": "integer", "description": "Unique student ID"},
                             {"name": "name", "type": "string", "description": "Student name"},
-                            {"name": "score", "type": "integer", "description": "Test score (0-100)"},
+                            {
+                                "name": "score",
+                                "type": "integer",
+                                "description": "Test score (0-100)",
+                            },
                             {"name": "grade", "type": "string", "description": "Letter grade"},
                             {"name": "date", "type": "date", "description": "Record date"},
                         ]
@@ -575,11 +579,10 @@ def _create_model_variation(username: str) -> bool:
         }
         (tmp / "model-instance-metadata.json").write_text(json.dumps(instance_meta, indent=2))
 
+        # Creating a variation uploads the folder as its first version.
+        # `versions create` only works on a variation that already exists.
         handle = f"{username}/{model_slug}/other/default"
-        run_kaggle_cli([
-            "models", "instances", "versions", "create",
-            handle, "-p", str(tmp), "-n", "Initial version",
-        ])
+        run_kaggle_cli(["models", "variations", "create", "-p", str(tmp)])
         print(f"  [OK] Model variation created: {handle}")
         set_status("model_variation_creator", "earned", f"variation={handle}")
         return True
@@ -591,41 +594,18 @@ def _create_model_variation(username: str) -> bool:
 
 
 def _tag_model(username: str) -> bool:
-    """Create a tagged model to earn Model Tagger.
+    """Model Tagger needs a tag added on the model page.
 
-    Note: Model tagging is done via keywords when creating via kagglehub
-    or through the Kaggle API. The CLI model create doesn't directly support
-    keywords, so we'll rely on the kagglehub approach or note it for browser.
+    Neither ``kagglehub.model_upload`` nor ``kaggle models create`` takes tags,
+    so nothing is uploaded here: the badge is left for the user to earn by hand.
     """
     if not should_attempt("model_tagger"):
         return True
 
-    set_status("model_tagger", "attempting")
-    try:
-        import kagglehub
-
-        model_slug = resource_name("tagged-model")
-        tmp = make_temp_dir("-tagged-model")
-
-        (tmp / "model.txt").write_text("# Tagged model\n")
-
-        # kagglehub.model_upload supports tags indirectly
-        handle = f"{username}/{model_slug}/other/default"
-        kagglehub.model_upload(
-            handle=handle,
-            local_model_dir=str(tmp),
-            version_notes="Tagged model for badge collection",
-            license_name="Apache 2.0",
-        )
-        print(f"  [OK] Tagged model created: {model_slug}")
-        set_status("model_tagger", "earned", f"model={model_slug}")
-        return True
-
-    except Exception as e:
-        print(f"  [FAIL] Tag model: {e}")
-        # Fallback: create via CLI and note tagging needs browser
-        set_status("model_tagger", "failed", str(e))
-        return False
+    print("  [MANUAL] Model Tagger: open one of your models on kaggle.com and add a tag.")
+    print("           The API has no way to set model tags.")
+    set_status("model_tagger", "skipped", "tags can only be added on the model page")
+    return False
 
 
 def _document_model(username: str) -> bool:
@@ -684,11 +664,7 @@ def _document_model(username: str) -> bool:
         }
         (tmp / "model-instance-metadata.json").write_text(json.dumps(instance_meta, indent=2))
 
-        handle = f"{username}/{model_slug}/other/default"
-        run_kaggle_cli([
-            "models", "instances", "versions", "create",
-            handle, "-p", str(tmp), "-n", "Documented initial version",
-        ])
+        run_kaggle_cli(["models", "variations", "create", "-p", str(tmp)])
 
         print(f"  [OK] Documented model created: {model_slug}")
         set_status("model_documenter", "earned", f"model={model_slug}")
