@@ -282,7 +282,7 @@ def test_readme_and_demo_docs_reference_rendered_gif_previews():
 
 
 def test_platform_tested_status_is_attested():
-    """Every platform marked 'Tested' in the README compatibility table must
+    """Every platform marked 'Tested' in docs/compatibility.md must
     appear in tests/e2e/INSTALL_CHECKLIST.md as either an automated section or
     a maintainer-attestation entry.
 
@@ -290,7 +290,7 @@ def test_platform_tested_status_is_attested():
     truthfulness audit was designed to catch. Maintainer attestation
     (running the install on a separate machine each release) is acceptable
     evidence as long as it's documented in the checklist."""
-    readme = (REPO_ROOT / "README.md").read_text()
+    readme = (REPO_ROOT / "docs" / "compatibility.md").read_text()
     checklist = (REPO_ROOT / "tests" / "e2e" / "INSTALL_CHECKLIST.md").read_text()
 
     # Pull every platform name in the compatibility table that's marked Tested.
@@ -311,8 +311,8 @@ def test_platform_tested_status_is_attested():
         if bare_name not in checklist_lower:
             missing.append(platform)
     assert not missing, (
-        f"README compatibility table marks {missing!r} as Tested but those platforms "
+        f"docs/compatibility.md marks {missing!r} as Tested but those platforms "
         f"are not mentioned in tests/e2e/INSTALL_CHECKLIST.md. Add a row to the "
         f"'Cross-platform testing (maintainer attestation)' section, or demote "
-        f"the README claim to 'Compatible'."
+        f"the claim to 'Compatible'."
     )

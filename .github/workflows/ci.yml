@@ -22,7 +22,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        python-version: ["3.11", "3.12", "3.13"]
+        python-version: ["3.11", "3.12", "3.13", "3.14"]
     steps:
       - uses: actions/checkout@v7
       - uses: actions/setup-python@v7
@@ -46,8 +46,6 @@ jobs:
         run: ruff check .
       - name: ruff format
         run: ruff format --check .
-      - name: shellcheck
-        run: shellcheck -x skills/kaggle/shared/lib.sh skills/kaggle/modules/*/scripts/*.sh
       - name: Agent Skills validator
         run: agentskills validate skills/kaggle
 
@@ -79,6 +77,10 @@ jobs:
         run: claude plugin validate .claude-plugin/plugin.json --strict
       - name: claude plugin validate (marketplace.json)
         run: claude plugin validate .claude-plugin/marketplace.json --strict
+      - name: The plugin-only build validates
+        run: |
+          python tools/build_plugin.py "$RUNNER_TEMP/plugin"
+          claude plugin validate "$RUNNER_TEMP/plugin/.claude-plugin/plugin.json" --strict
       - name: The eval suite loads (no case is run, no model is called)
         run: |
           claude plugin eval . --trust-plugin --max-cost-usd 0 --no-publish \

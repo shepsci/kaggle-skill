@@ -1,7 +1,7 @@
 {
   "name": "kaggle",
-  "version": "2.5.1",
-  "description": "Independent, unofficial Kaggle.com workflow plugin: competition reports, dataset/model downloads, notebook execution, forums, writeups, submissions, and badge collection. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
+  "version": "3.0.0",
+  "description": "Independent, unofficial Kaggle.com plugin: research a competition, see where you stand, check and submit with a dry run first, read solution writeups and discussions, and work with datasets, models and notebooks. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
   "author": {
     "name": "shepsci",
     "url": "https://github.com/shepsci"

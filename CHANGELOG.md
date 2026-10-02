@@ -2,6 +2,122 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.0.0 - 2026-10-02
+
+The first run works with nothing installed, the output is short enough to
+read, and the skill can run a competition as well as research one. Commands
+were renamed and every write is a dry run by default, so this is a major
+version: see "Changed" before you update.
+
+### Added
+
+- One entry point: `python3 scripts/kaggle_skill.py <command>`. It lists the
+  commands with `--help` and runs each by name.
+- `brief <competition>`: the metric, the deadline with the time left, the
+  prize, the team size, the daily limit, whether it is a code competition,
+  the size of the data and the page names. About 250 tokens, no credential.
+- Competition operations:
+  - `status`: time left, your rank, submissions made today and left, what is
+    still being scored, your best and latest scores, GPU and TPU hours.
+  - `leaderboard`: the top, your row, the gap to the leader and to each medal
+    line, and what moved since the last run.
+  - `validate`: a submission file against the sample submission.
+  - `submit`: file or notebook version, with a local ledger line for every
+    real submission.
+  - `watch`: waits for the score, records it, and reports the difference from
+    the score you expected.
+  - `ledger`: the local record. `episodes`: a simulation submission's games,
+    replays and logs.
+- `topics` and `topic` read discussions through the Kaggle MCP server with no
+  credential. A topic comes back as the post plus a capped number of
+  comments.
+- `doctor`: what is installed, which credential is configured, whether
+  Kaggle answers, and what works now.
+- `KAGGLE_SKILL_READ_ONLY=1` makes every write refuse.
+- `tools/build_plugin.py` builds the plugin alone, about 100 files, for a
+  plugin-only branch. An icon, and `displayName`, `documentationUrl` and
+  `supportUrl` in the Claude Code manifest.
+- Three eval cases that measure usefulness (a brief, a status report, a
+  writeup summary). The suite has not been run.
+
+### Changed
+
+- **Public reads need no installed package.** The MCP client and the writeup
+  fetcher use the standard library; `requests` is no longer a dependency.
+- **Short text is the default output.** `--json` gives the same content as
+  JSON and `--full` everything the server returned. `pages` lists the pages
+  with their sizes and prints one with `--page`; a long page is cut with a
+  note. `competitions` and `writeups` print a line or a few per row.
+  `writeup` prints the body once.
+- **Every command that changes the account is a dry run until `--yes`:**
+  `submit`, `dataset-publish`, `model-publish`, `notebook-push`,
+  `notebook-run`, `save-credentials`, and an account-changing `cli --`
+  command. Before 3.0.0 only the submission script had a dry run.
+- **The shell scripts are Python.** One script per action, with kagglehub by
+  default and `--via cli` for the Kaggle CLI:
+
+  | Before | Now |
+  |---|---|
+  | `cli_download.sh` (competitions) | `download` |
+  | `cli_submit.sh` | `submit` |
+  | `kagglehub_download.py`, `cli_download.sh` (datasets) | `dataset-download` |
+  | `kagglehub_publish.py`, `cli_publish.sh` (datasets) | `dataset-publish` |
+  | `kagglehub_download.py`, `cli_download.sh` (models) | `model-download` |
+  | `kagglehub_publish.py`, `cli_publish.sh` (models) | `model-publish` |
+  | `cli_publish.sh` (notebooks) | `notebook-push` |
+  | `cli_execute.sh` | `notebook-run` |
+  | `poll_kernel.sh` | `notebook-wait` |
+  | `setup_env.sh` | `save-credentials` |
+  | `network_check.sh` | `doctor` |
+
+- Arguments are the same everywhere: the competition is the first argument
+  or `--competition`, as a slug or a URL; `--json`, `--full`, `--limit`. The
+  older spellings (`--slug`, `--top-k`, `--top-n`, `--winner-only`,
+  `--array`, `--lookback-days`, `--summary`, `--pretty`) still work.
+- `competitions` and `details` read the Kaggle MCP server, so they need an
+  API token or an OAuth login. A legacy `kaggle.json` key no longer works for
+  them; the message says what to do.
+- Exit codes follow the table in `SKILL.md` for CLI-backed commands too: 2
+  for a missing or rejected credential, 3 for a denial, 127 for a missing
+  tool with the install command.
+- Notebook runs read the notebook's name from `kernel-metadata.json`, use one
+  default output folder, and print the last 40 lines of a failed run's log.
+- Publishing no longer writes a metadata template into your folder. It says
+  which `kaggle ... init` command writes one.
+- Python 3.14 is tested in CI. `shellcheck` is gone with the shell scripts.
+
+### Fixed
+
+- Text is printed as written: a dash is a dash and an emoji an emoji. Before,
+  every character outside ASCII came out as an escape code.
+- Reading a forum topic returns the post. The CLI's JSON output, which the
+  script used, holds only the comments.
+- A missing Python package gives one line with the install command, never a
+  traceback and never "could not sign in".
+- The README said forum topics need no credential; through the script they
+  did. They no longer do.
+- `SKILL.md` named the wrong roles for the hackathon roster.
+- `--help` on the setup scripts ran them. Every script now answers `--help`
+  and does nothing else, and a test holds that.
+
+### Security
+
+- Characters a reader cannot see are removed from text and escaped in JSON:
+  zero-width and bidirectional format characters, tag characters, private-use
+  code points, control characters. A run of four or more leaves a note.
+- A kaggle.com URL is rebuilt from its checked parts before it is requested,
+  and a redirect is never followed automatically, so a token cannot be
+  carried to another host.
+- `download` reads the size of a competition's data first and refuses a
+  download above `--max-gb` (default 20).
+- `save-credentials` creates the file private from the start and never
+  overwrites one.
+
+### Removed
+
+- `modules/competitions/scripts/utils.py`, `shared/lib.sh`, and the command
+  line of `shared/untrusted.py`, which served the shell scripts.
+
 ## 2.5.1 - 2026-10-02
 
 Small fixes after the 2.5.0 release, from what the Claude directory's and

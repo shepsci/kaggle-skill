@@ -11,6 +11,7 @@ import pytest
 REPO_ROOT = Path(__file__).resolve().parents[2]
 sys.path.insert(0, str(REPO_ROOT / "tools"))
 
+import build_plugin  # noqa: E402
 import check_oauth_registration  # noqa: E402
 import cli_snapshot  # noqa: E402
 import mcp_snapshot  # noqa: E402
@@ -238,3 +239,67 @@ def test_oauth_check_says_when_kaggle_cannot_be_reached(monkeypatch, capsys):
     monkeypatch.setattr(check_oauth_registration, "fetch_live", offline)
     assert check_oauth_registration.main(["--check"]) == 2
     assert "could not read Kaggle's OAuth endpoints" in capsys.readouterr().err
+
+
+# -- build_plugin.py -----------------------------------------------------------
+
+
+def test_the_plugin_only_build_holds_the_plugin_and_nothing_else(tmp_path, repo_root):
+    """What a marketplace or the directory would install from the plugin branch."""
+    target = tmp_path / "plugin"
+    files = build_plugin.build(target)
+    top = {name.split("/")[0] for name in files}
+    assert top == {
+        ".agents",
+        ".claude-plugin",
+        ".codex-plugin",
+        ".mcp.json",
+        "CHANGELOG.md",
+        "LICENSE",
+        "PRIVACY.md",
+        "README.md",
+        "SECURITY.md",
+        "THIRD_PARTY_NOTICES.md",
+        "assets",
+        "plugin.json",
+        "skills",
+    }
+    assert not {"tests", "tools", "docs", "evals", ".github"} & top
+    assert len(files) < 140, "the build is the plugin, not the repository"
+    assert not [name for name in files if "__pycache__" in name or name.endswith(".gif")]
+
+    manifest = json.loads((target / ".claude-plugin" / "plugin.json").read_text())
+    for skill in manifest["skills"]:
+        assert (target / skill / "SKILL.md").is_file()
+    assert (target / manifest["icon"]).is_file()
+    assert (target / "skills/kaggle/scripts/kaggle_skill.py").is_file()
+    assert manifest["version"] in (target / "README.md").read_text()
+    # The built copy runs: the entry point lists its commands.
+    import subprocess
+    import sys
+
+    result = subprocess.run(
+        [sys.executable, str(target / "skills/kaggle/scripts/kaggle_skill.py"), "--help"],
+        capture_output=True,
+        text=True,
+        check=False,
+    )
+    assert result.returncode == 0 and "brief" in result.stdout
+
+
+def test_the_build_refuses_a_folder_that_has_files(tmp_path, capsys):
+    used = tmp_path / "used"
+    used.mkdir()
+    (used / "keep.txt").write_text("x")
+    assert build_plugin.main([str(used)]) == 2
+    assert "is not empty" in capsys.readouterr().err
+    assert sorted(p.name for p in used.iterdir()) == ["keep.txt"]
+
+
+def test_the_icon_is_a_square_png_of_the_size_the_directory_asks_for(repo_root):
+    from PIL import Image
+
+    manifest = json.loads((repo_root / ".claude-plugin" / "plugin.json").read_text())
+    with Image.open(repo_root / manifest["icon"]) as image:
+        assert image.format == "PNG"
+        assert image.size[0] == image.size[1] and 512 <= image.size[0] <= 2048

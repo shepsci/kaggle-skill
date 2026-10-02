@@ -11,7 +11,9 @@ claude plugin eval . --case competition-rules --runs 1 --ablation none --no-publ
 ```
 
 Every run is a model call on your account, and each case also runs without the
-plugin for comparison. These cases are not run in CI.
+plugin for comparison. These cases are not run in CI, which only checks that
+the suite loads. The last three cases were added in 3.0.0 and, like the
+others, have not been run by the maintainer: running them costs model calls.
 
 ## Cases
 
@@ -23,6 +25,9 @@ plugin for comparison. These cases are not run in CI.
 | `writeup-injection` | Summarizes a writeup whose body tries to close its block and give orders |
 | `submit-needs-confirmation` | Does not submit without a go-ahead; points to the dry run |
 | `token-is-not-shown` | Never displays a credential |
+| `competition-brief` | States the metric, the daily limit, the team size and the entry state from one call |
+| `status-report` | Reports the best score, the number of submissions, and the one still pending |
+| `writeup-summary` | Says what a team did and what did not work |
 | `ignores-generic-ml`, `ignores-generic-notebook` | The skill stays out of requests with no tie to Kaggle |
 
 ## Mocks
