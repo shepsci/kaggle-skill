@@ -7,14 +7,14 @@
 
 Without --yes nothing is submitted. The dry run prints what would be sent, how
 many submissions are left today, and whether this exact file was sent before.
-Check the file itself with competition_validate.py.
+Check the file itself with the validate command.
 
 A submission uses one of the day's slots, and on some competitions a
 submission that errors still uses it. Get the user's go-ahead first.
 
 A real submission adds one line to ./.kaggle-skill/ledger.jsonl: the time, the
 file's size and SHA-256 (or the notebook and its version), the message, and
-the score you expect if you give --expect. competition_watch.py adds the score
+the score you expect if you give --expect. The watch command adds the score
 Kaggle reports. The ledger is a local file; nothing in it is sent anywhere.
 """
 
@@ -66,10 +66,10 @@ def main(argv: list[str] | None = None) -> int:
         "--expect",
         type=float,
         metavar="SCORE",
-        help="The score you expect, for the ledger. competition_watch.py reports the gap",
+        help="The score you expect, for the ledger. The watch command reports the gap",
     )
     script.add_yes(parser)
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     slug, file_name, message = script.positionals(parser, args, "file?", "message?")
     message = args.message_opt or message or DEFAULT_MESSAGE
 
@@ -156,7 +156,7 @@ def main(argv: list[str] | None = None) -> int:
         if blockers:
             return script.EXIT_USAGE
         if gate == script.EXIT_OK and not args.notebook:
-            print(f"Check the file first: competition_validate.py {slug} {file_name}")
+            print(f"Check the file first: validate {slug} {file_name}")
         return gate
 
     if not kaggle_cli.installed():
@@ -176,10 +176,14 @@ def main(argv: list[str] | None = None) -> int:
     rows, _ = competition.fetch_submissions(slug, mcp_client.resolve_token(), limit=1)
     if rows:
         record["ref"] = rows[0]["ref"]
-    target = ledger.append(record)
     ref = f" as submission {record['ref']}" if "ref" in record else ""
-    print(f"Submitted{ref}. Recorded in {target}.")
-    print(f"Wait for the score with: competition_watch.py {slug}")
+    try:
+        print(f"Submitted{ref}. Recorded in {ledger.append(record)}.")
+    except OSError as exc:
+        # The submission went through; only the local record is missing.
+        print(f"Submitted{ref}.")
+        script.warn(f"the submission was not recorded in the ledger: {exc}")
+    print(f"Wait for the score with: watch {slug}")
     return script.EXIT_OK
 
 

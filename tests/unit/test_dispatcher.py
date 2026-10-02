@@ -88,3 +88,19 @@ def test_forum_commands_reach_their_subcommand(run_script):
     for name, expected in (("topics", "--competition"), ("topic", "--comments")):
         result = run_script(ENTRY, name, "--help")
         assert result.returncode == 0 and expected in result.stdout, name
+
+
+def test_a_badge_phase_is_a_dry_run_until_yes(entry, capsys, monkeypatch):
+    """The badge module has no --yes; the entry point gives its phases the same gate."""
+    monkeypatch.delenv("KAGGLE_SKILL_READ_ONLY", raising=False)
+    for argv in (["--phase", "1"], ["--ph", "2"], ["--resume"]):
+        arguments, footer = entry.badge_arguments(argv)
+        assert arguments == [*argv, "--dry-run"] and footer.startswith("Add --yes")
+        assert capsys.readouterr().out.startswith("Dry run. Nothing was sent to Kaggle.")
+    assert entry.badge_arguments(["--phase", "1", "--yes"]) == (["--phase", "1"], "")
+    for argv in (["--status"], ["--dry-run", "--phase", "3"], ["--help"], []):
+        assert entry.badge_arguments(argv) == (argv, ""), argv
+    monkeypatch.setenv("KAGGLE_SKILL_READ_ONLY", "1")
+    assert entry.badge_arguments(["--phase", "1", "--yes"]) == 5
+    assert "Refused" in capsys.readouterr().out
+    assert entry.badge_arguments(["--status"]) == (["--status"], "")

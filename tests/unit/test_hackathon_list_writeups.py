@@ -238,7 +238,7 @@ def test_default_output_is_a_few_lines_per_writeup(mod, mcp_response, capsys, bl
         "https://www.kaggle.com/competitions/example-hackathon/writeups/team-alpha-writeup"
     )
     assert "thumbnail" not in out and "collaborators" not in out
-    assert outside(out).strip() == "Read one with fetch_writeup.py <writeup id>."
+    assert outside(out).strip() == "Read one with: writeup <writeup id>"
 
 
 def test_json_rows_are_short_and_full_rows_are_complete(mod, mcp_response, capsys, blocks):

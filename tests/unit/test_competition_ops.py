@@ -124,7 +124,8 @@ def test_direction_and_best_submission():
 def test_submission_rows_and_small_parsers():
     row = competition.submission_row({"ref": 1, "status": "SubmissionStatus.COMPLETE"})
     assert row["status"] == "COMPLETE" and row["public_score"] == ""
-    assert competition.submission_row({})["status"] == "UNKNOWN"
+    # PENDING is the zero of Kaggle's enum, and zero values are left out of the answer.
+    assert competition.submission_row({})["status"] == "PENDING"
     assert competition.seconds("119679.779s") == pytest.approx(119679.779)
     assert competition.seconds(None) is None
     assert competition.score_value(" 0.5 ") == 0.5 and competition.score_value("") is None
@@ -140,7 +141,18 @@ def test_leaderboard_pages_are_followed_and_ranked(fake_mcp):
 
 def test_submission_limits_come_from_the_cli(stub_kaggle, kaggle_calls):
     stub_kaggle('echo "Warning: outdated"\necho \'{"numTotal": 13, "numAllowedNow": 4}\'\n')
-    assert competition.submission_limits("titanic") == {"numTotal": 13, "numAllowedNow": 4}
+    assert competition.submission_limits("titanic") == {
+        "numToday": 0,
+        "numTotal": 13,
+        "numAllowedNow": 4,
+    }
+    # A count of zero is left out: none left today is an object without numAllowedNow.
+    stub_kaggle('echo \'{"numToday": 5, "numTotal": 20}\'\n')
+    assert competition.submission_limits("titanic") == {
+        "numToday": 5,
+        "numTotal": 20,
+        "numAllowedNow": 0,
+    }
     stub_kaggle('echo "Authentication required" >&2\nexit 1\n')
     assert competition.submission_limits("titanic") is None
     stub_kaggle('echo "not json"\n')
@@ -239,14 +251,15 @@ def test_status_counts_todays_submissions_when_the_cli_gives_no_count(
 def test_status_uses_kaggles_own_count_when_the_cli_answers(
     load, fake_mcp, run_main, blocks, stub_kaggle
 ):
-    stub_kaggle('echo \'{"numTotal": 26, "numAllowedNow": 2}\'\n')
+    # Three made today, though the list of latest submissions shows none of them.
+    stub_kaggle('echo \'{"numToday": 3, "numTotal": 26, "numAllowedNow": 2}\'\n')
     fake_mcp(_status_answers([_submission(1, "0.9", days_ago=1)]), token="tok")
     mod = load("competition_status")
     body = blocks(run_main(mod, "rsna-knee")[1])[0].body
-    assert "submissions:  0 today, 2 left of 5 a day (Kaggle's count)" in body
+    assert "submissions:  3 today, 2 left of 5 a day (Kaggle's count)" in body
     report = blocks(run_main(mod, "rsna-knee", "--json")[1])[0].json()
     assert report["counts"] == {
-        "today": 0,
+        "today": 3,
         "daily_limit": 5,
         "left": 2,
         "source": "kaggle-cli",
@@ -365,6 +378,43 @@ def test_team_names_stay_inside_the_block(load, fake_mcp, run_main, blocks, outs
         assert "</untrusted-content>" not in out
 
 
+def test_your_row_is_found_by_rank_when_team_names_repeat(load):
+    find_team = load("competition_leaderboard").find_team
+    rows = [{"rank": n, "team": "team" if n in (3, 40, 48) else f"t{n}"} for n in range(1, 61)]
+    assert find_team(rows, "team", 40)["rank"] == 40
+    assert find_team(rows, "team", 50)["rank"] == 48, "the nearest row with your name"
+    assert find_team(rows, "team", None)["rank"] == 3
+    assert find_team(rows, "renamed", 7)["rank"] == 7
+
+
+def test_after_the_deadline_the_private_board_is_offered(load, fake_mcp, run_main, blocks, outside):
+    mod = load("competition_leaderboard")
+    ended = {**FACTS, "deadline": _iso(days=-3)}
+    state = fake_mcp(_leaderboard_answers(facts=ended), token="tok")
+
+    def last_board_request():
+        return [c for c in state.calls if c.tool == "get_competition_leaderboard"][-1].request
+
+    code, out, _ = run_main(mod, "x", "--no-save")
+    assert code == 0 and "Add --private" in outside(out)
+    assert last_board_request()["overridePublic"] is True
+    code, out, _ = run_main(mod, "x", "--private", "--no-save")
+    assert code == 0 and blocks(out)[0].body.startswith("Private leaderboard of x")
+    assert "overridePublic" not in last_board_request() and "Add --private" not in out
+    fake_mcp(_leaderboard_answers(), token="tok")
+    code, _, err = run_main(mod, "x", "--private", "--no-save")
+    assert code == 2 and "only after the deadline" in err
+
+
+def test_a_medal_note_with_no_direction_counts_only_ranks(load, fake_mcp, run_main, blocks):
+    rows = _board(step=0)
+    rows[522]["team_name"] = "my team"
+    fake_mcp(_leaderboard_answers(rows), token="tok")
+    body = blocks(run_main(load("competition_leaderboard"), "x", "--no-save")[1])[0].body
+    assert "bronze  rank   491  score 0.9610  you are 32 ranks behind" in body
+    assert "level on score" not in body
+
+
 def test_leaderboard_exit_codes(load, fake_mcp, run_main, mcp_response):
     mod = load("competition_leaderboard")
     fake_mcp(_leaderboard_answers(), token="")
@@ -413,7 +463,7 @@ def test_validate_passes_a_file_with_the_right_shape(load, run_main, blocks, out
         ("id,target\n1,1\n1,1\n2,1\n", "1 duplicated (1)"),
         ("id,y\n1,1\n2,1\n3,1\n", "FAIL  columns: expected [id, target], found [id, y]"),
         ("target,id\n1,1\n2,2\n3,3\n", "FAIL  columns are in another order: expected id, target"),
-        ("id,target\n1,\n2,1\n3,1\n", "FAIL  1 empty values (first: line 2, target)"),
+        ("id,target\n1,\n2,1\n3,1\n", "FAIL  1 empty values in target (line 2)"),
         ("id,target\n1,nan\n2,inf\n3,x\n", "FAIL  3 values are not finite numbers (line 2"),
         ("id,target\n1,1,7\n2,1\n3,1\n", "FAIL  1 rows do not have 2 values (line 2)"),
     ],
@@ -427,6 +477,44 @@ def test_validate_catches_each_kind_of_problem(load, run_main, blocks, tmp_path,
     assert code == 1
     assert expected in blocks(out)[0].body
     assert "checks failed. Fix the file before submitting." in out
+
+
+def test_an_empty_text_prediction_is_a_warning_not_a_failure(load, run_main, blocks, tmp_path):
+    """Some competitions take an empty prediction string; the sample need not show one."""
+    sample = _csv(tmp_path / "sample.csv", "id,PredictionString\n1,a 0.5\n2,a 0.5\n")
+    sub = _csv(tmp_path / "sub.csv", "id,PredictionString\n1,\n2,b 0.9\n")
+    code, out, _ = run_main(load("competition_validate"), "x", str(sub), "--sample", str(sample))
+    body = blocks(out)[0].body
+    assert code == 0 and "WARN  1 empty values in PredictionString (line 2)" in body
+    assert "1 warning(s) to look at before submitting" in out
+
+
+def test_an_empty_value_is_fine_where_the_sample_has_one(load, run_main, blocks, tmp_path):
+    sample = _csv(tmp_path / "sample.csv", "id,PredictionString\n1,\n2,a 0.5\n")
+    sub = _csv(tmp_path / "sub.csv", "id,PredictionString\n1,b 0.1\n2,\n")
+    code, out, _ = run_main(load("competition_validate"), "x", str(sub), "--sample", str(sample))
+    assert code == 0
+    assert "PASS  no empty values (empty allowed in PredictionString, as in the sample)" in out
+
+
+def test_a_very_long_prediction_string_is_read(load, run_main, tmp_path):
+    long_value = " ".join(["1 0.5 10 10 20 20"] * 40000)
+    sample = _csv(tmp_path / "sample.csv", f"id,PredictionString\n1,{long_value}\n")
+    sub = _csv(tmp_path / "sub.csv", f"id,PredictionString\n1,{long_value}\n")
+    assert run_main(load("competition_validate"), "x", str(sub), "--sample", str(sample))[0] == 0
+
+
+def test_the_sample_is_found_past_the_first_page_of_files(
+    load, run_main, fake_mcp, kaggle_calls, tmp_path
+):
+    first = {"files": [{"name": f"f{n}.csv"} for n in range(200)], "next_page_token": "p2"}
+    second = {"files": [{"name": "sample_submission.csv"}]}
+    state = fake_mcp({"list_competition_data_files": [first, second]}, token="tok")
+    kaggle_calls('printf "id,target\\n1,0.5\\n" > "$path/sample_submission.csv"\n')
+    sub = _csv(tmp_path / "sub.csv", "id,target\n1,0.4\n")
+    code, _, _ = run_main(load("competition_validate"), "x", str(sub))
+    assert code == 0
+    assert [c.request.get("pageToken") for c in state.calls] == [None, "p2"]
 
 
 def test_validate_finds_a_local_sample_and_handles_a_byte_order_mark(
@@ -500,7 +588,7 @@ def test_submit_is_a_dry_run_by_default(load, run_main, fake_mcp, kaggle_calls, 
         "expected:    0.77",
         "cost:        1 of 5 submissions a day",
         "Add --yes to do it, after the user has confirmed.",
-        "Check the file first: competition_validate.py titanic",
+        "Check the file first: validate titanic",
     ):
         assert expected in out, expected
     assert not Path(".kaggle-skill").exists()
@@ -691,11 +779,19 @@ def test_watch_reports_a_failed_submission(watch, fake_mcp, run_main, blocks):
 
 
 def test_watch_a_named_submission_and_the_error_exits(watch, fake_mcp, run_main, mcp_response):
-    rows = {"submissions": [_submission(9, "0.5"), _submission(8, "0.4")]}
-    fake_mcp({"search_competition_submissions": rows}, token="tok")
+    # A named submission is read by its id, so an old one is found too.
+    state = fake_mcp({"get_competition_submission": _submission(8, "0.4")}, token="tok")
     code, out, _ = run_main(watch, "titanic", "--ref", "8")
     assert code == 0 and "submission 8: COMPLETE" in out
-    assert run_main(watch, "titanic", "--ref", "1")[0] == 1
+    assert state.calls[0].request == {"ref": 8}
+    denied = {
+        "result": {
+            "content": [{"type": "text", "text": "Permission 'submissions.get' was denied"}],
+            "isError": True,
+        }
+    }
+    fake_mcp({"get_competition_submission": denied}, token="tok")
+    assert run_main(watch, "titanic", "--ref", "1", "--interval", "1")[0] == 3
     fake_mcp({"search_competition_submissions": mcp_response("unauthenticated")}, token="tok")
     assert run_main(watch, "titanic")[0] == 2
     fake_mcp({"search_competition_submissions": mcp_response("invocation_error")}, token="tok")
@@ -730,9 +826,12 @@ def test_episodes_are_summarised_and_listed_newest_first(load, fake_mcp, run_mai
     lines = blocks(out)[0].body.splitlines()
     assert lines[0] == "6 episodes of submission 5: 5 public, 1 validation; 6 completed"
     assert lines[1] == "  mean reward 12.5; higher than every opponent in 3 of 6"
+    assert lines[3].split() == ["episode", "ended", "(UTC)", "seat", "reward", "opponents"]
     assert lines[4].split()[0] == "100" and lines[5].split()[0] == "101"
+    assert lines[4].split()[3:5] == ["0", "10"], "your seat, then your reward"
     assert lines[4].rstrip().endswith("rival 0 12")
     assert "Showing 2 of 6." in outside(out)
+    assert "--logs 100 --agent 0" in outside(out)
 
 
 def test_episodes_as_seen_by_the_second_agent(load, fake_mcp, run_main, blocks):
@@ -779,7 +878,9 @@ def test_episode_errors(load, run_main, fake_mcp, kaggle_calls, monkeypatch, mcp
     monkeypatch.setenv("KAGGLE_API_TOKEN", "KGAT_test")
     kaggle_calls('echo "403 Forbidden" >&2\nexit 1\n')
     code, _, err = run_main(mod, "--logs", "1", "--agent", "1")
-    assert code == 1 and "the logs could not be downloaded" in err
+    assert code == 3 and "the logs could not be downloaded" in err, "a denial is 3"
+    kaggle_calls('echo "something else went wrong" >&2\nexit 1\n')
+    assert run_main(mod, "--replay", "1")[0] == 1
 
 
 # -- ledger script -----------------------------------------------------------
@@ -812,3 +913,59 @@ def test_ledger_script_lists_what_was_recorded(load, run_main, blocks, tmp_path)
     rows = blocks(run_main(mod, "titanic", "--json")[1])[0].json()
     assert len(rows) == 1 and rows[0]["public_score"] == "0.76"
     assert run_main(mod, "not a slug")[0] == 2
+
+
+def test_a_submission_without_a_status_is_still_pending(watch, fake_mcp, run_main):
+    """Kaggle leaves out PENDING, the zero of its enum: no status is not a result."""
+    pending = {k: v for k, v in _submission(9, "").items() if k != "status"}
+    done = {"submissions": [_submission(9, "0.8")]}
+    fake_mcp({"search_competition_submissions": [{"submissions": [pending]}, done]}, token="tok")
+    code, out, _ = run_main(watch, "titanic", "--interval", "1", "--timeout", "5")
+    assert code == 0 and "still being scored" in out and "submission 9: COMPLETE" in out
+
+
+def test_watch_says_unknown_not_pending_when_the_last_read_failed(
+    watch, fake_mcp, run_main, mcp_response
+):
+    fake_mcp({"search_competition_submissions": mcp_response("invocation_error")}, token="tok")
+    assert run_main(watch, "titanic", "--timeout", "0")[0] == 4
+
+
+def test_the_leaderboard_asks_for_the_public_board(fake_mcp):
+    """After the end the server answers with the private board unless told otherwise."""
+    state = fake_mcp({"get_competition_leaderboard": _board_answer(_board(3))}, token="tok")
+    competition.fetch_leaderboard("x", "tok")
+    assert state.calls[0].request["overridePublic"] is True
+
+
+def test_records_are_not_written_through_a_planted_link(tmp_path, monkeypatch):
+    victim = tmp_path / "victim.sh"
+    victim.write_text("echo hi\n")
+    work = tmp_path / "cloned"
+    (work / ".kaggle-skill").mkdir(parents=True)
+    (work / ".kaggle-skill" / "ledger.jsonl").symlink_to(victim)
+    monkeypatch.chdir(work)
+    monkeypatch.delenv("KAGGLE_SKILL_DIR", raising=False)
+    with pytest.raises(OSError, match="link"):
+        ledger.append({"event": "submit", "message": "$(echo pwned)"})
+    assert victim.read_text() == "echo hi\n"
+    (work / ".kaggle-skill" / "ledger.jsonl").unlink()
+    (work / ".kaggle-skill").rmdir()
+    (work / ".kaggle-skill").symlink_to(tmp_path, target_is_directory=True)
+    with pytest.raises(OSError, match="link"):
+        ledger.append({"event": "submit"})
+
+
+def test_a_new_record_folder_is_private(tmp_path, monkeypatch):
+    monkeypatch.chdir(tmp_path)
+    monkeypatch.delenv("KAGGLE_SKILL_DIR", raising=False)
+    target = ledger.append({"event": "submit"})
+    assert (tmp_path / ".kaggle-skill").stat().st_mode & 0o777 == 0o700
+    assert target.stat().st_mode & 0o777 == 0o600
+
+
+def test_the_ledger_shows_an_error_as_an_error(load, run_main, blocks):
+    ledger.append({"event": "submit", "competition": "titanic", "ref": 3, "file": "a.csv"})
+    ledger.append({"event": "score", "competition": "titanic", "ref": 3, "status": "ERROR"})
+    body = blocks(run_main(load("competition_ledger"), "-c", "titanic")[1])[0].body
+    assert body.splitlines()[2].split()[3] == "error"

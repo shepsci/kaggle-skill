@@ -98,18 +98,28 @@ def list_episodes(submission_id: int, args: argparse.Namespace) -> int:
             )
         if shown:
             block.write(f"  latest {len(shown)}:")
-            block.write(f"  {'episode':>10}  {'ended (UTC)':<16}  {'reward':>10}  opponents")
+            block.write(
+                f"  {'episode':>10}  {'ended (UTC)':<16}  {'seat':>4}  {'reward':>10}  opponents"
+            )
         for row in shown:
             moment = text.parse_time(row["ended"])
             ended = moment.strftime("%Y-%m-%d %H:%M") if moment else "-"
+            seat = "-" if row["agent_index"] is None else str(row["agent_index"])
             rivals = "; ".join(
                 f"{text.shorten(o['team'], 30)} {o['reward']}" for o in row["opponents"]
             )
-            block.write(f"  {row['id']:>10}  {ended:<16}  {str(row['reward']):>10}  {rivals}")
+            block.write(
+                f"  {row['id']:>10}  {ended:<16}  {seat:>4}  {str(row['reward']):>10}  {rivals}"
+            )
     if len(rows) > len(shown):
         print(f"Showing {len(shown)} of {len(rows)}. Add --limit {len(rows)} for all of them.")
-    if rows:
-        print("Save a game with --replay EPISODE, or your agent's log with --logs EPISODE.")
+    if shown:
+        first = shown[0]
+        seat = first["agent_index"] if first["agent_index"] is not None else 0
+        print(
+            f"Save a game with --replay EPISODE, or your agent's log with --logs EPISODE "
+            f"--agent SEAT (for the latest: --logs {first['id']} --agent {seat})."
+        )
     return script.EXIT_OK
 
 
@@ -138,7 +148,7 @@ def download(kind: str, episode: int, agent: int, out: Path, tail: int) -> int:
                 stream="stderr",
                 file=sys.stderr,
             )
-        return result.returncode or script.EXIT_FAILED
+        return kaggle_cli.exit_code(result) or script.EXIT_FAILED
 
     size = target.stat().st_size
     print(f"Saved {target} ({text.human_size(size)}).")
@@ -171,7 +181,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--replay", type=int, metavar="EPISODE", help="Save this episode's replay")
     parser.add_argument("--logs", type=int, metavar="EPISODE", help="Save your agent's log")
     parser.add_argument(
-        "--agent", type=int, default=0, metavar="INDEX", help="With --logs: your agent's index"
+        "--agent",
+        type=int,
+        default=0,
+        metavar="SEAT",
+        help="With --logs: your agent's seat in that game, the list's seat column (default: 0)",
     )
     parser.add_argument(
         "--out", default=DEFAULT_OUT, metavar="DIR", help=f"Where to save (default: {DEFAULT_OUT})"

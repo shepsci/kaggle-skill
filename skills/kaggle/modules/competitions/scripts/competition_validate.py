@@ -7,16 +7,18 @@
 Checks the shape of a CSV submission: the columns and their order, the number
 of rows, the ids in the first column (missing, extra, duplicated), empty
 values, and values that are not finite numbers in a column that is numeric in
-the sample. It says nothing about how good the predictions are, and it cannot
-check a format rule that only the evaluation page states.
+the sample. An empty value fails in a numeric column; in a text column that
+is never empty in the sample it is a warning, because some competitions take
+an empty prediction. It says nothing about how good the predictions are, and
+it cannot check a format rule that only the evaluation page states.
 
 The sample is the file given with --sample. Without it the script looks for a
 file named like sample_submission next to the submission and in ./data,
 ./input and ./downloads/<competition>, and then downloads it from Kaggle,
 which needs the Kaggle CLI, a credential and the accepted rules.
 
-Exit status: 0 every check passed, 1 a check failed, 2 the file is missing or
-is not a CSV, 4 no sample submission could be found.
+Exit status: 0 every check passed (warnings allowed), 1 a check failed, 2 the
+file is missing or is not a CSV, 4 no sample submission could be found.
 """
 
 from __future__ import annotations
@@ -43,6 +45,9 @@ from shared import (  # noqa: E402
 
 SAMPLE_NAME_RE = re.compile(r"sample.*submission|submission.*sample", re.IGNORECASE)
 MAX_EXAMPLES = 3
+MAX_LISTING_PAGES = 50  # 200 file names a page
+# Prediction strings can be far longer than the csv module's default field limit.
+csv.field_size_limit(2**31 - 1)
 
 
 def find_local_sample(slug: str, submission: Path) -> Path | None:
@@ -72,12 +77,18 @@ def download_sample(slug: str, folder: Path) -> tuple[Path | None, str]:
     token = mcp_client.resolve_token()
     if not token:
         return None, "no credential to list the competition's files with"
-    listing = mcp_client.request(
-        "list_competition_data_files", {"competitionName": slug, "pageSize": 200}, token=token
-    )
-    if not listing.ok or not isinstance(listing.data, dict):
-        return None, "the competition's file list could not be read (are the rules accepted?)"
-    names = [str(f.get("name", "")) for f in listing.data.get("files") or [] if isinstance(f, dict)]
+    names: list[str] = []
+    request = {"competitionName": slug, "pageSize": 200}
+    for _ in range(MAX_LISTING_PAGES):
+        listing = mcp_client.request("list_competition_data_files", request, token=token)
+        if not listing.ok or not isinstance(listing.data, dict):
+            return None, "the competition's file list could not be read (are the rules accepted?)"
+        files = listing.data.get("files") or []
+        names += [str(f.get("name", "")) for f in files if isinstance(f, dict)]
+        page_token = listing.data.get("next_page_token")
+        if not files or not page_token:
+            break
+        request = {**request, "pageToken": page_token}
     matches = [n for n in names if SAMPLE_NAME_RE.search(n) and n.lower().endswith(".csv")]
     if not matches:
         return None, "the competition has no file named like sample_submission.csv"
@@ -126,11 +137,11 @@ def _examples(items: list) -> str:
     return shown + (", ..." if len(items) > MAX_EXAMPLES else "")
 
 
-def compare(submission: Path, sample: Path) -> list[tuple[bool, str]]:
-    """Run the checks. Returns ``(passed, message)`` for each."""
+def compare(submission: Path, sample: Path) -> list[tuple[bool | None, str]]:
+    """Run the checks. Returns ``(passed, message)`` for each; None is a warning."""
     sub_header, sub_rows = read_csv(submission)
     ref_header, ref_rows = read_csv(sample)
-    checks: list[tuple[bool, str]] = []
+    checks: list[tuple[bool | None, str]] = []
 
     if sub_header == ref_header:
         checks.append((True, f"columns: {', '.join(ref_header)}"))
@@ -176,24 +187,43 @@ def compare(submission: Path, sample: Path) -> list[tuple[bool, str]]:
         else:
             checks.append((True, f"ids in column {name}: all {len(ref_ids):,} match"))
 
-    empty = [
-        (line, sub_header[col] if col < len(sub_header) else f"column {col + 1}")
-        for line, row in enumerate(sub_rows, start=2)
-        for col, cell in enumerate(row)
-        if not cell.strip()
-    ]
-    if empty:
-        line, column = empty[0]
-        checks.append((False, f"{len(empty):,} empty values (first: line {line}, {column})"))
-    else:
-        checks.append((True, "no empty values"))
-
     # A column is numeric when every value in the sample is a number.
     numeric = [
         col
         for col in range(1, len(ref_header))
         if ref_rows and all(len(r) > col and _is_number(r[col]) for r in ref_rows)
     ]
+    # A column that is empty somewhere in the sample may be empty in a submission.
+    may_be_empty = {
+        col
+        for col in range(len(ref_header))
+        if any(len(r) > col and not r[col].strip() for r in ref_rows)
+    }
+    empty: dict[int, list[int]] = {}
+    for line, row in enumerate(sub_rows, start=2):
+        for col, cell in enumerate(row):
+            if not cell.strip() and col not in may_be_empty:
+                empty.setdefault(col, []).append(line)
+
+    def column(col: int) -> str:
+        return sub_header[col] if col < len(sub_header) else f"column {col + 1}"
+
+    hard = {col: lines for col, lines in empty.items() if col == 0 or col in numeric}
+    soft = {col: lines for col, lines in empty.items() if col not in hard}
+    for col, lines in hard.items():
+        checks.append((False, f"{len(lines):,} empty values in {column(col)} (line {lines[0]})"))
+    for col, lines in soft.items():
+        checks.append(
+            (
+                None,
+                f"{len(lines):,} empty values in {column(col)} (line {lines[0]}); the sample "
+                "has none there. Check that the evaluation page allows an empty prediction",
+            )
+        )
+    if not empty:
+        allowed = ", ".join(column(col) for col in sorted(may_be_empty))
+        note = f" (empty allowed in {allowed}, as in the sample)" if allowed else ""
+        checks.append((True, f"no empty values{note}"))
     bad: list[tuple[int, str, str]] = []
     for line, row in enumerate(sub_rows, start=2):
         for col in numeric:
@@ -220,7 +250,7 @@ def main(argv: list[str] | None = None) -> int:
     )
     script.add_competition(parser, "file")
     parser.add_argument("--sample", metavar="PATH", help="The sample submission to compare with")
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     slug, file_name = script.positionals(parser, args, "file")
 
     submission = Path(file_name)
@@ -249,15 +279,20 @@ def main(argv: list[str] | None = None) -> int:
             return script.fail(f"a file could not be read as CSV ({type(exc).__name__})", 1)
         sample_name = sample.name
 
-    failed = sum(1 for passed, _ in checks if not passed)
+    failed = sum(1 for passed, _ in checks if passed is False)
+    warned = sum(1 for passed, _ in checks if passed is None)
+    labels = {True: "PASS", False: "FAIL", None: "WARN"}
     # Column names and ids come from the files, and the sample comes from Kaggle.
     with untrusted.Block(source="local", tool="validate", competition=slug) as block:
         block.write(f"Checked {file_name} against the sample {sample_name}")
         for passed, message in checks:
-            block.write(f"  {'PASS' if passed else 'FAIL'}  {message}")
+            block.write(f"  {labels[passed]}  {message}")
     if failed:
         print(f"{failed} of {len(checks)} checks failed. Fix the file before submitting.")
         return script.EXIT_FAILED
+    if warned:
+        print(f"No check failed, with {warned} warning(s) to look at before submitting.")
+        return script.EXIT_OK
     print("Every check passed. The shape is right; this does not score the predictions.")
     return script.EXIT_OK
 

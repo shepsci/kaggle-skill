@@ -13,14 +13,15 @@ no credential value is printed.
 Run this first when something does not work. Public reads need nothing but
 Python and the network; the report says what each missing piece is needed for.
 
-Exit status: 0 Kaggle can be reached, 1 it cannot, 2 with --verify when the
-configured credential is not accepted.
+Exit status: 0 every host and the MCP server answer, 1 one of them does not,
+2 with --verify when the configured credential is not accepted.
 """
 
 from __future__ import annotations
 
 import argparse
 import json
+import os
 import shutil
 import sys
 from importlib import metadata
@@ -119,13 +120,26 @@ def collect(verify: bool, network: bool) -> dict:
     # The commands run the CLI found on PATH, whichever Python it was installed for.
     cli_ready = bool(report["cli"]["path"])
     signed_in = bool(found) and report["verified"] is not False
-    token_ready = signed_in and found[0].kind != "legacy_key"
+    # The account reads send a token in credentials.bearer_token's order: the
+    # override, an API token or an OAuth login before a legacy key. A legacy key
+    # found first does not hide an OAuth login found later.
+    has_token = bool(os.environ.get("KAGGLE_MCP_TOKEN", "").strip()) or any(
+        credential.kind != "legacy_key" for credential in found
+    )
+    token_ready = signed_in and has_token
+    report["other_credentials"] = [LABELS[c.kind] for c in found[1:]]
+
+    def up(host: str) -> bool:
+        return not network or bool(report["hosts"][host]["ok"])
+
     reachable = not network or bool(report["mcp"] and report["mcp"]["ok"])
     report["works"] = {
         "public_reads": reachable,
         "account_reads": reachable and token_ready,
-        "cli_commands": cli_ready and signed_in,
-        "kagglehub_downloads": report["packages"]["kagglehub"]["ok"],
+        "cli_commands": cli_ready and signed_in and up("api.kaggle.com"),
+        "kagglehub_downloads": report["packages"]["kagglehub"]["ok"]
+        and up("api.kaggle.com")
+        and up("storage.googleapis.com"),
     }
     return report
 
@@ -163,6 +177,8 @@ def print_report(report: dict) -> None:
         else:
             state = "found; add --verify to ask Kaggle"
         rows.append(("credential", f"{credential['label']} from {credential['source']}", state))
+        if report.get("other_credentials"):
+            rows.append(("also found", ", ".join(report["other_credentials"]), ""))
 
     if report["hosts"] is not None:
         for host, result in report["hosts"].items():
@@ -198,7 +214,7 @@ def print_report(report: dict) -> None:
             "No credential: sign in with `kaggle auth login`, or create an API token at "
             "https://www.kaggle.com/settings and save it in ~/.kaggle/access_token."
         )
-    elif credential["kind"] == "legacy_key":
+    elif credential["kind"] == "legacy_key" and not works["account_reads"]:
         hints.append(
             "The credential is a legacy API key. The Kaggle CLI takes it; Kaggle's MCP server "
             "takes an API token or an OAuth login, so the reads on your account need one of those."
@@ -242,8 +258,10 @@ def main(argv: list[str] | None = None) -> int:
 
     if args.verify and report["verified"] is False:
         return script.EXIT_NO_CREDENTIAL
-    if report["hosts"] is not None and not report["works"]["public_reads"]:
-        return script.EXIT_FAILED
+    if report["hosts"] is not None:
+        hosts_up = all(result["ok"] for result in report["hosts"].values())
+        if not hosts_up or not report["works"]["public_reads"]:
+            return script.EXIT_FAILED
     return script.EXIT_OK
 
 

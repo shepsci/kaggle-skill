@@ -8,9 +8,10 @@ The folder holds the notebook and its kernel-metadata.json. Pushing creates a
 new version and starts a run on Kaggle: with an accelerator switched on, that
 run uses the account's weekly GPU hours. Get the user's go-ahead before --yes.
 
-Everything in the folder is uploaded, so the folder is checked for credential
-files first (exit status 5). To wait for the run and fetch its output, use
-notebook_run.py or notebook_wait.py.
+Kaggle receives the code file named in kernel-metadata.json and the settings
+in that file, nothing else from the folder. The code file must be inside the
+folder and must not look like a credential file (exit status 5). To wait for
+the run and fetch its output, use the notebook-run or notebook-wait command.
 """
 
 from __future__ import annotations
@@ -23,6 +24,14 @@ SKILL_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SKILL_ROOT))
 
 from shared import credentials, kaggle_cli, notebook, preflight, script  # noqa: E402
+
+GPU_WORDS = ("gpu", "nvidia")
+SOURCES = (
+    ("competition_sources", "competition data"),
+    ("dataset_sources", "datasets"),
+    ("model_sources", "models"),
+    ("kernel_sources", "notebooks"),
+)
 
 
 def plan(folder: Path) -> tuple[str, list[tuple[str, str]], str] | int:
@@ -39,28 +48,60 @@ def plan(folder: Path) -> tuple[str, list[tuple[str, str]], str] | int:
         return script.fail(
             f"the id in {notebook.METADATA_FILE} is not owner/name", script.EXIT_USAGE
         )
-    status = preflight.check(folder)
-    if status:
-        return status
+    code = code_file(folder, metadata)
+    if isinstance(code, int):
+        return code
 
     def flag(name: str, default: bool) -> bool:
         value = metadata.get(name, default)
         return value if isinstance(value, bool) else str(value).lower() == "true"
 
-    gpu = flag("enable_gpu", False)
-    sources = metadata.get("competition_sources") or []
+    # kaggle 2.2.4 sends enable_gpu, enable_tpu and machine_shape; a machine
+    # shape such as NvidiaTeslaT4 picks the accelerator by itself.
+    shape = str(metadata.get("machine_shape") or "")
+    tpu = flag("enable_tpu", False) or "tpu" in shape.lower()
+    gpu = not tpu and (flag("enable_gpu", False) or any(w in shape.lower() for w in GPU_WORDS))
+    accelerator = "TPU" if tpu else "GPU" if gpu else "none"
     details = [
         ("notebook", slug),
-        ("folder", preflight.describe(folder)),
-        ("code file", str(metadata.get("code_file") or "(not set)")),
+        ("code file", f"{code.relative_to(folder.resolve())} ({preflight.size_text(code)})"),
         ("visibility", "private" if flag("is_private", True) else "PUBLIC"),
-        ("accelerator", "GPU" if gpu else "none"),
+        ("accelerator", f"{accelerator} (machine shape {shape})" if shape else accelerator),
         ("internet", "on" if flag("enable_internet", True) else "off"),
     ]
-    if sources:
-        details.append(("competition", ", ".join(str(s) for s in sources)))
-    cost = "starts a run on Kaggle" + ("; uses the weekly GPU hours" if gpu else "")
+    for key, label in SOURCES:
+        sources = metadata.get(key) or []
+        if isinstance(sources, list) and sources:
+            shown = ", ".join(str(source) for source in sources[:5])
+            more = f" and {len(sources) - 5} more" if len(sources) > 5 else ""
+            details.append((label, shown + more))
+    cost = "starts a run on Kaggle"
+    if tpu or gpu:
+        cost += f"; uses the weekly {accelerator} hours"
     return slug, details, cost
+
+
+def code_file(folder: Path, metadata: dict) -> Path | int:
+    """The code file Kaggle will receive, checked: inside the folder, not a credential."""
+    name = str(metadata.get("code_file") or "")
+    if not name:
+        return script.fail(f"{notebook.METADATA_FILE} names no code_file", script.EXIT_USAGE)
+    base = folder.resolve()
+    path = (folder / name).resolve()
+    if base not in path.parents:
+        return script.fail(
+            f"the code_file in {notebook.METADATA_FILE} is outside {folder}; refusing to send it",
+            script.EXIT_REFUSED,
+        )
+    if preflight.looks_secret(path.name) or preflight.looks_secret(Path(name).name):
+        return script.fail(
+            f"the code_file in {notebook.METADATA_FILE} looks like a credential file; "
+            "refusing to send it",
+            script.EXIT_REFUSED,
+        )
+    if not path.is_file():
+        return script.fail(f"the code_file {name} is not in {folder}", script.EXIT_USAGE)
+    return path
 
 
 def push(folder: Path) -> int:
@@ -97,7 +138,7 @@ def main(argv: list[str] | None = None) -> int:
     status = push(folder)
     if status != 0:
         return status
-    print(f"Pushed {slug}. It is running on Kaggle; wait for it with notebook_wait.py {slug}")
+    print(f"Pushed {slug}. It is running on Kaggle; wait for it with: notebook-wait {slug}")
     return script.EXIT_OK
 
 

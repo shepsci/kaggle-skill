@@ -45,7 +45,7 @@ def download_with_kagglehub(
     return kagglehub.model_download(handle, **kwargs)
 
 
-def download_with_cli(handle: str, folder: str | None) -> int:
+def download_with_cli(handle: str, folder: str | None, force: bool = False) -> int:
     if script.is_handle(handle, 4):
         return script.fail(
             "with --via cli the handle needs a version: owner/model/framework/variation/3. "
@@ -62,10 +62,9 @@ def download_with_cli(handle: str, folder: str | None) -> int:
         return script.no_credential("the Kaggle CLI")
     target = Path(folder or Path("downloads") / handle.replace("/", "-"))
     target.mkdir(parents=True, exist_ok=True)
-    status = kaggle_cli.run_wrapped(
-        ["models", "variations", "versions", "download", handle, "--path", str(target), "--quiet"],
-        tool="models.download",
-    )
+    cli_args = ["models", "variations", "versions", "download", handle, "--path", str(target)]
+    cli_args += ["--quiet", *(["--force"] if force else [])]
+    status = kaggle_cli.run_wrapped(cli_args, tool="models.download")
     if status != 0:
         return status
     kaggle_cli.print_folder(target)
@@ -88,12 +87,17 @@ def main(argv: list[str] | None = None) -> int:
         default="kagglehub",
         help="The tool that downloads (default: kagglehub)",
     )
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     folder = args.dir or args.dir_opt
 
     credentials.load_configured_env_file()
     if args.via == "cli":
-        return download_with_cli(args.handle, folder)
+        if args.file:
+            return script.fail(
+                "--file works with kagglehub only; the CLI downloads the whole version",
+                script.EXIT_USAGE,
+            )
+        return download_with_cli(args.handle, folder, args.force)
 
     status = hub.check_output_dir(folder, args.file, args.force)
     if status:

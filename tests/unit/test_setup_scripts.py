@@ -340,6 +340,36 @@ def test_doctor_reports_an_unreachable_host(doctor, run_main, monkeypatch):
     assert "allow outbound HTTPS" in out
 
 
+def test_doctor_counts_a_blocked_download_host(doctor, run_main, monkeypatch):
+    """The MCP server answers, but the CLI's and kagglehub's hosts do not."""
+    monkeypatch.setenv("KAGGLE_API_TOKEN", TOKEN)
+
+    def blocked(method, url, **kwargs):
+        if "www.kaggle.com" not in url:
+            raise net.RequestError("connection", "gaierror")
+        return net.Response(200, {}, "", url)
+
+    monkeypatch.setattr(net, "request", blocked)
+    code, out, _ = run_main(doctor)
+    assert code == 1
+    assert "yes  public reads" in out and "yes  reads on your account" in out
+    assert "no   downloads, submissions" in out
+    assert "no   dataset and model downloads with kagglehub" in out
+
+
+def test_doctor_sees_an_oauth_login_behind_a_legacy_key(doctor, run_main, monkeypatch, tmp_path):
+    """The account reads send the OAuth token even when kaggle.json is found first."""
+    kaggle_dir = Path.home() / ".kaggle"
+    kaggle_dir.mkdir(parents=True, exist_ok=True)
+    (kaggle_dir / "kaggle.json").write_text(json.dumps({"username": "alice", "key": "e" * 32}))
+    (kaggle_dir / "credentials.json").write_text(json.dumps({"refresh_token": "KGRT_x"}))
+    code, out, _ = run_main(doctor)
+    assert code == 0
+    assert "also found" in out and "OAuth login" in out
+    assert "yes  reads on your account" in out
+    assert "The credential is a legacy API key." not in out
+
+
 def test_doctor_points_out_a_certificate_problem(doctor, run_main, monkeypatch):
     def failing(method, url, **kwargs):
         raise net.RequestError("certificate")

@@ -35,18 +35,29 @@ TAG = "untrusted-content"
 _MARKER_RE = re.compile(r"<(\s*/?\s*)untrusted-content", re.IGNORECASE)
 # C0 controls other than tab, newline and carriage return.
 _CONTROL_RE = re.compile(r"[\x00-\x08\x0b\x0c\x0e-\x1f]")
+# A carriage return moves a terminal back to the start of the line, so the
+# text after it hides the text before it. It becomes a line break.
+_RETURN_RE = re.compile(r"\r\n?")
 # What a reader cannot see: DEL and the C1 controls, the soft hyphen, the
-# Arabic letter mark, the Mongolian vowel separator, zero-width and
-# bidirectional format characters, the byte-order mark, interlinear
-# annotation marks, surrogates, private-use code points, tag characters and
-# the variation-selector supplement.
+# combining grapheme joiner, the Arabic letter mark, the Hangul and Khmer
+# fillers, the Mongolian variation selectors and vowel separator, zero-width
+# and bidirectional format characters, the byte-order mark, interlinear
+# annotation marks, the shorthand and musical format controls, surrogates,
+# private-use code points, tag characters and the variation-selector
+# supplement.
 _HIDDEN = (
-    "\x7f-\x9f\u00ad\u061c\u180e\u200b-\u200f\u202a-\u202e\u2060-\u206f\ufeff\ufff9-\ufffb"
+    "\x7f-\x9f\u00ad\u034f\u061c\u115f\u1160\u17b4\u17b5\u180b-\u180f\u200b-\u200f"
+    "\u202a-\u202e\u2060-\u206f\u3164\ufeff\uffa0\ufff9-\ufffb"
+    "\U0001bca0-\U0001bca3\U0001d173-\U0001d17a"
     "\ud800-\udfff\ue000-\uf8ff\U000e0000-\U000e0fff\U000f0000-\U0010ffff"
 )
-_HIDDEN_RUN_RE = re.compile(f"[{_HIDDEN}]+")
+# One variation selector after a character picks how it is drawn (the emoji
+# style of a heart). Two or more in a row carry nothing a reader sees, and a
+# run of them can spell out bytes, so a run counts as hidden.
+_SELECTOR_RUN = "[\ufe00-\ufe0f]{2,}"
+_HIDDEN_RUN_RE = re.compile(f"(?:[{_HIDDEN}]|{_SELECTOR_RUN})+")
 _LINE_SEPARATOR_RE = re.compile("[\u2028\u2029]")
-_JSON_ESCAPE_RE = re.compile(f"[<>\u2028\u2029{_HIDDEN}]")
+_JSON_ESCAPE_RE = re.compile(f"[<>\u2028\u2029{_HIDDEN}]|{_SELECTOR_RUN}")
 # A run this long is not typography (a joiner in an emoji, a stray soft
 # hyphen). It is replaced by a note instead of being dropped without a trace.
 HIDDEN_RUN_NOTE_AT = 4
@@ -65,6 +76,7 @@ def _hidden_note(match: re.Match[str]) -> str:
 def strip_hidden(text: str) -> str:
     """Remove control and invisible characters; note a long run of them."""
     text = _CONTROL_RE.sub("", text)
+    text = _RETURN_RE.sub("\n", text)
     text = _LINE_SEPARATOR_RE.sub("\n", text)
     return _HIDDEN_RUN_RE.sub(_hidden_note, text)
 
@@ -76,7 +88,10 @@ def neutralize(text: str) -> str:
 
 
 def _json_escape(match: re.Match[str]) -> str:
-    code = ord(match.group(0))
+    return "".join(_escape_one(ord(char)) for char in match.group(0))
+
+
+def _escape_one(code: int) -> str:
     if code > 0xFFFF:
         code -= 0x10000
         return f"\\u{0xD800 + (code >> 10):04x}\\u{0xDC00 + (code & 0x3FF):04x}"

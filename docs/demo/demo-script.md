@@ -68,12 +68,26 @@ A session demo is a file in `sessions/`:
 }
 ```
 
-To record one: ask the agent the question in a real session, let it run the
-skill's commands, and copy the question, each command with its output, and
-the answer into the file without rewording them. `show_lines` only limits how
-many lines of a command's output are shown; the file keeps all of it. Use a
-question about public content, or check that nothing in the output is
-private before committing it.
+To record one:
+
+```bash
+python3 tools/record_session.py agent-brief "the question, as a person would type it"
+python3 tools/build_casts.py agent-brief --readme
+```
+
+`record_session.py` starts a real Claude Code session (`claude -p`) with this
+checkout loaded as the plugin, lets the agent run the skill's commands, and
+writes the question, each command with its full output, and the agent's
+answer into the file without rewording them. Only the skill's folder and the
+working folder are shortened in the paths. The session runs on your Claude
+Code subscription; the tool refuses to start when an API key is set or the
+sign-in is not a subscription. It runs with `KAGGLE_SKILL_READ_ONLY=1`, so
+nothing can be written to Kaggle, and with Kaggle's MCP servers switched off,
+so the agent uses the skill's commands.
+
+`show_lines` only limits how many lines of a command's output the GIF shows;
+the file keeps all of it. Use a question about public content, and read the
+file before committing it: the output can hold details of your account.
 
 ## Before committing a demo
 

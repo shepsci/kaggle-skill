@@ -11,12 +11,13 @@ Kaggle; with an accelerator switched on it uses the weekly GPU hours. Get the
 user's go-ahead before --yes.
 
 When the run fails, the end of its log is printed. When it is still running
-at the timeout, keep waiting with notebook_wait.py.
+at the timeout, keep waiting with the notebook-wait command.
 
 Exit status: 0 output downloaded, 1 the push or the run failed, 2 wrong
 arguments or no credential, 4 the status or the output listing could not be
-read, 5 refused (credential files in the folder, or an output file name that
-would escape the output folder), 124 still running at the timeout.
+read, 5 refused (a code file outside the folder or named like a credential
+file, or an output file name that would escape the output folder), 124 still
+running at the timeout.
 """
 
 from __future__ import annotations

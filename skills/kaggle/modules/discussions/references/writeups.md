@@ -50,7 +50,7 @@ same selection as JSON and `--full` everything the server returned.
 python3 scripts/kaggle_skill.py discussions resource-topics datasets owner/dataset --search "schema"
 python3 scripts/kaggle_skill.py discussions resource-topics kernels owner/notebook --sort-by top
 python3 scripts/kaggle_skill.py discussions resource-topics models owner/model
-python3 scripts/kaggle_skill.py discussions resource-topics benchmarks kaggle/chess
+python3 scripts/kaggle_skill.py discussions resource-topics benchmarks <owner>/<benchmark>
 python3 scripts/kaggle_skill.py discussions forum-topics --category competition_write_ups --group owned
 ```
 
@@ -85,8 +85,6 @@ python3 scripts/kaggle_skill.py solutions titanic --fallback-search
   it, and carry no credential.
 - `--fallback-search` searches public discussions for writeup-like topics
   when the leaderboard links none.
-- `--raw-json` prints bare JSON for a program. The values are still text from
-  Kaggle.
 - No credential is needed for a public competition.
 
 If nothing is found:

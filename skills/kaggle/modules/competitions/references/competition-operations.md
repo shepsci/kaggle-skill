@@ -41,7 +41,9 @@ command is written below.
    ```
 
    It compares the file with the sample submission: same columns, same ids,
-   same row count, no empty values, finite numbers. It cannot check a format
+   same row count, no empty values, finite numbers. An empty value in a text
+   column is a warning, not a failure: check on the evaluation page whether
+   an empty prediction is allowed. It cannot check a format
    rule that only the evaluation page states, or the range the metric
    expects: read that page. A submission that errors on Kaggle can still use
    one of the day's slots.

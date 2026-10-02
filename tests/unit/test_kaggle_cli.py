@@ -89,13 +89,6 @@ def test_run_wrapped_marks_stdout_and_stderr_as_untrusted(stub_kaggle, capsys):
     assert "kaggle exited with status 1" in captured.err
 
 
-def test_cli_raw_mode_prints_stdout_unwrapped(stub_kaggle, capsys):
-    stub_kaggle("echo 'o/k has status \"KernelWorkerStatus.RUNNING\"'\n")
-    rc = kaggle_cli.main(["--raw", "--", "kernels", "status", "o/k"])
-    assert rc == 0
-    assert capsys.readouterr().out.strip() == 'o/k has status "KernelWorkerStatus.RUNNING"'
-
-
 def test_unsafe_kernel_output_names_are_reported(stub_kaggle):
     stub_kaggle("""cat <<'JSON'
 [
@@ -202,7 +195,7 @@ def test_json_rows(stdout, rows, token):
     ],
 )
 def test_commands_that_write_are_checked_for_exit_zero_failures(args):
-    assert kaggle_cli.is_write_command(args)
+    assert kaggle_cli.kind(args) == "account"
 
 
 @pytest.mark.parametrize(
@@ -219,11 +212,10 @@ def test_commands_that_write_are_checked_for_exit_zero_failures(args):
         ["models", "variations", "get", "a/b/c/d", "-p", "x"],
         ["config", "view"],
         ["quota"],
-        ["auth", "print-access-token"],
     ],
 )
 def test_commands_that_read_are_not(args):
-    assert not kaggle_cli.is_write_command(args)
+    assert kaggle_cli.kind(args) == "read"
 
 
 def test_a_read_that_shows_failure_words_still_succeeds(stub_kaggle):
@@ -286,110 +278,24 @@ def _snapshot_commands(repo_root):
     return sorted(snapshot["commands"]), snapshot["aliases"]
 
 
-# Every command of the Kaggle CLI that only reads, or changes local files only.
-READ_ONLY_COMMANDS = {
-    "auth",
-    "auth login",
-    "auth print-access-token",
-    "benchmarks",
-    "benchmarks auth",
-    "benchmarks init",
-    "benchmarks leaderboard",
-    "benchmarks tasks",
-    "benchmarks tasks download",
-    "benchmarks tasks list",
-    "benchmarks tasks log",
-    "benchmarks tasks models",
-    "benchmarks tasks status",
-    "benchmarks topics",
-    "benchmarks topics list",
-    "benchmarks topics show",
-    "competitions",
-    "competitions data",
-    "competitions download",
-    "competitions episodes",
-    "competitions files",
-    "competitions hosts",
-    "competitions init",
-    "competitions leaderboard",
-    "competitions list",
-    "competitions logs",
-    "competitions pages",
-    "competitions pages list",
-    "competitions replay",
-    "competitions settings",
-    "competitions settings get",
-    "competitions solution",
-    "competitions solution status",
-    "competitions submission-limits",
-    "competitions submissions",
-    "competitions team-submissions",
-    "competitions topic-messages",
-    "competitions topics",
-    "competitions topics list",
-    "competitions topics show",
-    "config",
-    "config set",
-    "config unset",
-    "config view",
-    "datasets",
-    "datasets download",
-    "datasets files",
-    "datasets init",
-    "datasets list",
-    "datasets metadata",
-    "datasets status",
-    "datasets topics",
-    "datasets topics list",
-    "datasets topics show",
-    "files",
-    "forums",
-    "forums list",
-    "forums topics",
-    "forums topics list",
-    "forums topics show",
-    "kernels",
-    "kernels files",
-    "kernels init",
-    "kernels list",
-    "kernels logs",
-    "kernels output",
-    "kernels pull",
-    "kernels status",
-    "kernels topics",
-    "kernels topics list",
-    "kernels topics show",
-    "models",
-    "models get",
-    "models init",
-    "models instances",
-    "models instances files",
-    "models instances get",
-    "models instances init",
-    "models instances list",
-    "models instances versions",
-    "models instances versions download",
-    "models instances versions files",
-    "models instances versions list",
-    "models list",
-    "models topics",
-    "models topics list",
-    "models topics show",
-    "quota",
-}
-
-
-def test_every_cli_command_is_classified_as_reading_or_changing(repo_root):
-    """A command the CLI gains must be put on one side before the snapshot can be updated."""
-    commands, _ = _snapshot_commands(repo_root)
-    changing = {" ".join(words) for words in kaggle_cli.ACCOUNT_CHANGING}
-    assert changing & READ_ONLY_COMMANDS == set()
-    unclassified = set(commands) - changing - READ_ONLY_COMMANDS
-    assert unclassified == set(), f"classify these commands: {sorted(unclassified)}"
-    assert changing - set(commands) == set(), "a changing command the CLI no longer has"
-    for command in commands:
-        expected = command in changing
-        assert kaggle_cli.changes_account(command.split()) is expected, command
+def test_every_cli_command_is_classified_once(repo_root):
+    """A command the CLI gains must be put in one set before the snapshot can be updated."""
+    commands, aliases = _snapshot_commands(repo_root)
+    sets = (
+        kaggle_cli.READS,
+        kaggle_cli.ACCOUNT_CHANGING,
+        kaggle_cli.LOCAL_CHANGING,
+        kaggle_cli.REFUSED,
+    )
+    assert sum(len(one) for one in sets) == len(kaggle_cli.LEAVES), "a command is in two sets"
+    paths = {tuple(command.split()) for command in commands}
+    groups = {path for path in paths if any(other[: len(path)] == path != other for other in paths)}
+    leaves = paths - groups
+    assert leaves - kaggle_cli.LEAVES == set(), "classify these commands"
+    assert kaggle_cli.LEAVES - leaves == set(), "a command the CLI no longer has"
+    assert kaggle_cli.ALIASES == aliases
+    for path in leaves:
+        assert kaggle_cli.command(list(path)) == path
 
 
 @pytest.mark.parametrize(
@@ -401,26 +307,51 @@ def test_every_cli_command_is_classified_as_reading_or_changing(repo_root):
         ["m", "v", "delete", "a/b/c/d"],
         ["models", "i", "v", "create", "a/b/c/d", "-p", "."],
         ["b", "t", "run", "task"],
+        ["benchmarks", "init"],
         ["datasets", "metadata", "o/d", "--update"],
+        ["datasets", "metadata", "o/d", "--upd", "-p", "."],
         ["d", "delete", "o/d", "--yes"],
     ],
 )
-def test_aliases_of_changing_commands_are_recognised(args):
-    assert kaggle_cli.changes_account(args)
+def test_aliases_and_abbreviations_of_changing_commands_are_recognised(args):
+    assert kaggle_cli.kind(args) == "account"
 
 
 @pytest.mark.parametrize(
     "args",
     [
-        ["competitions", "files", "submit"],
-        ["datasets", "metadata", "o/d"],
-        ["kernels", "status", "o/push"],
-        ["competitions", "list", "--search", "delete"],
+        # An option before the command: the CLI takes -W/--no-warn there.
+        ["-W", "competitions", "submit", "titanic", "-f", "x.csv", "-m", "m"],
+        ["--no-w", "kernels", "delete", "me/nb", "-y"],
+        ["--", "datasets", "delete", "me/ds", "-y"],
+        # A group option, then the subcommand.
+        ["competitions", "pages", "-q", "delete", "-c", "X", "--page-name", "rules"],
+        # A word the CLI does not list (some Python versions accept `files u`).
+        ["files", "u", "./x"],
+        ["competitions"],
         [],
     ],
 )
-def test_reads_are_not_mistaken_for_changes(args):
-    assert not kaggle_cli.changes_account(args)
+def test_what_cannot_be_named_is_unknown_not_a_read(args):
+    assert kaggle_cli.command(args) is None
+    assert kaggle_cli.kind(args) == "unknown"
+
+
+@pytest.mark.parametrize(
+    "args, expected",
+    [
+        (["auth", "print-access-token"], "refused"),
+        (["auth", "login"], "local"),
+        (["config", "set", "-n", "proxy", "-v", "http://proxy"], "local"),
+        (["competitions", "files", "submit"], "read"),
+        (["datasets", "metadata", "o/d"], "read"),
+        (["kernels", "status", "o/push"], "read"),
+        (["competitions", "list", "--search", "delete"], "read"),
+        (["k", "get", "o/k", "-p", "."], "read"),
+    ],
+)
+def test_kind(args, expected):
+    assert kaggle_cli.kind(args) == expected
 
 
 def test_the_runner_is_a_dry_run_for_a_changing_command(kaggle_calls, capsys, monkeypatch):
@@ -436,6 +367,44 @@ def test_the_runner_is_a_dry_run_for_a_changing_command(kaggle_calls, capsys, mo
     assert len(calls()) == 1
     assert kaggle_cli.main(["--", "competitions", "list"]) == 0, "reads are never gated"
     assert len(calls()) == 2
+
+
+@pytest.mark.parametrize(
+    "args",
+    [
+        ["-W", "competitions", "submit", "titanic", "-f", "x.csv", "-m", "m"],
+        ["--", "datasets", "delete", "me/ds", "-y"],
+        ["competitions", "pages", "-q", "delete", "-c", "X", "--page-name", "rules"],
+        ["datasets", "metadata", "me/ds", "--upd", "-p", "."],
+        ["config", "set", "-n", "proxy", "-v", "http://proxy"],
+    ],
+)
+def test_the_runner_gates_what_it_cannot_name(kaggle_calls, capsys, monkeypatch, args):
+    calls = kaggle_calls('echo "done"\n')
+    assert kaggle_cli.main(["--", *args]) == 0
+    assert capsys.readouterr().out.startswith("Dry run. Nothing was sent to Kaggle.")
+    monkeypatch.setenv("KAGGLE_SKILL_READ_ONLY", "1")
+    assert kaggle_cli.main(["--yes", "--", *args]) == 5
+    assert calls() == []
+
+
+def test_the_runner_never_prints_the_token(kaggle_calls, capsys):
+    calls = kaggle_calls('echo "KGAT_secret"\n')
+    assert kaggle_cli.main(["--yes", "--", "auth", "print-access-token"]) == 5
+    captured = capsys.readouterr()
+    assert "KGAT" not in captured.out + captured.err and "doctor" in captured.err
+    assert calls() == []
+
+
+def test_the_runner_checks_output_names_before_kernels_output(kaggle_calls, capsys):
+    calls = kaggle_calls(
+        'case "$1 $2" in "kernels files") '
+        'echo \'[{"name": "../../.bashrc", "size": 1}]\' ;; *) echo "downloaded" ;; esac\n'
+    )
+    assert kaggle_cli.main(["--", "kernels", "output", "o/k", "-p", "out"]) == 5
+    assert "../../.bashrc" in capsys.readouterr().err
+    assert [call[:2] for call in calls()] == [["kernels", "files"]], "nothing was downloaded"
+    assert calls()[0][2] == "o/k"
 
 
 def test_the_runner_says_when_the_cli_is_missing(monkeypatch, capsys):

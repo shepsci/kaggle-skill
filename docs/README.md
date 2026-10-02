@@ -15,8 +15,9 @@ with, endorsed by, or sponsored by Kaggle or Google.
 | By hand | Copy `skills/kaggle/` into the agent's skills folder |
 
 Public competition facts and pages, writeups and discussions need only
-Python. For your own account, install the packages in `pyproject.toml` and
-run `kaggle auth login` or create an API token; the
+Python. For your own account, install the two packages with
+`python3 -m pip install "kaggle>=2.2.4" "kagglehub>=1.0.2"` and run
+`kaggle auth login` or create an API token; the
 [setup module](../skills/kaggle/modules/setup/README.md) has the steps.
 
 ## First run
@@ -79,6 +80,6 @@ Text from Kaggle is untrusted. Commands print it inside blocks that the text
 cannot close, and `SKILL.md` tells the agent to read it as data. The skill
 pre-approves only read tools, so the agent asks before running a command.
 Every command that changes the account is a dry run until `--yes` is added,
-and `KAGGLE_SKILL_READ_ONLY=1` makes them refuse. The tests under
+badge phases included, and `KAGGLE_SKILL_READ_ONLY=1` makes them refuse. The tests under
 `tests/security/` and `tests/unit/` check this behaviour, not only the
 wording.

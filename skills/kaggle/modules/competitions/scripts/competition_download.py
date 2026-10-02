@@ -74,7 +74,7 @@ def main(argv: list[str] | None = None) -> int:
         metavar="N",
         help=f"Refuse a full download above N gigabytes (default: {DEFAULT_MAX_GB:g})",
     )
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     slug, folder = script.positionals(parser, args, "dir?")
     target = Path(folder or Path("downloads") / slug)
 
@@ -115,7 +115,9 @@ def main(argv: list[str] | None = None) -> int:
         return status
 
     if args.unzip:
-        for archive in sorted(target.glob("*.zip")):
+        extracted = 0
+        archives = sorted(target.glob("*.zip"))
+        for archive in archives:
             try:
                 names = safe_extract.safe_extract(archive, target)
             except safe_extract.UnsafeArchiveError as exc:
@@ -126,7 +128,10 @@ def main(argv: list[str] | None = None) -> int:
                 return script.EXIT_REFUSED
             except (zipfile.BadZipFile, OSError) as exc:
                 return script.fail(f"could not extract an archive ({type(exc).__name__})")
-            print(f"Extracted {len(names)} file(s) from {archive.name}.")
+            extracted += len(names)
+        # Archive names can come from Kaggle; the listing below shows them inside a block.
+        if archives:
+            print(f"Extracted {extracted} file(s) from {len(archives)} archive(s).")
 
     kaggle_cli.print_folder(target)
     return script.EXIT_OK

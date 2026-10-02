@@ -38,8 +38,11 @@ and only two GPU runs can be active at once.
 - When a run fails, the last 40 lines of its log are printed, not all of it.
 - Output is downloaded only after the file names are checked: a name that
   would land outside the output folder stops the download (exit status 5).
-- The notebook folder is checked for credential files before the push
-  (exit status 5).
+- Kaggle receives only the code file that `kernel-metadata.json` names, with
+  the settings in that file. The push stops (exit status 5) when the code
+  file is outside the folder or looks like a credential file.
+- The dry run shows the accelerator (`enable_gpu`, `enable_tpu` or
+  `machine_shape`), the visibility, and the data sources the run attaches.
 
 ## Exit status
 

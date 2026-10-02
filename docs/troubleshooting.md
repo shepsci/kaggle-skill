@@ -22,9 +22,10 @@ Kaggle's hosts answer, and what works now.
 | `dataset-download` or `model-download` exits with status 5 | The folder is not empty, and kagglehub would delete its contents | Choose a new or empty folder |
 | A command exits with status 2 | Wrong arguments, or it needs a credential and none works | Read the message; set a credential up, or use a command that reads public content |
 | A command exits with status 127 | The Kaggle CLI or a Python package is not installed for the `python3` the agent uses | Run the install command in the message. Public reads work without it |
-| "The credential is a legacy API key" | `status`, `leaderboard`, `competitions`, `details`, `watch` and `episodes` read Kaggle's MCP server, which takes a token or an OAuth login | Create an API token ("Generate New Token") or run `kaggle auth login` |
+| "The credential is a legacy API key" | `status`, `leaderboard`, `competitions`, `details`, `watch`, `episodes` and `writeups` read Kaggle's MCP server, which takes a token or an OAuth login | Create an API token ("Generate New Token") or run `kaggle auth login` |
+| "kagglehub does not use an OAuth login" | `dataset-publish` and `model-publish` upload with kagglehub by default, which reads an API token or a legacy key | Add `--via cli`, or create an API token |
 | A certificate error from Python | A python.org install on macOS without its certificates | Run "Install Certificates.command", or `python3 -m pip install certifi` |
-| A write command printed "Dry run" and did nothing | Every command that changes the account needs `--yes` | Show the user the plan, then add `--yes` |
+| A write command printed "Dry run" and did nothing | Every command that changes the account needs `--yes`; so does a `cli` command the skill cannot tell is a read | Show the user the plan, then add `--yes` (for `cli`, before the `--`) |
 | "Refused: KAGGLE_SKILL_READ_ONLY is set" | The read-only switch is on in the environment | Unset it when writes are wanted |
 | `download` exits with status 5 and names a size | The competition's data is larger than `--max-gb` | Fetch one file with `--file`, or raise the limit on purpose |
 | A command exits with status 3 | Kaggle refused this account or role | Report it. Hackathon rosters are for hosts, judges, and teammates; a 403 on a competition means its rules were not accepted |

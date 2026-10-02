@@ -55,8 +55,9 @@ The plugin and the skill are both named `kaggle`; the selector is
    uploaded:
 
    ```bash
-   git archive v<version> skills/kaggle | tar -x -C /tmp/kaggle-release
-   clawhub skill publish /tmp/kaggle-release/skills/kaggle --slug kaggle --name "Kaggle" --version <version>
+   D=$(mktemp -d)
+   git archive v<version> skills/kaggle | tar -x -C "$D"
+   clawhub skill publish "$D/skills/kaggle" --slug kaggle --name "Kaggle" --version <version>
    ```
 
 ## The plugin-only build

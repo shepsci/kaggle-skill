@@ -44,7 +44,9 @@ def download_with_kagglehub(
     return kagglehub.dataset_download(handle, **kwargs)
 
 
-def download_with_cli(handle: str, file: str | None, folder: str | None) -> int:
+def download_with_cli(
+    handle: str, file: str | None, folder: str | None, force: bool = False
+) -> int:
     if not script.is_handle(handle, 2):
         return script.fail(
             "with --via cli the dataset is owner/name: letters, digits, '.', '_' and '-'",
@@ -59,6 +61,8 @@ def download_with_cli(handle: str, file: str | None, folder: str | None) -> int:
     cli_args = ["datasets", "download", handle, "--path", str(target), "--unzip", "--quiet"]
     if file:
         cli_args += ["--file", file]
+    if force:
+        cli_args.append("--force")
     status = kaggle_cli.run_wrapped(cli_args, tool="datasets.download")
     if status != 0:
         return status
@@ -82,12 +86,12 @@ def main(argv: list[str] | None = None) -> int:
         default="kagglehub",
         help="The tool that downloads (default: kagglehub)",
     )
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     folder = args.dir or args.dir_opt
 
     credentials.load_configured_env_file()
     if args.via == "cli":
-        return download_with_cli(args.handle, args.file, folder)
+        return download_with_cli(args.handle, args.file, folder, args.force)
 
     status = hub.check_output_dir(folder, args.file, args.force)
     if status:

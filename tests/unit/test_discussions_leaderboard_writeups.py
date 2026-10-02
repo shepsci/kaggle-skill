@@ -427,6 +427,45 @@ def test_text_output_when_the_leaderboard_links_nothing(capsys, blocks, outside)
     assert "--fallback-search" in outside(out)
 
 
+def test_an_empty_fallback_search_says_so(capsys, blocks, outside):
+    mod = _load_module()
+    payload = {
+        "publicLeaderboard": [{"teamId": 1, "rank": 1, "displayScore": "0.9"}],
+        "teams": [{"teamId": 1, "teamName": "No Writeup Team"}],
+        "_competition_id": 3136,
+    }
+    with (
+        patch.object(mod, "resolve_token", return_value=None),
+        patch.object(mod, "fetch_leaderboard_payload", return_value=payload),
+        patch.object(mod, "search_public_writeup_topics", return_value=[]),
+    ):
+        rc = mod.main(["titanic", "--fallback-search"])
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert blocks(out)[0].body.splitlines()[0] == (
+        "The titanic leaderboard links no solution writeups, and a search of its "
+        "discussions found none."
+    )
+    assert "--fallback-search" not in outside(out)
+
+
+def test_a_preview_that_is_only_the_title_is_not_repeated():
+    mod = _load_module()
+    result = {
+        "competition": "x",
+        "source": "leaderboard",
+        "writeups": [
+            {
+                "rank": 2,
+                "team_name": "T",
+                "writeup_url": "https://www.kaggle.com/competitions/x/writeups/t",
+                "preview": {"title": "2nd place solution", "excerpt": "2nd place solution"},
+            }
+        ],
+    }
+    assert mod.text_lines(result)[-1].strip() == "2nd place solution"
+
+
 def test_a_competition_that_is_not_a_slug_exits_2(capsys):
     mod = _load_module()
     with pytest.raises(SystemExit) as caught:
@@ -434,7 +473,7 @@ def test_a_competition_that_is_not_a_slug_exits_2(capsys):
     assert caught.value.code == 2
 
 
-def test_raw_json_output_parses_and_escapes_markup(capsys):
+def test_raw_json_is_now_json_inside_a_block(capsys, blocks):
     mod = _load_module()
     payload = {
         "leaderboard": [
@@ -452,8 +491,9 @@ def test_raw_json_output_parses_and_escapes_markup(capsys):
         rc = mod.main(["x", "--raw-json"])
     out = capsys.readouterr().out
     assert rc == 0
-    assert "<" not in out and ">" not in out
-    assert json.loads(out)["writeups"][0]["team_name"] == "<b>Team</b>"
+    [block] = blocks(out)
+    assert "<b>" not in block.body
+    assert block.json()["writeups"][0]["team_name"] == "<b>Team</b>"
 
 
 def test_previews_send_no_credential_to_any_host():

@@ -108,8 +108,11 @@ def download_output(slug: str, folder: Path) -> int:
     )
 
 
-def print_log_tail(slug: str, lines: int = 40) -> None:
-    """Print the end of a run's log on standard error. A notebook log can be very long."""
+def print_log_tail(slug: str, lines: int = 40, max_chars: int = 4000) -> None:
+    """Print the end of a run's log on standard error. A notebook log can be very long.
+
+    The tail is cut to ``max_chars`` too: one progress-bar line can be megabytes.
+    """
     result = kaggle_cli.run(["kernels", "logs", slug], timeout=300)
     log = (result.stdout or result.stderr).strip()
     if not log:
@@ -117,5 +120,10 @@ def print_log_tail(slug: str, lines: int = 40) -> None:
         return
     rows = log.splitlines()
     shown = rows[-lines:]
-    print(f"The last {len(shown)} of {len(rows)} log lines:", file=sys.stderr)
-    untrusted.emit_text("\n".join(shown), source="kaggle-cli", tool="kernels.logs", file=sys.stderr)
+    tail = "\n".join(shown)
+    if len(tail) > max_chars:
+        tail = tail[-max_chars:]
+        print(f"The last {max_chars:,} characters of the log:", file=sys.stderr)
+    else:
+        print(f"The last {len(shown)} of {len(rows)} log lines:", file=sys.stderr)
+    untrusted.emit_text(tail, source="kaggle-cli", tool="kernels.logs", file=sys.stderr)

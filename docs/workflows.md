@@ -15,7 +15,8 @@ The module READMEs have the detail.
 | Survey recent competitions, or list yours | `competitions` | Yes |
 | Where you stand | `status`, `leaderboard` | Yes |
 | Download competition data | `download` | Yes |
-| Check, submit, wait for the score | `validate`, `submit`, `watch`, `ledger` | Yes |
+| Check a submission file; read your local record | `validate`, `ledger` | No; `validate` needs one only to download the sample submission |
+| Submit, wait for the score | `submit`, `watch` | Yes |
 | A hackathon's overview | `hackathon` | No |
 | A hackathon's writeups | `writeups`, `writeup` | The roster: yes; hosts, judges, and teammates only |
 | Download a public dataset or model | `dataset-download`, `model-download` | No |
@@ -69,7 +70,7 @@ python3 skills/kaggle/scripts/kaggle_skill.py solutions vesuvius-challenge-surfa
 ```bash
 python3 skills/kaggle/scripts/kaggle_skill.py hackathon kaggle-measuring-agi
 python3 skills/kaggle/scripts/kaggle_skill.py writeups kaggle-measuring-agi --winners
-python3 skills/kaggle/scripts/kaggle_skill.py writeup 123456
+python3 skills/kaggle/scripts/kaggle_skill.py writeup 71617
 ```
 
 ### Dataset and model download
@@ -102,12 +103,13 @@ python3 skills/kaggle/scripts/kaggle_skill.py notebook-run ./notebook-dir --time
 ### Badges
 
 ```bash
-python3 skills/kaggle/scripts/kaggle_skill.py badges --dry-run
 python3 skills/kaggle/scripts/kaggle_skill.py badges --status
-python3 skills/kaggle/scripts/kaggle_skill.py badges --phase 1
+python3 skills/kaggle/scripts/kaggle_skill.py badges --phase 1          # dry run
+python3 skills/kaggle/scripts/kaggle_skill.py badges --phase 1 --yes
 ```
 
-Dry-run first. A phase creates private resources and makes submissions.
+A phase creates private resources and makes submissions, so without `--yes`
+the entry point shows the module's own dry run instead.
 
 ## Safety checklist
 

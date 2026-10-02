@@ -38,7 +38,8 @@ DEFAULT_STATE_DIR = ".kaggle-skill"
 # One part of a Kaggle slug: it starts with a letter or digit, which rules out
 # "..", option-looking values and anything with spaces or shell characters.
 PART = r"[A-Za-z0-9][A-Za-z0-9._-]*"
-_PART_RE = re.compile(rf"^{PART}$")
+# fullmatch, not match with "$": "$" also matches before a final line break.
+_PART_RE = re.compile(PART)
 
 PACKAGES = {
     "kaggle": "kaggle>=2.2.4",
@@ -93,14 +94,14 @@ def competition_slug(value: str) -> str:
         if marker in parts and parts.index(marker) + 1 < len(parts):
             slug = parts[parts.index(marker) + 1]
             break
-    if not _PART_RE.match(slug):
+    if not _PART_RE.fullmatch(slug):
         raise ValueError("the competition is not a slug such as titanic, or a competition URL")
     return slug
 
 
 def is_handle(value: str, parts: int) -> bool:
     """True for ``parts`` slug parts joined by ``/``: owner/name is two parts."""
-    return bool(re.match(rf"^{PART}(/{PART}){{{parts - 1}}}$", value or ""))
+    return bool(re.fullmatch(rf"{PART}(/{PART}){{{parts - 1}}}", value or ""))
 
 
 def positive_int(value: str) -> int:
@@ -117,6 +118,23 @@ def positive_int(value: str) -> int:
 # -- arguments --------------------------------------------------------------
 
 
+# What the positionals after the competition hold, for --help.
+POSITIONAL_HELP = {
+    "dir": "Folder to download into (default: ./downloads/<competition>)",
+    "file": "The submission file",
+    "message": "The submission message, if not given with -m",
+}
+
+
+def parse(parser: argparse.ArgumentParser, argv: list[str] | None = None) -> argparse.Namespace:
+    """Parse, with positionals allowed after options: ``download titanic --unzip ./data``.
+
+    Python 3.11 reads the positionals in one run before the first option and
+    rejects the rest; parse_intermixed_args reads them wherever they are.
+    """
+    return parser.parse_intermixed_args(argv)
+
+
 def add_competition(parser: argparse.ArgumentParser, *names: str) -> None:
     """Add the competition, as the first positional or as ``--competition``.
 
@@ -129,7 +147,8 @@ def add_competition(parser: argparse.ArgumentParser, *names: str) -> None:
         help="Competition slug (titanic) or its URL",
     )
     for name in names:
-        parser.add_argument(name.rstrip("?"), nargs="?", help=argparse.SUPPRESS)
+        key = name.rstrip("?")
+        parser.add_argument(key, nargs="?", help=POSITIONAL_HELP.get(key, key))
     parser.add_argument(
         "-c",
         "--competition",
@@ -150,9 +169,11 @@ def positionals(parser: argparse.ArgumentParser, args: argparse.Namespace, *name
     keys = ["competition", *[name.rstrip("?") for name in names]]
     values = [getattr(args, key) for key in keys]
     if args.competition_opt:
-        if values[-1] is None:
+        if values[0] == args.competition_opt:
+            pass  # the same competition both ways
+        elif values[-1] is None:
             values = [args.competition_opt, *values[:-1]]
-        elif values[0] != args.competition_opt:
+        else:
             parser.error("the competition was given twice")
     if not values[0]:
         parser.error("name the competition: a slug such as titanic, or its URL")
@@ -252,3 +273,34 @@ def write_gate(
 def state_dir() -> Path:
     """Folder for the skill's local records: ``./.kaggle-skill`` or ``KAGGLE_SKILL_DIR``."""
     return Path(os.environ.get(STATE_DIR_VAR) or DEFAULT_STATE_DIR)
+
+
+def write_state(path: Path, content: str, *, append: bool = False) -> Path:
+    """Write to a file in the state folder without following links.
+
+    A cloned repository can carry a ``.kaggle-skill`` folder with a link in
+    it (``ledger.jsonl -> ~/.bashrc``), and a plain write would follow the
+    link. Here a link on the way is an error (OSError), new folders are
+    private (0700), and new files 0600. A ``KAGGLE_SKILL_DIR`` the user set
+    is trusted as given; only what is below it is checked.
+    """
+    base = state_dir()
+    below = path.relative_to(base).parts[:-1]
+    if os.environ.get(STATE_DIR_VAR):
+        base.mkdir(mode=0o700, parents=True, exist_ok=True)
+        folder, parts = base, below
+    else:
+        folder, parts = Path(), (*base.parts, *below)
+    for part in parts:
+        folder = folder / part
+        if folder.is_symlink():
+            raise OSError(f"{folder} is a link; the skill does not write through links")
+        if not folder.exists():
+            folder.mkdir(mode=0o700)
+    if path.is_symlink():
+        raise OSError(f"{path} is a link; the skill does not write through links")
+    flags = os.O_WRONLY | os.O_CREAT | (os.O_APPEND if append else os.O_TRUNC)
+    descriptor = os.open(path, flags | getattr(os, "O_NOFOLLOW", 0), 0o600)
+    with os.fdopen(descriptor, "a" if append else "w", encoding="utf-8") as handle:
+        handle.write(content)
+    return path

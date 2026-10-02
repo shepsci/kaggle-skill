@@ -37,9 +37,9 @@ plugin alone, about 100 files, for a plugin-only branch.
 | Kind of command | Reads through | Needs |
 |---|---|---|
 | Public reads: `brief`, `pages`, `solutions`, `writeup`, `topics`, `topic`, `hackathon` | Kaggle's MCP server and web pages, over HTTPS | Python only |
-| Reads on the account: `status`, `leaderboard`, `competitions`, `details`, `watch`, `episodes` | Kaggle's MCP server, with a bearer token | An API token or an OAuth login |
+| Reads on the account: `status`, `leaderboard`, `competitions`, `details`, `watch`, `episodes`, `writeups` | Kaggle's MCP server, with a bearer token | An API token or an OAuth login |
 | `download`, `submit`, notebooks, `--via cli` | The Kaggle CLI | The `kaggle` package and a credential |
-| `dataset-download`, `model-download`, publishing by default | `kagglehub` | The `kagglehub` package; a credential to publish |
+| `dataset-download`, `model-download`, publishing by default | `kagglehub` | The `kagglehub` package; an API token or a legacy key to publish (kagglehub does not use an OAuth login) |
 
 ## What the tests hold it to
 
@@ -50,8 +50,9 @@ plugin alone, about 100 files, for a plugin-only branch.
 | The bundled MCP entries carry no credential | `tests/manifest/test_mcp_json_valid.py` |
 | No `eval`, `exec`, shell interpretation, or inline `python -c` | `tests/security/test_no_dynamic_eval.py` |
 | Archives and notebook output cannot write outside their folder | `tests/security/test_zip_slip_protection.py`, `tests/unit/test_notebook_scripts.py` |
-| Upload folders are checked for credential files | `tests/unit/test_preflight.py`, `tests/unit/test_data_scripts.py` |
-| Every command that changes the account is a dry run until `--yes`, and the read-only switch refuses it | `tests/unit/test_script.py`, `tests/unit/test_dispatcher.py`, `tests/unit/test_kaggle_cli.py` |
+| Upload folders are checked for credential files and for links that lead outside them; a notebook's code file must be inside its folder | `tests/unit/test_preflight.py`, `tests/unit/test_data_scripts.py`, `tests/unit/test_notebook_scripts.py` |
+| Every command that changes the account is a dry run until `--yes`, badge phases included, and the read-only switch refuses it. The `cli` runner lets through only commands it knows to read | `tests/unit/test_script.py`, `tests/unit/test_dispatcher.py`, `tests/unit/test_kaggle_cli.py` |
+| Local records are never written through a link | `tests/unit/test_competition_ops.py` |
 | `--help` calls nothing and writes nothing | `tests/integration/test_scripts_help.py` |
 | Slugs and handles are validated before use | `tests/unit/test_script.py`, `tests/unit/test_data_scripts.py` |
 | The skill pre-approves only read tools (`Read`, `Grep`, `Glob`) | `tests/manifest/test_skill_md_frontmatter.py` |

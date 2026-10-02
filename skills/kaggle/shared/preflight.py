@@ -3,7 +3,9 @@
 
 The Kaggle CLI and kagglehub upload everything in the folder except a short
 built-in ignore list (``.git``, ``.cache``, ``.huggingface``). A stray ``.env``
-or ``kaggle.json`` would be published with the dataset, model or notebook.
+or ``kaggle.json`` would be published with the dataset or model. They follow
+links too, so a link to a file or folder outside the upload folder is refused
+as well: ``notes.txt`` can point at ``~/.kaggle/kaggle.json``.
 
     python3 shared/preflight.py ./data
 
@@ -47,19 +49,37 @@ OVERRIDE_VAR = "KAGGLE_PUBLISH_ALLOW_SECRETS"
 EXIT_REFUSED = 5
 
 
+def looks_secret(name: str) -> bool:
+    """True when a file name looks like a credential file."""
+    return name not in ALLOWED and any(fnmatch.fnmatch(name, p) for p in SECRET_PATTERNS)
+
+
+def links_outside(path: Path, folder: Path) -> bool:
+    """True when ``path`` is a link whose target is not inside ``folder``."""
+    if not path.is_symlink():
+        return False
+    try:
+        target, base = path.resolve(), folder.resolve()
+    except (OSError, RuntimeError):
+        return True
+    return target != base and base not in target.parents
+
+
 def find_secret_files(folder: Path) -> list[str]:
-    """Relative paths under ``folder`` whose names look like credential files."""
+    """Relative paths under ``folder`` that look like credential files or link outside it."""
     found: list[str] = []
     for root, dirs, files in os.walk(folder):
         at_top = Path(root) == folder
         dirs[:] = [
             d for d in dirs if d not in SKIPPED_ANYWHERE and not (at_top and d in SKIPPED_AT_TOP)
         ]
-        for name in files:
-            if name in ALLOWED:
-                continue
-            if any(fnmatch.fnmatch(name, pattern) for pattern in SECRET_PATTERNS):
-                found.append(str((Path(root) / name).relative_to(folder)))
+        for name in [*dirs, *files]:
+            path = Path(root) / name
+            relative = str(path.relative_to(folder))
+            if links_outside(path, folder):
+                found.append(f"{relative} (a link to something outside the folder)")
+            elif name in files and looks_secret(name):
+                found.append(relative)
     return sorted(found)
 
 
@@ -80,15 +100,26 @@ def folder_facts(folder: Path) -> tuple[int, int]:
     return count, size
 
 
+def _amount(size: float) -> str:
+    for unit in ("B", "KB", "MB", "GB"):
+        if size < 1000 or unit == "GB":
+            return f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
+        size /= 1000
+    return ""
+
+
+def size_text(path: Path) -> str:
+    """``3.4 MB``: the size of one file."""
+    try:
+        return _amount(path.stat().st_size)
+    except OSError:
+        return "size unknown"
+
+
 def describe(folder: Path) -> str:
     """``./data (12 files, 3.4 MB)`` for a dry run."""
     count, size = folder_facts(folder)
-    for unit in ("B", "KB", "MB", "GB"):
-        if size < 1000 or unit == "GB":
-            amount = f"{size:.0f} {unit}" if unit == "B" else f"{size:.1f} {unit}"
-            break
-        size /= 1000
-    return f"{folder} ({count} files, {amount})"
+    return f"{folder} ({count} files, {_amount(size)})"
 
 
 def check(folder: Path) -> int:
@@ -100,9 +131,13 @@ def check(folder: Path) -> int:
         return 0
     allowed = os.environ.get(OVERRIDE_VAR) == "1"
     if allowed:
-        print("warning: uploading despite credential-like files:", file=sys.stderr)
+        print("warning: uploading despite credential-like files or links:", file=sys.stderr)
     else:
-        print("error: refusing to upload; these look like credential files:", file=sys.stderr)
+        print(
+            "error: refusing to upload; these look like credential files or link outside "
+            "the folder:",
+            file=sys.stderr,
+        )
     # File names can come from a Kaggle download that is being republished.
     untrusted.emit_text("\n".join(found), source="local", tool="preflight", file=sys.stderr)
     if allowed:

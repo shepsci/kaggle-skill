@@ -80,6 +80,7 @@ plugin, which is why there are two commands.
 | Push or run a notebook | No: a dry run first | Weekly GPU hours when a GPU is on |
 | Publish a dataset or a model | No: a dry run first | A private resource on your account |
 | Store a credential on disk | No: a dry run first | A file in `~/.kaggle` |
+| Run a badge phase | No: a dry run first | Notebooks, datasets and submissions on your account |
 
 `KAGGLE_SKILL_READ_ONLY=1` in the environment makes every write refuse.
 Text that comes from Kaggle is marked as data, which lowers the risk that an
@@ -94,12 +95,13 @@ nothing is sent anywhere but to Kaggle.
 | The skill | `SKILL.md` and Python commands under `skills/kaggle/` | The Kaggle credential on your machine |
 | The plugin | The skill plus the Kaggle MCP server entry, packaged for Claude Code and Codex | Same |
 | Kaggle CLI (`kaggle`) | Kaggle's own tool; the skill calls it to download, submit, push | A token, a legacy key, or `kaggle auth login` |
-| `kagglehub` | Kaggle's library; downloads and uploads datasets and models | Same; none for public downloads |
+| `kagglehub` | Kaggle's library; downloads and uploads datasets and models | A token or a legacy key, not `kaggle auth login`; none for public downloads |
 | Kaggle MCP server | Kaggle's 71 remote tools | The skill's commands send your token; calling the tools from the agent needs a separate sign-in ([MCP setup](docs/mcp-setup.md)) |
 
-One credential on your machine serves everything the skill does: an API
-token or an OAuth login. A legacy `kaggle.json` key covers the Kaggle CLI but
-not the commands that read your standing.
+An API token serves everything the skill does. An OAuth login
+(`kaggle auth login`) serves the Kaggle CLI and the reads on your account,
+not kagglehub: publish with `--via cli`. A legacy `kaggle.json` key serves the
+CLI and kagglehub, not the commands that read your standing.
 
 <!-- demos:start -->
 ## See it work
@@ -124,8 +126,9 @@ The demos show real output; the [demo library](docs/demo/README.md) says how eac
 | skills.sh | `npx skills update` | `npx skills remove kaggle` |
 | OpenClaw | `clawhub update kaggle` | `clawhub uninstall kaggle` |
 
-Version 3.0.0 renamed the commands and made every write a dry run by
-default; the [changelog](CHANGELOG.md) lists what changed.
+Run these in a shell, then start a new agent session to load the new
+version. Version 3.0.0 renamed the commands and made every write a dry run
+by default; the [changelog](CHANGELOG.md) lists what changed.
 
 ## Documentation
 

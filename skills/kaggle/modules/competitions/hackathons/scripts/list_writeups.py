@@ -11,7 +11,7 @@ which fetch_writeup.py takes.
 The roster needs a credential and is role-gated: the server answers only for
 hosts, judges and teammates of the hackathon. A denial is reported as a denial
 (exit 3), never as an empty roster. Published writeups themselves are public:
-read one with fetch_writeup.py.
+read one with the writeup command.
 
 --json prints the same short rows as JSON. --full prints every field of every
 row, which is about three times the size: collaborators, ids, and owners.
@@ -254,7 +254,7 @@ def main(argv: list[str] | None = None) -> int:
         if len(all_rows) > args.limit:
             print(f"Showing {args.limit} of {len(all_rows)}. Add --limit {len(all_rows)} for all.")
         if all_rows:
-            print("Read one with fetch_writeup.py <writeup id>.")
+            print("Read one with: writeup <writeup id>")
 
     if failed is not None:
         print_failure(failed, tool=TOOL, had_token=bool(token), competition=competition)

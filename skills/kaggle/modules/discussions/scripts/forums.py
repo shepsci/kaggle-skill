@@ -58,11 +58,11 @@ DEFAULT_MESSAGE_CHARS = 1500
 _TOPIC_URL_RE = re.compile(r"/discussions?/(?:[A-Za-z0-9_-]+/)?(\d+)")
 
 # table, csv or json, optionally with a field projection: json(title,votes)
-_FORMAT_RE = re.compile(r"^(table|csv|json)(\([A-Za-z0-9_]+(,[A-Za-z0-9_]+)*\))?$")
+_FORMAT_RE = re.compile(r"(table|csv|json)(\([A-Za-z0-9_]+(,[A-Za-z0-9_]+)*\))?")
 
 
 def _format_arg(value: str) -> str:
-    if not _FORMAT_RE.match(value):
+    if not _FORMAT_RE.fullmatch(value):
         raise argparse.ArgumentTypeError(
             "use table, csv or json, optionally with fields: json(title,votes)"
         )
@@ -189,7 +189,7 @@ def run_wrapped(cmd: list[str], tool: str) -> int:
             block.write(extra)
     if result.returncode != 0:
         print(f"kaggle exited with status {result.returncode}", file=sys.stderr)
-    return result.returncode
+    return kaggle_cli.exit_code(result)
 
 
 # -- readers that use the MCP server -----------------------------------------
@@ -280,8 +280,13 @@ def list_topics(args: argparse.Namespace) -> int:
             found = mcp_client.request("get_forum", {"forumSlug": args.forum})
             forum = (found.data or {}).get("forum") if isinstance(found.data, dict) else None
             if not found.ok or not isinstance(forum, dict) or not forum.get("id"):
-                print("error: no forum with that slug; list them with: forums", file=sys.stderr)
-                return found.fail() if not found.ok else script.EXIT_FAILED
+                # Kaggle answers "permission denied" for a slug that is not a forum,
+                # so the server's answer is not repeated here.
+                return script.fail(
+                    "no forum with that slug. List the forums with: forums. For a "
+                    f"competition's discussions use: topics --competition {args.forum}",
+                    script.EXIT_USAGE,
+                )
             request["forumId"] = _count(forum["id"])
             scope = f"in the {args.forum} forum"
         if args.search:

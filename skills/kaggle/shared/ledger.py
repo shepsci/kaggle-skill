@@ -39,13 +39,13 @@ def file_facts(file: Path) -> dict[str, Any]:
 
 
 def append(row: dict[str, Any]) -> Path:
-    """Add one line to the ledger and return the ledger's path."""
-    target = path()
-    target.parent.mkdir(parents=True, exist_ok=True)
+    """Add one line to the ledger and return the ledger's path.
+
+    Raises OSError when the line cannot be written, a link on the way included.
+    """
     record = {"time": datetime.now(timezone.utc).strftime("%Y-%m-%dT%H:%M:%SZ"), **row}
-    with open(target, "a", encoding="utf-8") as handle:
-        handle.write(json.dumps(record, ensure_ascii=False) + "\n")
-    return target
+    line = json.dumps(record, ensure_ascii=False) + "\n"
+    return script.write_state(path(), line, append=True)
 
 
 def read() -> list[dict[str, Any]]:

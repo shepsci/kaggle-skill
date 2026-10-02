@@ -26,6 +26,7 @@ from shared import competition, credentials, mcp_client, script, text, untrusted
 
 SOURCE = "kaggle-mcp"
 TOOL = "competition_status"
+BEST_OF = 100  # submissions read to find your best public score: one page
 
 
 def submission_counts(info: dict, submissions: list[dict], limits: dict | None, now) -> dict:
@@ -39,8 +40,10 @@ def submission_counts(info: dict, submissions: list[dict], limits: dict | None, 
     daily = info.get("max_daily_submissions")
     counts = {"today": len(today), "daily_limit": daily, "left": None, "source": None}
     if limits is not None:
-        counts["left"] = int(limits["numAllowedNow"])
-        counts["lifetime"] = limits.get("numTotal")
+        # Kaggle's own counts: the list above holds only the latest submissions.
+        counts["today"] = limits["numToday"]
+        counts["left"] = limits["numAllowedNow"]
+        counts["lifetime"] = limits["numTotal"]
         counts["source"] = "kaggle-cli"
     elif daily:
         counts["left"] = max(int(daily) - len(today), 0)
@@ -72,7 +75,8 @@ def collect(slug: str, token: str, limit: int) -> tuple[dict | None, mcp_client.
     info = competition.facts(slug, facts_result.data)
 
     unavailable: dict[str, str] = {}
-    submissions, sub_result = competition.fetch_submissions(slug, token, limit=max(limit, 50))
+    read_limit = max(limit, BEST_OF)
+    submissions, sub_result = competition.fetch_submissions(slug, token, limit=read_limit)
     if not sub_result.ok:
         unavailable["submissions"] = mcp_client.error_message(sub_result.response)[:200]
 
@@ -93,6 +97,8 @@ def collect(slug: str, token: str, limit: int) -> tuple[dict | None, mcp_client.
         "counts": submission_counts(info, submissions, competition.submission_limits(slug), now),
         "pending": [row for row in submissions if row["status"] == "PENDING"],
         "best": competition.best_submission(submissions, higher),
+        # The best of the submissions read; older ones may exist when the read was full.
+        "best_of": len(submissions) if len(submissions) >= read_limit else None,
         "latest": submissions[:limit],
         "quota": quota,
         "unavailable": unavailable,
@@ -145,9 +151,10 @@ def text_lines(report: dict) -> list[str]:
     best = report["best"]
     if best:
         leader = f"; the leader has {report['leader_score']}" if report["leader_score"] else ""
+        label = f"best of latest {report['best_of']}" if report.get("best_of") else "best public"
         rows.append(
             (
-                "best public",
+                label,
                 f"{best['public_score']} on {text.day(best['date'])} (submission {best['ref']})"
                 f"{leader}",
             )

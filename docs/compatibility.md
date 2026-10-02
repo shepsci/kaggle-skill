@@ -7,8 +7,8 @@
 |---|---|
 | Claude Code | Tested |
 | Codex | Tested |
-| Antigravity CLI (`agy`) | Tested with 2.4.0 |
-| OpenClaw | Tested with 2.4.0 |
+| Antigravity CLI (`agy`) | Last tested on skill version 2.4.0 |
+| OpenClaw | Last tested on skill version 2.4.0 |
 | Gemini CLI | Not re-tested: it stopped serving individual accounts on 2026-06-18 |
 | Cursor, GitHub Copilot, Cline, Amp, Hermes | Compatible |
 | Other agents supported by skills.sh | Compatible |

@@ -1,7 +1,9 @@
 # Kaggle Account and Credential Setup
 
 How to create a Kaggle account, get a credential, and check that it works.
-The same credential serves the Kaggle CLI, `kagglehub`, and the MCP server.
+An API token serves the Kaggle CLI, `kagglehub`, and the MCP server. An OAuth
+login serves the CLI and the MCP server, not `kagglehub`. A legacy key serves
+the CLI and `kagglehub`, not the MCP server.
 
 ## 1. Create an account
 
@@ -76,8 +78,8 @@ chmod 600 ~/.kaggle/kaggle.json
 ### A `.env` file
 
 The skill reads a `.env` file only when you name it, and only its
-`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, and `KAGGLE_CONFIG_DIR`
-lines:
+`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_CONFIG_DIR`, and
+`KAGGLE_MCP_TOKEN` lines:
 
 ```bash
 export KAGGLE_ENV_FILE="$HOME/.config/kaggle.env"
@@ -140,10 +142,11 @@ works:
 | 4 | `kaggle.json` in `KAGGLE_CONFIG_DIR` or `~/.kaggle` |
 | 5 | OAuth login in `~/.kaggle/credentials.json` |
 
-For the MCP server the skill's commands send the API token if there is one,
-then the OAuth access token. A legacy key is not a token: the commands that
-read your account through the MCP server (`status`, `leaderboard`,
-`competitions`, `details`, `watch`, `episodes`) need one of the other two.
+For the MCP server the skill's commands send `KAGGLE_MCP_TOKEN` if it is
+set, then the API token, then the OAuth access token, and a legacy key last.
+The server does not take a legacy key, so the commands that read your account
+through it (`status`, `leaderboard`, `competitions`, `details`, `watch`,
+`episodes`, `writeups`) need a token or a login.
 
 ## 5. Saving environment credentials to disk
 

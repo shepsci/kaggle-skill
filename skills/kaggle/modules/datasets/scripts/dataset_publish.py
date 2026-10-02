@@ -64,7 +64,7 @@ def main(argv: list[str] | None = None) -> int:
         help="The tool that uploads (default: kagglehub)",
     )
     script.add_yes(parser)
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     notes = args.notes or args.notes_pos
     folder = Path(args.dir)
 
@@ -103,6 +103,12 @@ def main(argv: list[str] | None = None) -> int:
     credentials.load_configured_env_file()
     if credentials.resolve() is None:
         return script.no_credential("publishing a dataset")
+    if args.via == "kagglehub" and not credentials.kagglehub_ready():
+        return script.fail(
+            "kagglehub does not use an OAuth login. Add --via cli, or create an API "
+            'token with "Generate New Token" at https://www.kaggle.com/settings',
+            script.EXIT_NO_CREDENTIAL,
+        )
     if args.via == "cli":
         if not kaggle_cli.installed():
             return script.missing_package("kaggle", "--via cli")

@@ -272,10 +272,12 @@ def print_pages(
         for index, (page, (body, _)) in enumerate(zip(selected, texts)):
             block.write(("\n" if index else "") + f"## {page.get('name')}\n\n")
             block.write(body)
-    for page, (body, cut) in zip(selected, texts):
+    for number, (body, cut) in enumerate(texts, 1):
         if cut:
+            # The page's name came from Kaggle, so the note says which page by its place.
+            which = f"Page {number} of {len(texts)}" if len(texts) > 1 else "The page"
             print(
-                f"Cut '{page.get('name')}' at {len(body):,} of {len(body) + cut:,} characters. "
+                f"{which} was cut at {len(body):,} of {len(body) + cut:,} characters. "
                 "Add --max-chars 0 for the whole page."
             )
     return script.EXIT_OK
@@ -284,6 +286,7 @@ def print_pages(
 # -- submissions, leaderboard, medals -----------------------------------------
 
 SUBMISSIONS_TOOL = "search_competition_submissions"
+SUBMISSION_TOOL = "get_competition_submission"
 LEADERBOARD_TOOL = "get_competition_leaderboard"
 LEADERBOARD_PAGE = 200  # the most rows the server returns in one call
 
@@ -302,7 +305,8 @@ def submission_row(raw: dict[str, Any]) -> dict[str, Any]:
         "ref": raw.get("ref"),
         "date": raw.get("date"),
         # The CLI spells the state "SubmissionStatus.COMPLETE"; the server "COMPLETE".
-        "status": str(raw.get("status") or "").rsplit(".", 1)[-1].upper() or "UNKNOWN",
+        # PENDING is the enum's zero, and the server leaves zero values out.
+        "status": str(raw.get("status") or "").rsplit(".", 1)[-1].upper() or "PENDING",
         "public_score": str(raw.get("public_score") or ""),
         "private_score": str(raw.get("private_score") or ""),
         "description": raw.get("description") or "",
@@ -336,15 +340,29 @@ def fetch_submissions(
     return rows[:limit], result
 
 
-def fetch_leaderboard(
-    slug: str, token: str | None = None, rows_wanted: int = LEADERBOARD_PAGE
-) -> tuple[list[dict[str, Any]], bool, mcp_client.Result]:
-    """The public leaderboard from the top. Returns ``(rows, more exist, last result)``.
+def fetch_submission(
+    ref: int | str, token: str | None = None
+) -> tuple[dict | None, mcp_client.Result]:
+    """One of your submissions by its id, however old. Returns ``(row or None, result)``."""
+    result = mcp_client.request(SUBMISSION_TOOL, {"ref": int(ref)}, token=token)
+    if result.ok and isinstance(result.data, dict) and result.data.get("ref") is not None:
+        return submission_row(result.data), result
+    return None, result
 
-    The server gives no rank, only the order: the rank is the position.
+
+def fetch_leaderboard(
+    slug: str, token: str | None = None, rows_wanted: int = LEADERBOARD_PAGE, public: bool = True
+) -> tuple[list[dict[str, Any]], bool, mcp_client.Result]:
+    """A leaderboard from the top. Returns ``(rows, more exist, last result)``.
+
+    The server gives no rank, only the order: the rank is the position. Once
+    a competition has ended the server answers with the private leaderboard
+    unless asked for the public one; ``public`` asks for it.
     """
     rows: list[dict[str, Any]] = []
     request: dict[str, Any] = {"competitionName": slug, "pageSize": LEADERBOARD_PAGE}
+    if public:
+        request["overridePublic"] = True
     result = mcp_client.request(LEADERBOARD_TOOL, request, token=token)
     more = False
     while result.ok and isinstance(result.data, dict):
@@ -410,9 +428,10 @@ def medal_ranks(team_count: int) -> dict[str, int]:
 def submission_limits(slug: str) -> dict[str, Any] | None:
     """Kaggle's own count of submissions, from the Kaggle CLI.
 
-    Returns ``{"numTotal": all so far, "numAllowedNow": left today}``, or
-    None when the CLI is not installed or did not answer. The MCP server has
-    no tool for this.
+    Returns ``{"numToday": made today, "numTotal": all so far, "numAllowedNow":
+    left today}``, or None when the CLI is not installed or did not answer.
+    The CLI leaves out a count that is zero. The MCP server has no tool for
+    this.
     """
     if not kaggle_cli.installed():
         return None
@@ -426,7 +445,12 @@ def submission_limits(slug: str) -> dict[str, Any] | None:
         limits = json.loads(result.stdout[start : end + 1])
     except ValueError:
         return None
-    return limits if isinstance(limits, dict) and "numAllowedNow" in limits else None
+    if not isinstance(limits, dict):
+        return None
+    try:
+        return {key: int(limits.get(key) or 0) for key in ("numToday", "numTotal", "numAllowedNow")}
+    except (TypeError, ValueError):
+        return None
 
 
 def seconds(value: Any) -> float | None:

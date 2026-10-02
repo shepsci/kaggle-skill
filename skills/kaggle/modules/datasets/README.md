@@ -35,7 +35,8 @@ number of files and their size, and stops. Publishing changes the account, so
 get the user's go-ahead before `--yes`.
 
 - Everything in the folder is uploaded. The command stops with exit status 5
-  if the folder holds a credential file such as `.env` or `kaggle.json`.
+  if the folder holds a credential file such as `.env` or `kaggle.json`, or a
+  link to a file or folder outside it (the uploaders follow links).
 - By default kagglehub uploads: it creates the dataset if it is new and adds
   a version if it exists.
 - `--via cli` needs `dataset-metadata.json` in the folder, and its `id` must

@@ -29,9 +29,15 @@ four things added:
   token included.
 - A write that the CLI reports as failed while exiting 0 becomes a failure.
 - The output is printed inside untrusted-content blocks.
-- A command that changes the account (create, version, push, update, delete,
-  submit, upload, publish, run) is a dry run until `--yes` is given before
-  the `--`.
+- Only a command the skill knows to read runs at once. Anything else is a dry
+  run until `--yes` is given before the `--` (after it, `--yes` goes to
+  Kaggle and the command stays a dry run): a command that changes the account
+  or this machine's Kaggle settings, and any command the skill cannot name
+  because an option or an unknown word comes before the command is complete.
+  Put options after the command words.
+- `kernels output` checks the notebook's output file names first and refuses
+  names that would land outside the folder.
+- `auth print-access-token` is refused: it prints the token.
 
 A missing or rejected credential exits 2 and a denial exits 3, as in
 `SKILL.md`. The skill's named commands (`status`, `submit`, `download`, and
@@ -73,7 +79,8 @@ Public datasets, models, and notebooks download without any credential.
 
 `kaggle auth print-access-token` prints the OAuth access token for use as a
 bearer token elsewhere. It prints a secret: never run it where the output is
-logged or shown. `kaggle auth revoke` revokes that token.
+logged or shown, and the skill's `cli` command refuses it. `kaggle auth
+revoke` revokes that token.
 
 ## Output and paging
 

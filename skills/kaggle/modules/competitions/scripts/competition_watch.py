@@ -5,15 +5,15 @@
     competition_watch.py titanic --ref 53336045     a specific one
     competition_watch.py titanic --timeout 3600 --interval 60
 
-Reads your submission list every --interval seconds until the submission is
-no longer pending, or --timeout seconds have passed. The score goes into
-./.kaggle-skill/ledger.jsonl. When competition_submit.py recorded a score you
+Reads the submission every --interval seconds until Kaggle has scored it or
+reported an error, or --timeout seconds have passed. The score goes into
+./.kaggle-skill/ledger.jsonl. When the submit command recorded a score you
 expected, the gap to it is printed.
 
 Needs a credential: an API token or `kaggle auth login`. It only reads.
 
-Exit status: 0 scored, 1 the submission failed, 124 still pending at the
-timeout, 4 the submission list could not be read.
+Exit status: 0 scored, 1 the submission failed or was not found, 124 still
+pending at the timeout, 4 the submission could not be read.
 """
 
 from __future__ import annotations
@@ -31,16 +31,15 @@ from shared import competition, credentials, ledger, mcp_client, script, untrust
 SOURCE = "kaggle-mcp"
 TOOL = competition.SUBMISSIONS_TOOL
 MAX_FAILED_READS = 5
+FINISHED = ("COMPLETE", "ERROR")
 
 
-def find(rows: list[dict], ref: int | None) -> dict | None:
-    """The submission with this id, or the newest one."""
-    if ref is None:
-        return rows[0] if rows else None
-    for row in rows:
-        if str(row["ref"]) == str(ref):
-            return row
-    return None
+def read(slug: str, token: str, ref: int | None):
+    """The submission with this id, or your newest. Returns ``(row or None, result)``."""
+    if ref is not None:
+        return competition.fetch_submission(ref, token)
+    rows, result = competition.fetch_submissions(slug, token, limit=1)
+    return (rows[0] if rows else None), result
 
 
 def main(argv: list[str] | None = None) -> int:
@@ -75,23 +74,28 @@ def main(argv: list[str] | None = None) -> int:
     waited = 0
     failed_reads = 0
     while True:
-        rows, result = competition.fetch_submissions(slug, token, limit=50)
+        row, result = read(slug, token, args.ref)
         if not result.ok:
             failed_reads += 1
-            if failed_reads >= MAX_FAILED_READS or result.status == "unauthenticated":
-                code = result.fail(competition=slug)
-                return code if result.status == "unauthenticated" else script.EXIT_UNAVAILABLE
-            row = None
+            # A denial for --ref means the submission is someone else's: no use waiting.
+            if result.status == "unauthenticated" or result.denied:
+                return result.fail(competition=slug)
+            if failed_reads >= MAX_FAILED_READS:
+                result.fail(competition=slug)
+                return script.EXIT_UNAVAILABLE
         else:
             failed_reads = 0
-            row = find(rows, args.ref)
             if row is None:
-                what = f"submission {args.ref}" if args.ref else "any submission"
-                return script.fail(f"{what} was not found among your latest 50", script.EXIT_FAILED)
-            if row["status"] != "PENDING":
+                what = f"submission {args.ref}" if args.ref else "any submission of yours"
+                return script.fail(f"{what} was not found in {slug}", script.EXIT_FAILED)
+            if row["status"] in FINISHED:
                 break
             print(f"[{time.strftime('%H:%M:%S')}] submission {row['ref']}: still being scored")
         if waited >= args.timeout:
+            if failed_reads:
+                # The last read failed, so whether it is still pending is not known.
+                result.fail(competition=slug)
+                return script.EXIT_UNAVAILABLE
             print(
                 f"Still pending after {waited}s. Run this again to keep waiting.", file=sys.stderr
             )
@@ -113,16 +117,17 @@ def main(argv: list[str] | None = None) -> int:
     if expected is not None and value is not None:
         print(f"Expected {expected:g}, got {value:g}: a difference of {value - expected:+.5g}.")
     if not ledger.has_score(row["ref"]):
-        target = ledger.append(
-            {
-                "event": "score",
-                "competition": slug,
-                "ref": row["ref"],
-                "status": row["status"],
-                "public_score": score,
-            }
-        )
-        print(f"Recorded in {target}.")
+        record = {
+            "event": "score",
+            "competition": slug,
+            "ref": row["ref"],
+            "status": row["status"],
+            "public_score": score,
+        }
+        try:
+            print(f"Recorded in {ledger.append(record)}.")
+        except OSError as exc:
+            script.warn(f"the score was not recorded in the ledger: {exc}")
     return script.EXIT_OK if row["status"] == "COMPLETE" else script.EXIT_FAILED
 
 

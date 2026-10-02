@@ -52,7 +52,8 @@ python3 scripts/kaggle_skill.py leaderboard rsna-knee-abnormality-detection
 - `leaderboard`: the top rows, your row with the gap to the leader, and the
   score at each medal line when the competition awards medals. Each run saves
   a snapshot under `./.kaggle-skill/leaderboard/`, and the next run says what
-  moved. The public leaderboard is not the final one.
+  moved. The public leaderboard is not the final one; after the deadline,
+  `--private` shows the one that decides the final ranks.
 
 ## Data
 
@@ -78,8 +79,9 @@ python3 scripts/kaggle_skill.py ledger
 ```
 
 - `validate` compares a CSV with the sample submission: columns, row count,
-  ids, empty values, non-finite numbers. It checks the shape, not the
-  predictions.
+  ids, empty values, non-finite numbers. An empty value in a text column the
+  sample never leaves empty is a warning (WARN), since some competitions take
+  an empty prediction. It checks the shape, not the predictions.
 - `submit` without `--yes` prints what would be sent and how many submissions
   are left today, and stops. With `--yes` it submits and adds a line to
   `./.kaggle-skill/ledger.jsonl`. A code competition takes

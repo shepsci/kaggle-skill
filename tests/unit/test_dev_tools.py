@@ -16,6 +16,7 @@ import check_oauth_registration  # noqa: E402
 import cli_snapshot  # noqa: E402
 import mcp_snapshot  # noqa: E402
 import probe_mcp  # noqa: E402
+import record_session  # noqa: E402
 
 TOOLS = [
     {"name": "authorize", "inputSchema": {"type": "object", "properties": {}}},
@@ -413,3 +414,87 @@ def test_the_icon_is_a_square_png_of_the_size_the_directory_asks_for(repo_root):
     with Image.open(repo_root / manifest["icon"]) as image:
         assert image.format == "PNG"
         assert image.size[0] == image.size[1] and 512 <= image.size[0] <= 2048
+
+
+# -- record_session.py ---------------------------------------------------------
+
+
+def _stub_claude(tmp_path, status: dict) -> str:
+    from conftest import write_stub
+
+    return str(write_stub(tmp_path / "bin", "claude", f"#!/bin/sh\necho '{json.dumps(status)}'\n"))
+
+
+def test_recording_refuses_an_api_key_and_a_non_subscription_login(tmp_path, monkeypatch):
+    subscription = {"loggedIn": True, "authMethod": "claude.ai", "subscriptionType": "max"}
+    claude = _stub_claude(tmp_path, subscription)
+    record_session.check_subscription(claude)  # passes
+
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "sk-test")
+    with pytest.raises(SystemExit, match="never use the API"):
+        record_session.check_subscription(claude)
+    monkeypatch.delenv("ANTHROPIC_API_KEY")
+
+    for status in (
+        {"loggedIn": True, "authMethod": "api_key"},
+        {"loggedIn": False, "authMethod": "none"},
+    ):
+        with pytest.raises(SystemExit, match="claude auth login --claudeai"):
+            record_session.check_subscription(_stub_claude(tmp_path / str(len(status)), status))
+
+
+def test_a_session_stream_becomes_a_session_file(tmp_path):
+    skill = record_session.SKILL_DIR
+    events = [
+        # Hook events come before the init event, as in a real stream.
+        {"type": "system", "subtype": "hook_started", "hook_name": "SessionStart"},
+        {
+            "type": "system",
+            "subtype": "init",
+            "model": "claude-opus-5-5",
+            "claude_code_version": "2.1.288",
+        },
+        {
+            "type": "assistant",
+            "message": {
+                "content": [
+                    {"type": "tool_use", "id": "t1", "name": "Skill", "input": {"skill": "kaggle"}},
+                    {
+                        "type": "tool_use",
+                        "id": "t2",
+                        "name": "Bash",
+                        "input": {
+                            "command": f"python3 {skill}/scripts/kaggle_skill.py brief titanic"
+                        },
+                    },
+                    {"type": "tool_use", "id": "t3", "name": "Bash", "input": {"command": "ls"}},
+                ]
+            },
+        },
+        {
+            "type": "user",
+            "message": {
+                "content": [
+                    {
+                        "type": "tool_result",
+                        "tool_use_id": "t2",
+                        "content": [{"type": "text", "text": f"metric: accuracy\n{tmp_path}/x"}],
+                    },
+                    {"type": "tool_result", "tool_use_id": "t3", "content": "a.txt"},
+                ]
+            },
+        },
+        {"type": "result", "result": "The metric is accuracy."},
+    ]
+    session = record_session.to_session(events, "agent-x", "X", "What metric?", tmp_path)
+    assert session["agent"] == "Claude Code 2.1.288 (claude-opus-5-5)"
+    assert session["steps"] == [
+        {
+            "command": "python3 scripts/kaggle_skill.py brief titanic",
+            "output": "metric: accuracy\n./x",
+            "show_lines": 10,
+        }
+    ], "only the skill's commands are kept, with the folders shortened"
+    assert session["answer"] == "The metric is accuracy."
+    with pytest.raises(SystemExit, match="without an answer"):
+        record_session.to_session(events[:-1], "agent-x", "X", "Q", tmp_path)

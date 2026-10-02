@@ -26,6 +26,7 @@ files first (exit status 5). Get the user's go-ahead before --yes.
 from __future__ import annotations
 
 import argparse
+import json
 import sys
 import tempfile
 from pathlib import Path
@@ -49,6 +50,52 @@ def publish_with_kagglehub(
     if license_name:
         kwargs["license_name"] = license_name
     kagglehub.model_upload(handle=handle, local_model_dir=folder, **kwargs)
+
+
+def cli_visibility(handle: str, folder: Path) -> str | int:
+    """Check the two metadata files against ``handle``; return the new model's visibility.
+
+    The CLI takes the owner, the names and the visibility from these files,
+    not from the handle, so what is approved must match them.
+    """
+    files = {}
+    for name, init in (
+        (MODEL_METADATA, "kaggle models init"),
+        (VARIATION_METADATA, "kaggle models variations init"),
+    ):
+        try:
+            data = json.loads((folder / name).read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            data = None
+        if not isinstance(data, dict):
+            return script.fail(
+                f"{folder / name} is missing or unreadable. Write a template with: "
+                f"{init} -p {folder}",
+                script.EXIT_USAGE,
+            )
+        files[name] = data
+    model, variation = files[MODEL_METADATA], files[VARIATION_METADATA]
+    named_model = f"{model.get('ownerSlug')}/{model.get('slug')}"
+    named_variation = "/".join(
+        str(variation.get(key)) for key in ("ownerSlug", "modelSlug", "framework", "instanceSlug")
+    )
+    if named_model.lower() != "/".join(handle.split("/")[:2]).lower():
+        return script.fail(
+            f"{MODEL_METADATA} names another model than the one you gave; fix ownerSlug and slug",
+            script.EXIT_USAGE,
+        )
+    if named_variation.lower() != handle.lower():
+        return script.fail(
+            f"{VARIATION_METADATA} names another variation than the one you gave; fix "
+            "ownerSlug, modelSlug, framework and instanceSlug",
+            script.EXIT_USAGE,
+        )
+    private = model.get("isPrivate", True)
+    if not isinstance(private, bool):
+        private = str(private).lower() != "false"
+    if private:
+        return "private when new"
+    return f"PUBLIC when new (isPrivate is false in {MODEL_METADATA})"
 
 
 def publish_with_cli(handle: str, folder: Path, notes: str) -> int:
@@ -112,7 +159,7 @@ def main(argv: list[str] | None = None) -> int:
         help="The tool that uploads (default: kagglehub)",
     )
     script.add_yes(parser)
-    args = parser.parse_args(argv)
+    args = script.parse(parser, argv)
     notes = args.notes or args.notes_pos or DEFAULT_NOTES
     license_name = args.license_name or args.license_pos
     folder = Path(args.dir)
@@ -125,22 +172,17 @@ def main(argv: list[str] | None = None) -> int:
 
     details = [("model", args.handle), ("folder", preflight.describe(folder))]
     if args.via == "cli":
-        for name, init in (
-            (MODEL_METADATA, "kaggle models init"),
-            (VARIATION_METADATA, "kaggle models variations init"),
-        ):
-            if not (folder / name).is_file():
-                return script.fail(
-                    f"{folder / name} is missing. Write a template with: {init} -p {folder}",
-                    script.EXIT_USAGE,
-                )
+        visibility = cli_visibility(args.handle, folder)
+        if isinstance(visibility, int):
+            return visibility
         details.append(("with", "the Kaggle CLI and the folder's two metadata files"))
     else:
+        visibility = "private when new"
         details.append(("with", "kagglehub"))
         if license_name:
             details.append(("licence", license_name))
     details.append(("notes", notes))
-    details.append(("visibility", "private when new, unless the metadata says otherwise"))
+    details.append(("visibility", visibility))
 
     gate = script.write_gate(
         args.yes,
@@ -153,6 +195,12 @@ def main(argv: list[str] | None = None) -> int:
     credentials.load_configured_env_file()
     if credentials.resolve() is None:
         return script.no_credential("publishing a model")
+    if args.via == "kagglehub" and not credentials.kagglehub_ready():
+        return script.fail(
+            "kagglehub does not use an OAuth login. Add --via cli, or create an API "
+            'token with "Generate New Token" at https://www.kaggle.com/settings',
+            script.EXIT_NO_CREDENTIAL,
+        )
     if args.via == "cli":
         if not kaggle_cli.installed():
             return script.missing_package("kaggle", "--via cli")

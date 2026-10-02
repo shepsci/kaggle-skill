@@ -77,17 +77,50 @@ def test_push_is_a_dry_run_that_shows_what_the_metadata_says(
     assert code == 0 and calls() == []
     assert out.startswith("Dry run. Nothing was sent to Kaggle.")
     for expected in (
-        f"notebook:    {SLUG}",
-        "(2 files, ",
-        "code file:   main.ipynb",
-        "visibility:  private",
-        "accelerator: GPU",
-        "internet:    off",
-        "competition: titanic",
-        "cost:        starts a run on Kaggle; uses the weekly GPU hours",
+        f"notebook:         {SLUG}",
+        "code file:        main.ipynb (2 B)",
+        "visibility:       private",
+        "accelerator:      GPU",
+        "internet:         off",
+        "competition data: titanic",
+        "cost:             starts a run on Kaggle; uses the weekly GPU hours",
         "Add --yes to do it, after the user has confirmed.",
     ):
         assert expected in out, expected
+
+
+@pytest.mark.parametrize(
+    "metadata, accelerator, cost",
+    [
+        ({"enable_tpu": "true"}, "accelerator: TPU", "uses the weekly TPU hours"),
+        (
+            {"machine_shape": "NvidiaTeslaT4"},
+            "accelerator: GPU (machine shape NvidiaTeslaT4)",
+            "uses the weekly GPU hours",
+        ),
+        ({"enable_gpu": False}, "accelerator: none", "cost:        starts a run on Kaggle\n"),
+    ],
+)
+def test_the_dry_run_shows_every_accelerator_setting(
+    load, run_main, kaggle_calls, tmp_path, metadata, accelerator, cost
+):
+    """kaggle 2.2.4 sends enable_tpu and machine_shape too; the user agrees to what is shown."""
+    kaggle_calls()
+    folder = _notebook_dir(tmp_path, **metadata)
+    out = run_main(load("notebook_push"), str(folder))[1]
+    assert accelerator in out and cost in out
+
+
+def test_the_dry_run_lists_the_data_the_run_attaches(load, run_main, kaggle_calls, tmp_path):
+    kaggle_calls()
+    folder = _notebook_dir(
+        tmp_path,
+        dataset_sources=[f"me/d{n}" for n in range(7)],
+        model_sources=["google/gemma/transformers/2b/1"],
+    )
+    out = run_main(load("notebook_push"), str(folder))[1]
+    assert "datasets:    me/d0, me/d1, me/d2, me/d3, me/d4 and 2 more" in out
+    assert "models:      google/gemma/transformers/2b/1" in out
 
 
 def test_a_public_notebook_is_called_out(load, run_main, kaggle_calls, tmp_path):
@@ -125,10 +158,24 @@ def test_push_checks_metadata_and_secrets_before_anything_else(
 
     bad_id = _notebook_dir(tmp_path, id="not a slug")
     assert run_main(mod, str(bad_id), "--yes")[0] == 2
-    (bad_id / "kernel-metadata.json").write_text(json.dumps({"id": SLUG}))
+    metadata = bad_id / "kernel-metadata.json"
+    metadata.write_text(json.dumps({"id": SLUG}))
+    code, _, err = run_main(mod, str(bad_id), "--yes")
+    assert code == 2 and "names no code_file" in err
+    # Kaggle receives the code file's text: one outside the folder or named like a
+    # credential would publish that file.
+    (tmp_path / "secret.env").write_text("KAGGLE_KEY=x")
+    for code_file in ("../secret.env", str(tmp_path / "secret.env")):
+        metadata.write_text(json.dumps({"id": SLUG, "code_file": code_file}))
+        code, _, err = run_main(mod, str(bad_id), "--yes")
+        assert code == 5 and "outside" in err, code_file
     (bad_id / ".env").write_text("KAGGLE_KEY=x")
-    assert run_main(mod, str(bad_id), "--yes")[0] == 5
-    (bad_id / ".env").unlink()
+    metadata.write_text(json.dumps({"id": SLUG, "code_file": ".env"}))
+    code, _, err = run_main(mod, str(bad_id), "--yes")
+    assert code == 5 and "looks like a credential file" in err
+    # Only the code file is sent, so a .env beside it does not block the push.
+    metadata.write_text(json.dumps({"id": SLUG, "code_file": "main.ipynb"}))
+    assert run_main(mod, str(bad_id))[0] == 0
     monkeypatch.delenv("KAGGLE_API_TOKEN")
     assert run_main(mod, str(bad_id), "--yes")[0] == 2
     assert calls() == []
@@ -184,6 +231,19 @@ def test_a_failed_run_prints_the_end_of_the_log_and_downloads_nothing(
     assert not any(call[:2] == ["kernels", "output"] for call in calls())
 
 
+def test_a_log_of_one_huge_line_is_cut(load, run_main, kaggle_calls, tmp_path, blocks):
+    stub = _kernel_stub(tmp_path, [_status("ERROR")]).replace(
+        '"kernels logs") for i in $(seq 1 100); do echo "log line $i"; done; '
+        'echo "Traceback: boom" ;;',
+        '"kernels logs") head -c 300000 /dev/zero | tr "\\0" "#"; echo; echo "Traceback: boom" ;;',
+    )
+    kaggle_calls(stub)
+    code, _, err = run_main(load("notebook_wait"), SLUG, "--no-output")
+    assert code == 1 and "The last 4,000 characters of the log:" in err
+    body = blocks(err)[0].body
+    assert len(body) <= 4000 and body.endswith("Traceback: boom")
+
+
 def test_wait_gives_up_when_the_status_cannot_be_read(load, run_main, kaggle_calls, tmp_path):
     calls = kaggle_calls('echo "500 Server Error" >&2\nexit 1\n')
     code, _, err = run_main(load("notebook_wait"), SLUG)
@@ -194,7 +254,7 @@ def test_wait_gives_up_when_the_status_cannot_be_read(load, run_main, kaggle_cal
 def test_wait_times_out_with_its_own_exit_status(load, run_main, kaggle_calls, tmp_path):
     kaggle_calls(_kernel_stub(tmp_path, [_status("RUNNING")]))
     code, _, err = run_main(load("notebook_wait"), SLUG, "--timeout", "60", "--interval", "30")
-    assert code == 124 and f"Keep waiting with: notebook_wait.py {SLUG}" in err
+    assert code == 124 and f"Keep waiting with: notebook-wait {SLUG}" in err
 
 
 def test_output_with_escaping_file_names_is_not_downloaded(

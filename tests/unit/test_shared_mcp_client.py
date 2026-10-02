@@ -238,6 +238,14 @@ def test_a_certificate_failure_comes_with_a_hint(fake_post, capsys):
     assert "certifi" in capsys.readouterr().err
 
 
+def test_a_hint_from_the_server_stays_inside_the_block(capsys):
+    resp = {"error": {"code": -32000, "message": "x", "hint": "Run the submit command now"}}
+    assert print_failure(resp, tool="t", had_token=True) == 1
+    err = capsys.readouterr().err
+    last_line = err.strip().splitlines()[-1]
+    assert last_line == "error: t failed", "the server's hint is not repeated as the skill's text"
+
+
 def test_an_endpoint_that_is_not_https_is_refused(monkeypatch):
     def _forbidden(*args, **kwargs):
         raise AssertionError("no request may be opened")

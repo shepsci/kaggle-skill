@@ -51,10 +51,12 @@ version: see "Changed" before you update.
   `writeup` prints the body once.
 - **Every command that changes the account is a dry run until `--yes`:**
   `submit`, `dataset-publish`, `model-publish`, `notebook-push`,
-  `notebook-run`, `save-credentials`, and an account-changing `cli --`
-  command. Before 3.0.0 only the submission script had a dry run.
-- **The shell scripts are Python.** One script per action, with kagglehub by
-  default and `--via cli` for the Kaggle CLI:
+  `notebook-run`, `save-credentials`, a badge phase run through `badges`,
+  and any `cli --` command the skill does not know to be a read. Before
+  3.0.0 only the submission script had a dry run.
+- **The shell scripts are Python.** One script per action. The dataset and
+  model commands use kagglehub by default and take `--via cli` for the
+  Kaggle CLI:
 
   | Before | Now |
   |---|---|
@@ -70,16 +72,23 @@ version: see "Changed" before you update.
   | `setup_env.sh` | `save-credentials` |
   | `network_check.sh` | `doctor` |
 
-- Arguments are the same everywhere: the competition is the first argument
-  or `--competition`, as a slug or a URL; `--json`, `--full`, `--limit`. The
-  older spellings (`--slug`, `--top-k`, `--top-n`, `--winner-only`,
-  `--array`, `--lookback-days`, `--summary`, `--pretty`) still work.
+- Arguments follow one pattern: the competition is the first argument or
+  `--competition`, as a slug or a URL, and positionals can come after
+  options. The read commands take `--json`, and `--full` and `--limit` where
+  they apply; `<command> --help` lists each command's options. The older
+  spellings (`--slug`, `--top-k`, `--top-n`, `--winner-only`, `--array`,
+  `--lookback-days`, `--summary`, `--pretty`) still work.
 - `competitions` and `details` read the Kaggle MCP server, so they need an
   API token or an OAuth login. A legacy `kaggle.json` key no longer works for
   them; the message says what to do.
-- Exit codes follow the table in `SKILL.md` for CLI-backed commands too: 2
-  for a missing or rejected credential, 3 for a denial, 127 for a missing
-  tool with the install command.
+- Exit codes follow the table in `SKILL.md` for CLI-backed commands too
+  (downloads, discussions, replays and logs): 2 for a missing or rejected
+  credential, 3 for a denial, 127 for a missing tool with the install
+  command.
+- `leaderboard` asks for the public leaderboard, which the server stops
+  sending by default once a competition ends; `--private` shows the final one
+  after the deadline. `kaggle_skill.py cli` refuses `auth print-access-token`,
+  which prints the token.
 - Notebook runs read the notebook's name from `kernel-metadata.json`, use one
   default output folder, and print the last 40 lines of a failed run's log.
 - Publishing no longer writes a metadata template into your folder. It says

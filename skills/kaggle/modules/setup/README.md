@@ -16,12 +16,14 @@ hosts and its MCP server answer. It ends with what works now:
 
 - public reads need only Python and the network;
 - reads on the account need an API token or an OAuth login;
-- downloads, submissions, notebooks and publishing need the Kaggle CLI and a
-  credential.
+- downloads, submissions and notebooks need the Kaggle CLI and a credential;
+- publishing a dataset or model uses kagglehub by default (an API token or a
+  legacy key), or the Kaggle CLI with `--via cli`.
 
 It only reads and prints no credential value. `--verify` also asks Kaggle
-whether the credential is accepted. Exit status: 0 Kaggle can be reached,
-1 it cannot, 2 with `--verify` when the credential is rejected.
+whether the credential is accepted. Exit status: 0 every host and the MCP
+server answer, 1 one of them does not, 2 with `--verify` when the credential
+is rejected.
 
 ## Install what is missing
 
@@ -58,10 +60,11 @@ or an API token from "Generate New Token" at kaggle.com/settings, stored in
 `~/.kaggle/access_token` or exported as `KAGGLE_API_TOKEN`. The walkthrough is
 in [kaggle-setup.md](references/kaggle-setup.md).
 
-A legacy key (`kaggle.json`) works for the Kaggle CLI. The commands that read
-the account through Kaggle's MCP server (`status`, `leaderboard`,
-`competitions`, `details`, `watch`, `episodes`) need a token or an OAuth
-login.
+A legacy key (`kaggle.json`) works for the Kaggle CLI and kagglehub. The
+commands that read the account through Kaggle's MCP server (`status`,
+`leaderboard`, `competitions`, `details`, `watch`, `episodes`, `writeups`)
+need a token or an OAuth login. kagglehub does not use an OAuth login: with
+only a login, publish with `--via cli`.
 
 Never print a credential or the contents of a credential file.
 
@@ -78,5 +81,5 @@ file, never prints the value, and does nothing without `--yes`. Run it only
 when the user wants the credential stored on disk.
 
 A `.env` file is read only when `KAGGLE_ENV_FILE` names it, and only its
-`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, and `KAGGLE_CONFIG_DIR`
-lines are used.
+`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`, `KAGGLE_CONFIG_DIR`, and
+`KAGGLE_MCP_TOKEN` lines are used.

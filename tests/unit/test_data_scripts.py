@@ -10,6 +10,7 @@ import json
 import sys
 import types
 import zipfile
+from pathlib import Path
 
 import pytest
 
@@ -223,6 +224,25 @@ def test_model_download_via_cli_needs_the_version_and_never_untars(
     assert "--untar" not in " ".join(calls()[0])
 
 
+def test_via_cli_passes_force_and_refuses_what_it_cannot_do(run_script, kaggle_calls, tmp_path):
+    calls = kaggle_calls()
+    model = f"{MODELS}/model_download.py"
+    handle = "google/gemma/transformers/2b-it/3"
+    result = run_script(model, handle, "--file", "x.bin", "--via", "cli", env=TOKEN_ENV)
+    assert result.returncode == 2 and "kagglehub only" in result.stderr and calls() == []
+    target = str(tmp_path / "m")
+    assert (
+        run_script(model, handle, target, "--force", "--via", "cli", env=TOKEN_ENV).returncode == 0
+    )
+    assert calls()[-1][-1] == "--force"
+    data = str(tmp_path / "d")
+    dataset = f"{DATASETS}/dataset_download.py"
+    assert (
+        run_script(dataset, "o/n", data, "--force", "--via", "cli", env=TOKEN_ENV).returncode == 0
+    )
+    assert calls()[-1][-1] == "--force"
+
+
 # -- competition data --------------------------------------------------------
 
 SMALL = {"file_summary_info": {"total_file_count": "3", "file_types": [{"total_size": "93081"}]}}
@@ -298,7 +318,7 @@ def test_competition_download_unzip_extracts_inside_the_folder(
     assert run_main(download, "titanic", str(target))[0] == 0
     assert not (target / "train.csv").exists(), "no extraction without --unzip"
     code, out, _ = run_main(download, "titanic", str(target), "--unzip")
-    assert code == 0 and "Extracted 2 file(s) from titanic.zip." in out
+    assert code == 0 and "Extracted 2 file(s) from 1 archive(s)." in out
     assert (target / "sub" / "test.csv").read_text() == "c\n"
 
 
@@ -496,15 +516,23 @@ def test_model_publish_sends_a_license_only_when_given(
     assert run_main(mod, "owner/model", str(folder))[0] == 2
 
 
-def _model_dir(tmp_path):
+MODEL = "owner/model/keras/default"
+MODEL_METADATA = '{"ownerSlug": "owner", "slug": "model", "isPrivate": true}'
+VARIATION_METADATA = (
+    '{"ownerSlug": "owner", "modelSlug": "model", "framework": "Keras", "instanceSlug": "default"}'
+)
+
+
+def _model_dir(tmp_path, model_metadata=MODEL_METADATA, variation_metadata=VARIATION_METADATA):
     return _dir_with(
         tmp_path,
         "model",
-        {"weights.bin": "x", "model-metadata.json": "{}", "model-instance-metadata.json": "{}"},
+        {
+            "weights.bin": "x",
+            "model-metadata.json": model_metadata,
+            "model-instance-metadata.json": variation_metadata,
+        },
     )
-
-
-MODEL = "owner/model/keras/default"
 
 
 def _model_publish(run_script, folder, *extra):
@@ -577,6 +605,34 @@ def test_model_publish_via_cli_needs_both_metadata_files(run_script, kaggle_call
     ]
 
 
+@pytest.mark.parametrize(
+    "model_metadata, variation_metadata, message",
+    [
+        ('{"ownerSlug": "someone", "slug": "model"}', VARIATION_METADATA, "fix ownerSlug and slug"),
+        (
+            MODEL_METADATA,
+            VARIATION_METADATA.replace("default", "other"),
+            "fix ownerSlug, modelSlug",
+        ),
+    ],
+)
+def test_model_metadata_must_name_the_model_you_gave(
+    run_script, kaggle_calls, tmp_path, model_metadata, variation_metadata, message
+):
+    """The CLI takes the names from the files, so a mismatch would publish something else."""
+    calls = kaggle_calls()
+    folder = _model_dir(tmp_path, model_metadata, variation_metadata)
+    result = _model_publish(run_script, folder, "--yes")
+    assert result.returncode == 2 and message in result.stderr and calls() == []
+
+
+def test_a_public_model_in_the_metadata_is_shown_in_the_dry_run(run_script, kaggle_calls, tmp_path):
+    kaggle_calls()
+    folder = _model_dir(tmp_path, MODEL_METADATA.replace("true", "false"))
+    result = _model_publish(run_script, folder)
+    assert result.returncode == 0 and "PUBLIC when new" in result.stdout
+
+
 def test_every_kaggle_call_goes_through_the_shared_runner(repo_root):
     for script in (
         f"{DATASETS}/dataset_download.py",
@@ -594,3 +650,14 @@ def test_the_metadata_id_helper(load_script, tmp_path):
     folder = _dir_with(tmp_path, "d", {"dataset-metadata.json": json.dumps({"id": "a/b"})})
     assert mod.metadata_id(folder) == "a/b"
     assert mod.metadata_id(tmp_path) is None
+
+
+def test_kagglehub_publishing_says_it_cannot_use_an_oauth_login(run_script, tmp_path):
+    """kagglehub reads API tokens and legacy keys only; the CLI path takes the login."""
+    kaggle_dir = Path.home() / ".kaggle"
+    kaggle_dir.mkdir(parents=True, exist_ok=True)
+    (kaggle_dir / "credentials.json").write_text('{"refresh_token": "KGRT_x"}')
+    folder = _dir_with(tmp_path, "data", {"train.csv": "a,b\n"})
+    script = f"{DATASETS}/dataset_publish.py"
+    result = run_script(script, "owner/name", str(folder), "--yes")
+    assert result.returncode == 2 and "--via cli" in result.stderr

@@ -6,6 +6,8 @@ import io
 import json
 import re
 
+import pytest
+
 from shared import untrusted
 
 OPEN_RE = re.compile(r"^<untrusted-content-([0-9a-f]{8}) ([^>]*)>$")
@@ -143,6 +145,11 @@ def test_emoji_variation_selectors_and_accents_survive():
     assert json.loads(untrusted.dumps(text)) == text
 
 
+# Default-ignorable code points that Unicode files as letters or marks:
+# fillers and joiners that draw nothing.
+DRAWS_NOTHING = {0x034F, 0x115F, 0x1160, 0x17B4, 0x17B5, *range(0x180B, 0x1810), 0x3164, 0xFFA0}
+
+
 def test_the_hidden_class_matches_nothing_a_reader_can_see():
     import unicodedata
 
@@ -151,7 +158,31 @@ def test_the_hidden_class_matches_nothing_a_reader_can_see():
         char = chr(code)
         if untrusted._HIDDEN_RUN_RE.match(char):
             in_supplement = 0xE0100 <= code <= 0xE01EF
-            assert unicodedata.category(char) in allowed or in_supplement, hex(code)
+            assert (
+                unicodedata.category(char) in allowed or in_supplement or code in DRAWS_NOTHING
+            ), hex(code)
+
+
+@pytest.mark.parametrize(
+    "hidden",
+    ["\u034f", "\u115f", "\u1160", "\u17b4", "\u180b", "\u3164", "\uffa0", "\U0001d173"],
+)
+def test_fillers_and_format_controls_are_removed(hidden):
+    assert untrusted.strip_hidden(f"Team{hidden}Alpha") == "TeamAlpha"
+    assert f"\\u{ord(hidden):04x}" in untrusted.dumps("x" + hidden) or ord(hidden) > 0xFFFF
+
+
+def test_a_run_of_variation_selectors_is_hidden_but_one_is_kept():
+    smuggled = "a" + "".join(chr(0xFE00 + n) for n in (4, 2, 9, 15, 0, 3))
+    assert untrusted.strip_hidden(smuggled) == "a[6 hidden characters removed]"
+    assert untrusted.strip_hidden("\u2764\ufe0f") == "\u2764\ufe0f"
+    body = untrusted.dumps(smuggled)
+    assert "\\ufe04\\ufe02" in body and json.loads(body) == smuggled
+
+
+def test_a_carriage_return_cannot_hide_the_start_of_a_line():
+    assert untrusted.strip_hidden("do X\rTeam Alpha    ") == "do X\nTeam Alpha    "
+    assert untrusted.strip_hidden("one\r\ntwo") == "one\ntwo"
 
 
 def test_a_stream_that_cannot_encode_the_text_gets_escapes():

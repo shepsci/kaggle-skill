@@ -508,6 +508,11 @@ def text_lines(result: dict[str, Any]) -> list[str]:
             f"The {slug} leaderboard links no writeups. "
             f"{len(writeups)} discussion topics that look like writeups, found by search:"
         )
+    elif result["source"] == "content-search-fallback":
+        lines.append(
+            f"The {slug} leaderboard links no solution writeups, and a search of its "
+            "discussions found none."
+        )
     else:
         lines.append(f"The {slug} leaderboard links no solution writeups.")
     for row in writeups:
@@ -517,7 +522,10 @@ def text_lines(result: dict[str, Any]) -> list[str]:
         lines.append(f"         {row['writeup_url']}")
         preview = row.get("preview")
         if isinstance(preview, dict):
-            lines.append(f"         {preview.get('title', '')}: {preview.get('excerpt', '')}")
+            title, excerpt = preview.get("title", ""), preview.get("excerpt", "")
+            # A page that shows nothing before its scripts run gives only its title.
+            shown = title if excerpt in ("", title) else f"{title}: {excerpt}"
+            lines.append(f"         {shown}")
         elif row.get("preview_error") or row.get("preview_skipped"):
             reason = row.get("preview_error") or row.get("preview_skipped")
             lines.append(f"         (no preview: {reason})")
@@ -557,11 +565,8 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="When the leaderboard links no writeups, search public discussions for them",
     )
     script.add_json(parser)
-    parser.add_argument(
-        "--raw-json",
-        action="store_true",
-        help="Print bare JSON for a program to parse. The values are still Kaggle-supplied data",
-    )
+    # Older releases printed bare JSON here; it now means --json, inside a block.
+    parser.add_argument("--raw-json", action="store_true", help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
     (args.competition,) = script.positionals(parser, args)
     return args
@@ -617,9 +622,7 @@ def main(argv: list[str] | None = None) -> int:
         )
     indent = 2 if args.pretty else None
     attrs = {"source": "kaggle-web", "tool": "leaderboard_writeups", "competition": slug}
-    if args.raw_json:
-        print(untrusted.dumps(result, indent=indent, sort_keys=args.pretty))
-    elif args.json:
+    if args.json or args.raw_json:
         untrusted.emit_json(result, indent=indent, sort_keys=args.pretty, **attrs)
     else:
         with untrusted.Block(**attrs) as block:

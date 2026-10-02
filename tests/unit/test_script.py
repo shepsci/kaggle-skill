@@ -123,3 +123,44 @@ def test_positive_int():
     for bad in ("0", "-1", "x", "1.5"):
         with pytest.raises(argparse.ArgumentTypeError):
             script.positive_int(bad)
+
+
+def test_a_line_break_inside_a_competition_path_is_refused():
+    with pytest.raises(ValueError):
+        script.competition_slug("competitions/titanic\n/x")
+    assert script.competition_slug("titanic\n") == "titanic", "surrounding space is stripped"
+
+
+def test_handles_and_tokens_refuse_a_trailing_line_break():
+    from shared import credentials
+
+    assert not script.is_handle("me/nb\n", 2)
+    assert script.is_handle("me/nb", 2)
+    assert credentials.usable_bearer("tok\n") == ""
+    assert credentials.usable_bearer("KGAT_abc") == "KGAT_abc"
+
+
+def test_positionals_can_follow_options():
+    """Python 3.11's parse_args rejects `download titanic --unzip ./data`."""
+    parser = argparse.ArgumentParser()
+    script.add_competition(parser, "dir?")
+    parser.add_argument("--unzip", action="store_true")
+    args = script.parse(parser, ["titanic", "--unzip", "./data"])
+    assert script.positionals(parser, args, "dir?") == ["titanic", "./data"] and args.unzip
+
+
+def test_the_same_competition_twice_is_not_a_folder():
+    parser = argparse.ArgumentParser()
+    script.add_competition(parser, "dir?")
+    args = script.parse(parser, ["titanic", "-c", "titanic"])
+    assert script.positionals(parser, args, "dir?") == ["titanic", None]
+    args = script.parse(parser, ["-c", "titanic", "./data"])
+    assert script.positionals(parser, args, "dir?") == ["titanic", "./data"]
+
+
+def test_help_names_every_positional(capsys):
+    parser = argparse.ArgumentParser()
+    script.add_competition(parser, "file", "message?")
+    parser.print_help()
+    out = capsys.readouterr().out
+    assert "The submission file" in out and "The submission message" in out

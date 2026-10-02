@@ -29,8 +29,8 @@ refused.
 python3 scripts/kaggle_skill.py hackathon kaggle-measuring-agi
 python3 scripts/kaggle_skill.py hackathon kaggle-measuring-agi --page evaluation
 python3 scripts/kaggle_skill.py writeups kaggle-measuring-agi --winners
-python3 scripts/kaggle_skill.py writeup 123456
-python3 scripts/kaggle_skill.py writeup https://www.kaggle.com/competitions/kaggle-measuring-agi/writeups/my-team-writeup
+python3 scripts/kaggle_skill.py writeup 71617
+python3 scripts/kaggle_skill.py writeup https://www.kaggle.com/competitions/kaggle-measuring-agi/writeups/metacognition-benchmark-do-ai-models-know-what-th
 ```
 
 - `hackathon` lists the overview pages with their sizes; `--page NAME` prints

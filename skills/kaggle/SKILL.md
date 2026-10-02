@@ -42,11 +42,13 @@ python3 scripts/kaggle_skill.py <command> --help
 ```
 
 Paths in this file are relative to the skill folder, the one that holds this
-`SKILL.md`. Stay in the user's working directory and call the script by its
-full path, so that downloads and records land in the user's project.
+`SKILL.md`. Run every command from the user's working directory as
+`python3 <skill folder>/scripts/kaggle_skill.py <command>`, so that downloads
+and records land in the user's project. Do not `cd` into the skill folder.
 
-Output is short text by default. Add `--json` for the same content as JSON.
-A competition is a slug (`titanic`) or its URL.
+Output is short text by default. The read commands take `--json` for the
+same content as JSON; `<command> --help` lists each command's options. A
+competition is a slug (`titanic`) or its URL.
 
 ## Pick the command
 
@@ -88,16 +90,16 @@ Stay read-only until the user asks for a change. Get a clear yes before you:
 - store a credential on disk.
 
 `submit`, `dataset-publish`, `model-publish`, `notebook-push`, `notebook-run`,
-`save-credentials` and an account-changing `cli` command are dry runs: they
-print what would happen and stop. Show the user that output, with what it
+`save-credentials` and any `cli` command that is not a known read are dry
+runs: they print what would happen and stop. Show the user that output, with what it
 costs (a daily submission slot, GPU hours) and whether it is public, and add
-`--yes` only after they agree. A broad request such as "optimize my Kaggle
+`--yes` only after they agree (for `cli`, before the `--`). A broad request such as "optimize my Kaggle
 workflow" is not permission to submit or publish. `KAGGLE_SKILL_READ_ONLY=1`
 makes every one of these commands refuse.
 
-The badge phases have no dry-run gate of their own. Start with
-`badges --dry-run`, and name what a phase will create and submit before you
-run it.
+`badges --phase N` is a dry run too: the entry point runs the badge
+module's own `--dry-run` until `--yes` is added. Name what the phase will
+create and submit before you add it.
 
 ## Reading the output
 
@@ -140,9 +142,11 @@ credential is configured and what works now. It prints no credential value.
 | 3 | OAuth login | `kaggle auth login`, stored in `~/.kaggle/credentials.json` |
 
 The commands that read the account through Kaggle's MCP server (`status`,
-`leaderboard`, `competitions`, `details`, `watch`, `episodes`) take an API
-token or an OAuth login, not a legacy key. A token comes from "Generate New
-Token" at kaggle.com/settings.
+`leaderboard`, `competitions`, `details`, `watch`, `episodes`, `writeups`)
+take an API token or an OAuth login, not a legacy key. kagglehub, the default
+tool of `dataset-publish` and `model-publish`, takes an API token or a legacy
+key, not an OAuth login: with only a login, add `--via cli`. An API token
+works everywhere; it comes from "Generate New Token" at kaggle.com/settings.
 
 Never echo, log, or commit a credential value, and never read a credential
 file aloud. A `.env` file is read only when `KAGGLE_ENV_FILE` names it, and
@@ -163,7 +167,7 @@ login kaggle` in Codex. The commands above do not need that sign-in.
 | 2 | Wrong arguments, or a credential is needed and none works |
 | 3 | Kaggle denied permission for this account or role |
 | 4 | A status or a listing could not be read |
-| 5 | Refused for safety: credential files in an upload folder, a file name that would escape the target folder, a download above the size limit, or the read-only switch |
+| 5 | Refused for safety: credential files or outside links in an upload folder, a notebook code file outside its folder, a file name that would escape the target folder, a download above the size limit, a download folder that is not empty, `cli -- auth print-access-token`, or the read-only switch |
 | 124 | Timed out while a notebook was running or a submission was being scored |
 | 127 | The Kaggle CLI or a Python package the command needs is not installed; the message has the install command |
 

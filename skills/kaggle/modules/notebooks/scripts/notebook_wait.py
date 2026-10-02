@@ -63,7 +63,7 @@ def wait_and_fetch(slug: str, args: argparse.Namespace) -> int:
         return outcome
     if outcome == script.EXIT_TIMEOUT:
         print(
-            f"Still running after {args.timeout}s. Keep waiting with: notebook_wait.py {slug}",
+            f"Still running after {args.timeout}s. Keep waiting with: notebook-wait {slug}",
             file=sys.stderr,
         )
         return outcome

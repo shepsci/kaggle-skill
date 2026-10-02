@@ -201,9 +201,11 @@ def test_cli_failure_is_reported_with_its_exit_status(
     stub_kaggle('echo "403 Client Error: Forbidden" >&2\nexit 1\n')
     rc = mod.main(["forum-topics"])
     captured = capsys.readouterr()
-    assert rc == 1
+    assert rc == 3, "a denial is 3, as in SKILL.md"
     assert "403 Client Error" in blocks(captured.err)[0].body
     assert "kaggle exited with status 1" in captured.err
+    stub_kaggle('echo "401 Client Error: Unauthorized" >&2\nexit 1\n')
+    assert mod.main(["forum-topics"]) == 2
 
 
 def test_arguments_reach_the_cli_without_a_shell(mod, stub_kaggle, tmp_path, capsys, monkeypatch):
@@ -394,8 +396,9 @@ def test_topic_lists(mod, fake_mcp, run_main, blocks, outside):
 
 def test_topic_list_errors(mod, fake_mcp, run_main):
     fake_mcp({"list_forum_topics": TOPICS})
-    code, _, err = run_main(mod, "topics", "no-such-forum")
-    assert code == 1 and "no forum with that slug" in err
+    code, _, err = run_main(mod, "topics", "titanic")
+    assert code == 2 and "no forum with that slug" in err
+    assert "topics --competition titanic" in err and "permission" not in err
     code, _, err = run_main(mod, "topics", "general", "-c", "titanic")
     assert code == 2 and "cannot be combined" in err
 

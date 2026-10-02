@@ -233,6 +233,8 @@ def is_denied(resp: dict[str, Any]) -> bool:
     return is_error(resp) and bool(_DENIAL_RE.search(error_message(resp)))
 
 
+# Hints this module attaches to a failure it detected itself.
+LOCAL_HINTS = frozenset({net.CERTIFICATE_HINT})
 EXIT_FAILED = script.EXIT_FAILED
 EXIT_NO_CREDENTIAL = script.EXIT_NO_CREDENTIAL
 EXIT_DENIED = script.EXIT_DENIED
@@ -344,6 +346,8 @@ def print_failure(
                 file=sys.stderr,
             )
         return EXIT_DENIED
+    # Only the skill's own hint is repeated here; a server could send one too.
     hint = resp.get("error", {}).get("hint") if isinstance(resp.get("error"), dict) else None
-    print(f"error: {tool} failed" + (f". {hint}" if hint else ""), file=sys.stderr)
+    known = hint if hint in LOCAL_HINTS else None
+    print(f"error: {tool} failed" + (f". {known}" if known else ""), file=sys.stderr)
     return EXIT_FAILED

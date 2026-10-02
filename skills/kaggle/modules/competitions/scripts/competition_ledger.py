@@ -4,8 +4,8 @@
     competition_ledger.py
     competition_ledger.py titanic --json
 
-Reads ./.kaggle-skill/ledger.jsonl, which competition_submit.py and
-competition_watch.py write. Nothing is sent or changed. The record holds only
+Reads ./.kaggle-skill/ledger.jsonl, which the submit and watch commands
+write. Nothing is sent or changed. The record holds only
 what was submitted through this skill.
 """
 
@@ -35,9 +35,10 @@ def text_lines(rows: list[dict]) -> list[str]:
         else:
             what = f"{Path(str(row.get('file') or '')).name} {str(row.get('sha256') or '')[:8]}"
         expected = row.get("expected")
+        score = row.get("public_score") or ("error" if row.get("status") == "ERROR" else "pending")
         lines.append(
             f"  {sent:<16}  {text.shorten(str(row.get('competition') or ''), 28):<28}  "
-            f"{str(row.get('public_score') or 'pending'):<10}  "
+            f"{str(score):<10}  "
             f"{(f'{expected:g}' if isinstance(expected, (int, float)) else '-'):<9}  "
             f"{what} · {text.shorten(text.collapse(str(row.get('message') or '')), 50)}"
         )
@@ -50,13 +51,23 @@ def main(argv: list[str] | None = None) -> int:
         epilog="The record is ./.kaggle-skill/ledger.jsonl. It is only read here.",
     )
     parser.add_argument("competition", nargs="?", help="Only this competition (slug or URL)")
+    parser.add_argument(
+        "-c",
+        "--competition",
+        dest="competition_option",
+        metavar="COMPETITION",
+        help="The same, as an option",
+    )
     script.add_limit(parser, 20, "submissions, newest first")
     script.add_json(parser)
     args = parser.parse_args(argv)
+    if args.competition and args.competition_option:
+        parser.error("give the competition once")
+    chosen = args.competition or args.competition_option
     slug = None
-    if args.competition:
+    if chosen:
         try:
-            slug = script.competition_slug(args.competition)
+            slug = script.competition_slug(chosen)
         except ValueError as exc:
             parser.error(str(exc))
 
