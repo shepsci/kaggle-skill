@@ -59,7 +59,6 @@ _TOPIC_URL_RE = re.compile(r"/discussions?/(?:[A-Za-z0-9_-]+/)?(\d+)")
 
 # table, csv or json, optionally with a field projection: json(title,votes)
 _FORMAT_RE = re.compile(r"^(table|csv|json)(\([A-Za-z0-9_]+(,[A-Za-z0-9_]+)*\))?$")
-_NEXT_TOKEN_RE = re.compile(r"^Next [Pp]age [Tt]oken\s*[=:]\s*(\S+)\s*$")
 
 
 def _format_arg(value: str) -> str:
@@ -166,7 +165,7 @@ def split_next_page_token(stdout: str) -> tuple[str, str | None]:
     token: str | None = None
     kept: list[str] = []
     for line in lines:
-        match = _NEXT_TOKEN_RE.match(line.strip())
+        match = kaggle_cli.NEXT_TOKEN_RE.match(line.strip())
         if match:
             token = match.group(1)
         else:

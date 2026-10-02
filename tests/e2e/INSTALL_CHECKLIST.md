@@ -57,8 +57,8 @@ A platform is marked "Tested" only when its line here was run on this
 release. `tests/manifest/test_no_false_claims.py` checks that every such
 platform has a line.
 
-- Claude Code: the automated install above, on Claude Code 2.1.286.
-- Codex: the automated install above, on Codex 0.159.3.
+- Claude Code: the automated install above, on Claude Code 2.1.288.
+- Codex: the automated install above, on Codex 0.160.0.
 
 Not re-run on this release, and marked accordingly in docs/compatibility.md:
 Antigravity CLI (`agy`), OpenClaw, and Gemini CLI.

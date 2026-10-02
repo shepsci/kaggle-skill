@@ -1,20 +1,23 @@
 #!/usr/bin/env python3
 """Run the Kaggle CLI the same way everywhere.
 
-Three things every wrapper in this skill needs:
+Four things every command in this skill needs:
 
 1. A scrubbed environment. The Kaggle CLI prints full request headers,
    including the bearer token, when ``VERBOSE`` or ``VERBOSE_OUTPUT`` is set,
    and ``KAGGLE_API_ENVIRONMENT`` points it at a non-production host.
 2. Honest exit codes. Several write commands print an error and still exit 0
-   (``Kernel push error: ...``, ``Dataset creation error: ...``).
+   (``Kernel push error: ...``, ``Dataset creation error: ...``), and a
+   missing credential or a denial exits 1 like everything else.
 3. Output marked as untrusted, because file names, titles and error text come
    from Kaggle.
+4. A dry run before a command that changes the account.
 
-Shell wrappers call this file directly::
+The scripts import this module. Run as a file, it runs any ``kaggle`` command
+that way; the entry point's ``cli`` command does this::
 
-    python3 shared/kaggle_cli.py --tool datasets.files -- datasets files owner/name
-    python3 shared/kaggle_cli.py --raw -- kernels status owner/kernel
+    python3 shared/kaggle_cli.py --tool cli -- datasets files owner/name
+    python3 shared/kaggle_cli.py --yes -- datasets version -p ./data -m notes
 """
 
 from __future__ import annotations
@@ -130,7 +133,7 @@ _GROUP_ALIASES = {
     "k": "kernels",
     "m": "models",
 }
-_NEXT_TOKEN_RE = re.compile(r"^Next [Pp]age [Tt]oken\s*[=:]\s*(\S+)\s*$")
+NEXT_TOKEN_RE = re.compile(r"^Next [Pp]age [Tt]oken\s*[=:]\s*(\S+)\s*$")
 
 
 def kaggle_bin() -> str:
@@ -218,7 +221,7 @@ def json_rows(stdout: str) -> tuple[list | None, str | None]:
     body: list[str] = []
     started = False
     for line in stdout.splitlines():
-        match = _NEXT_TOKEN_RE.match(line.strip())
+        match = NEXT_TOKEN_RE.match(line.strip())
         if match:
             token = match.group(1)
             continue

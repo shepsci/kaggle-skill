@@ -1,6 +1,6 @@
 """Shared setup for the scripts that call kagglehub.
 
-kagglehub is a library, so the checks the shell wrappers get from
+kagglehub is a library, so the checks that CLI-backed commands get from
 ``kaggle_cli.py`` are done here: the environment is cleaned, the library's
 log lines (which carry file names from the server) are switched off, an
 output folder is never emptied by accident, and a failure is reported without

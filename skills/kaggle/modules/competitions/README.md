@@ -91,6 +91,11 @@ python3 scripts/kaggle_skill.py ledger
 Submit only after the user confirms. Read
 [competition-operations.md](references/competition-operations.md) first.
 
+The ledger and the leaderboard snapshots are plain files in
+`./.kaggle-skill/`, in the folder the commands are run from. They are local
+records: nothing reads them but these commands. A project that should not
+carry them can list `.kaggle-skill/` in its `.gitignore`.
+
 ## Simulation competitions
 
 ```bash
