@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1791038487, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - Codex install"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1791040492, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - Codex install"}
 [0.2, "o", "Install in Codex.\r\n(from a local checkout, in a throwaway\r\n CODEX_HOME)\r\n\r\n"]
 [1.0, "o", "$ "]
 [1.15, "o", "codex plu"]
@@ -19,6 +19,6 @@
 [3.17, "o", "on"]
 [3.24, "o", "\r\n"]
 [3.59, "o", "{\r\n  \"pluginId\": \"kaggle@shepsci\",\r\n  \"name\": \"kaggle\",\r\n"]
-[3.75, "o", "  \"marketplaceName\": \"shepsci\",\r\n  \"version\": \"3.1.0\",\r\n  \"installedPath\": \"/tmp/kaggle-cast/codex-home/plugins/cache/shepsci/kaggle/3.1.0\",\r\n"]
+[3.75, "o", "  \"marketplaceName\": \"shepsci\",\r\n  \"version\": \"3.0.1\",\r\n  \"installedPath\": \"/tmp/kaggle-cast/codex-home/plugins/cache/shepsci/kaggle/3.0.1\",\r\n"]
 [3.91, "o", "  \"authPolicy\": \"ON_INSTALL\"\r\n}\r\n"]
 [4.07, "o", "\r\n"]

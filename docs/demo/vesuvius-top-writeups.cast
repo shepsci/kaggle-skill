@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1791038486, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - solution writeups of the top teams"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1791040492, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - solution writeups of the top teams"}
 [0.2, "o", "What did the top three teams do?\r\nNo credential is used.\r\n\r\n"]
 [1.0, "o", "$ "]
 [1.15, "o", "python3 s"]
@@ -13,8 +13,8 @@
 [1.78, "o", "top 3 --p"]
 [1.85, "o", "review"]
 [1.92, "o", "\r\n"]
-[2.27, "o", "<untrusted-content-38040872 …>\r\n3 solution writeups linked from the vesuvius-challenge-surface-detection leaderboard (private leaderboard ranks and scores):\r\n     #1  Vesuvius Team · score 0.62702\r\n"]
+[2.27, "o", "<untrusted-content-05f556ee …>\r\n3 solution writeups linked from the vesuvius-challenge-surface-detection leaderboard (private leaderboard ranks and scores):\r\n     #1  Vesuvius Team · score 0.62702\r\n"]
 [2.43, "o", "         https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/1st-place-solution-for-the-vesuvius-challenge-su\r\n         1st Place Solution for the Vesuvius Challenge - Surface Detection Competition: Our solution consisted of an nnU-Net ensemble plus post-processing.: Thanks to the organizers for this fun and …\r\n     #2  risk of overfitting · score 0.62250\r\n"]
 [2.59, "o", "         https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/2nd-place-solution-vesuvius-challenge-a-postproc\r\n         2nd Place Solution Vesuvius Challenge – A postprocessing win: 3d segmentation task with heavy postprocessing: First of all, we want to thank kaggle and the organizers for this interesting an…\r\n     #3  W & A · score 0.62090\r\n"]
-[2.75, "o", "         https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/quick-preview-of-the-3rd-place\r\n         3rd place solution: First and foremost, we would like to express our gratitude to the organizers for hosting this fantastic competition! We are honored to share our solution here. Our approa…\r\n</untrusted-content-38040872>\r\n"]
+[2.75, "o", "         https://www.kaggle.com/competitions/vesuvius-challenge-surface-detection/writeups/quick-preview-of-the-3rd-place\r\n         3rd place solution: First and foremost, we would like to express our gratitude to the organizers for hosting this fantastic competition! We are honored to share our solution here. Our approa…\r\n</untrusted-content-05f556ee>\r\n"]
 [2.91, "o", "\r\n"]

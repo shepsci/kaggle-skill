@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Python 3.11+. Public reads need nothing else. Downloads, submissions, notebooks and publishing need the pip packages kaggle>=2.2.4 and kagglehub>=1.0.2. Optional: kaggle-benchmarks>=0.6 for writing benchmark tasks locally. Needs outbound HTTPS to www.kaggle.com, api.kaggle.com and storage.googleapis.com."
 metadata:
   author: shepsci
-  version: "3.1.0"
+  version: "3.0.1"
   openclaw:
     homepage: https://github.com/shepsci/kaggle-skill
     primaryEnv: KAGGLE_API_TOKEN

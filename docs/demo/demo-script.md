@@ -1,6 +1,6 @@
 # What the demos run
 
-The demos in this folder are built by `tools/build_casts.py`, version 3.1.0
+The demos in this folder are built by `tools/build_casts.py`, version 3.0.1
 of the skill. Rebuild them after a change to a command or to what it prints.
 
 Everything here reads. Nothing is submitted or published, and no credential

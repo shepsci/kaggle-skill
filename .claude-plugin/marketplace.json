@@ -8,7 +8,7 @@
   "plugins": [
     {
       "name": "kaggle",
-      "version": "3.1.0",
+      "version": "3.0.1",
       "description": "Independent, unofficial Kaggle.com plugin: research a competition, see where you stand, check and submit with a dry run first, read solution writeups and discussions, and work with datasets, models and notebooks. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
       "author": {
         "name": "shepsci"

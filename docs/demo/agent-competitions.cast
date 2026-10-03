@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1791038487, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - what is running now"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1791040493, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - what is running now"}
 [0.2, "o", "You\r\n"]
 [0.5, "o", "  Which Kaggle competitions with prize money\r\n  are running right now? A short list with\r\n  each one's deadline, prize and metric,\r\n"]
 [0.85, "o", "  please.\r\n"]

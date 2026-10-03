@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1791038487, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - ask about a competition"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1791040492, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - ask about a competition"}
 [0.2, "o", "You\r\n"]
 [0.5, "o", "  What's the deadline and the metric of\r\n  kaggle.com/competitions/arc-prize-2026-arc-\r\n  agi-3?\r\n"]
 [0.85, "o", "\r\n"]

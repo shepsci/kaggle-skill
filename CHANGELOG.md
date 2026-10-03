@@ -2,7 +2,7 @@
 
 All notable changes to this project are documented in this file.
 
-## 3.1.0 - 2026-10-03
+## 3.0.1 - 2026-10-03
 
 Fewer steps for the questions people ask most. Recording the README's demo
 sessions showed where the agent had to work around the skill; each of those
@@ -33,7 +33,7 @@ places is now one command.
   at a time with time to read, type long commands faster, and show block tags
   without their attributes. A new session lists the competitions running
   now with their prizes and metrics; the other three were recorded again
-  with 3.1.0.
+  with 3.0.1.
 
 ## 3.0.0 - 2026-10-02
 

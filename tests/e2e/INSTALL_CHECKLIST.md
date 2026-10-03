@@ -4,7 +4,7 @@ Run this once per release. The automated parts are in
 `tests/e2e/test_plugin_install_smoke.py`; everything that needs a real agent
 session, a browser, or a Kaggle sign-in is here.
 
-Version under test: `3.1.0`.
+Version under test: `3.0.1`.
 
 ## Automated, in throwaway config folders
 
@@ -22,7 +22,7 @@ RUN_CODEX_PLUGIN_SMOKE=1 python3 -m pytest tests/e2e -q -k codex
 
 - [ ] `/plugin marketplace add shepsci/kaggle-skill` succeeds.
 - [ ] `/plugin install kaggle@shepsci` succeeds, and the Installed tab shows
-      `kaggle` at version `3.1.0`.
+      `kaggle` at version `3.0.1`.
 - [ ] `/mcp` lists the `plugin:kaggle:kaggle` server as connected. Before
       signing in, a public tool works: ask for the rules of the titanic
       competition.
