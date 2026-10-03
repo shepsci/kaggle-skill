@@ -590,3 +590,12 @@ def test_a_long_command_is_typed_quickly():
     rec = build_casts.Recorder()
     rec.type("x" * 600)
     assert len(rec.events) <= build_casts.TYPING_FRAMES + 3
+
+
+def test_a_blank_line_at_the_end_of_a_page_is_kept():
+    import build_casts
+
+    lines = [f"line {n}" for n in range(build_casts.ROWS - 3)] + ["", "next paragraph"]
+    events = build_casts.session_events({**SESSION, "answer": "\n".join(lines)})
+    text = "".join(event[2] for event in events).replace("\r\n", "\n")
+    assert f"line {build_casts.ROWS - 4}\n\n  next paragraph" in text

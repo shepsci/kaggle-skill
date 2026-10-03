@@ -18,7 +18,7 @@ endorsed by, or sponsored by Kaggle or Google.
 
 ![The agent's answer, recorded](docs/demo/media/agent-brief.gif)
 
-A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief` and `pages`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
+A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
 <!-- hero:end -->
 
 ## What you need
@@ -112,7 +112,7 @@ CLI and kagglehub, not the commands that read your standing.
 
 ![A submission is a dry run first](docs/demo/media/agent-submit.gif)
 
-The agent checks the file, shows the dry run, and asks before it submits. A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `validate` and `submit`, then answered. [The whole answer](docs/demo/sessions/agent-submit.json), [cast](docs/demo/agent-submit.cast).
+The agent checks the file, shows the dry run, and asks before it submits. A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `submit`, then answered. [The whole answer](docs/demo/sessions/agent-submit.json), [cast](docs/demo/agent-submit.cast).
 
 > **You:** What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
 

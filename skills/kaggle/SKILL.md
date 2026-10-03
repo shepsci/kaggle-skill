@@ -48,6 +48,8 @@ and records land in the user's project. Do not `cd` into the skill folder.
 
 Output is short text by default. The read commands take `--json` for the
 same content as JSON; `<command> --help` lists each command's options. A
+long text (a page, a writeup) is cut with a note that says how to get the
+rest, so there is no need to pipe a command through `head` or `cut`. A
 competition is a slug (`titanic`) or its URL.
 
 ## Pick the command

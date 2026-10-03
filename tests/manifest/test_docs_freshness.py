@@ -223,8 +223,10 @@ def test_committed_asciinema_cast_is_clean_and_watchable(cast: Path):
         )
 
     assert event_count > 0
-    assert 2.0 <= duration <= 15.0, (
-        f"{cast.relative_to(REPO_ROOT)} should be short: about ten seconds, fifteen at most"
+    # A recorded session holds each screen of the answer long enough to read it.
+    longest = 25.0 if cast.stem.startswith("agent-") else 15.0
+    assert 2.0 <= duration <= longest, (
+        f"{cast.relative_to(REPO_ROOT)} should be short: about ten seconds, {longest:.0f} at most"
     )
 
 
@@ -314,7 +316,8 @@ def test_casts_that_print_kaggle_text_show_a_block():
         "install-and-demo",
     ):
         text = _cast_text(REPO_ROOT / "docs" / "demo" / f"{name}.cast")
-        assert re.search(r"<untrusted-content-[0-9a-f]{8} source=", text), name
+        # The demos show the tag and its random suffix; the attributes are left out.
+        assert re.search(r"<untrusted-content-[0-9a-f]{8} …>", text), name
 
 
 def test_casts_show_the_current_version_and_surface():

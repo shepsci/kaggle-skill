@@ -298,15 +298,20 @@ def session_events(session: dict) -> list[list]:
     rec.say(session.get("agent_short", "Agent"), 0.3)
     answer = wrap(render_answer(session["answer"])).splitlines()
     limit = int(session.get("answer_show_lines") or len(answer))
+    note = ""
     if len(answer) > limit:
         # A long answer is cut on screen; the session file holds all of it.
-        answer = [*answer[:limit], f"  … ({len(answer) - limit} more lines in the session file)"]
+        note = f"  … ({len(answer) - limit} more lines in the session file)"
+        answer = answer[:limit]
     # One screen at a time, each held long enough to read, instead of a scroll.
     page = ROWS - 2
-    for start in range(0, len(answer), page):
-        lines = answer[start : start + page]
-        rec.scroll("\n".join(lines), 0.12)
-        if start + page < len(answer):
+    pages = [answer[start : start + page] for start in range(0, len(answer), page)] or [[]]
+    if note:
+        pages[-1] = [*pages[-1], note]
+    for number, lines in enumerate(pages, 1):
+        # A blank line that ends a page is kept: splitlines would drop it.
+        rec.scroll("\n".join(lines) + ("\n" if lines and lines[-1] == "" else ""), 0.12)
+        if number < len(pages):
             rec.hold(max(2.5, READING_SECONDS * len(lines)))
     return rec.events
 
