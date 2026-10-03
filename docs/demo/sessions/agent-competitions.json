@@ -1,0 +1,17 @@
+{
+  "name": "agent-competitions",
+  "title": "kaggle-skill - what is running now",
+  "recorded": "2026-10-02",
+  "agent": "Claude Code 2.1.286 (claude-opus-5-5)",
+  "agent_short": "Claude",
+  "question": "Which Kaggle competitions with prize money are running right now? A short list with each one's deadline, prize and metric, please.",
+  "steps": [
+    {
+      "command": "python3 scripts/kaggle_skill.py competitions",
+      "output": "<untrusted-content-661a557f source=\"kaggle-mcp\" tool=\"search_competitions\" lookback-days=\"30\">\n26 competitions running or ended in the last 30 days: 24 active, 2 ended.\n  2026-10-10  DATASCAPE 2026 - Data Mining Competition\n              datascape-2026-data-mining-competition · Community · 62 teams · Kudos · metric: macro f1 score\n  2026-10-14  DMA26 Kaggle Competition\n              dma-26-kaggle-competition · Community · 16 teams · Kudos · metric: Accuracy Score\n  2026-10-14  Kaggriculture · submissions closed\n              kaggriculture · Featured · 10,246 teams · 50,000 USD · metric: kaggriculture\n  2026-10-15  DSAA6100_26 Movie Review Sentiment Classification\n              dsaa-6100-26-movie-review-sentiment-classification · Community · 14 teams · Kudos · metric: Accuracy Score\n  2026-10-22  RSNA Knee Abnormality Detection · join by 2026-10-15\n              rsna-knee-abnormality-detection · Research · 4,943 teams · 77,000 USD · metric: Roc Auc Score · code competition\n  2026-10-31  Predicting Airline Satisfaction\n              playground-series-s6e10 · Playground · 448 teams · Swag · metric: Roc Auc Score\n  2026-11-02  ARC Prize 2026 - ARC-AGI-3 · join by 2026-10-26\n              arc-prize-2026-arc-agi-3 · Featured · 3,610 teams · 850,000 USD · metric: ARC-AGI-3 Metric · code competition\n… (39 more lines)\n</untrusted-content-661a557f>",
+      "show_lines": 18
+    }
+  ],
+  "answer": "Eight Kaggle competitions with cash prizes are running as of today (2026-10-02); seven still accept submissions.\n\n| Competition | Deadline | Prize | Metric |\n|---|---|---|---|\n| ARC Prize 2026 - ARC-AGI-3 | 2026-11-02 (join by 10-26) | $850,000 | ARC-AGI-3 Metric |\n| ARC Prize 2026 - ARC-AGI-2 | 2026-11-02 (join by 10-26) | $700,000 | Abstraction and Reasoning Challenge |\n| ARC Prize 2026 - Paper Track | 2026-11-09 | $450,000 | Not given |\n| RSNA Knee Abnormality Detection | 2026-10-22 (join by 10-15) | $77,000 | ROC AUC |\n| Google - The Gemma 4 Developer Agent Competition | 2026-12-02 (join by 11-25) | $65,000 | Custom \"Gemma 4 Developer Agent\" metric |\n| Enveda CASMI 2026 - Molecule ID From Mass Spectra | 2026-12-14 (join by 12-07) | $50,000 | CASMI: Mean Average Precision |\n| Kaggriculture | 2026-10-14 (submissions already closed) | $50,000 | Custom \"kaggriculture\" metric |\n| Google - The Gemma 4 Developer Agent Paper Track | 2026-11-12 | $35,000 | Not given |\n\nThe listing hides community competitions with fewer than 10 teams, so a cash prize among those 35 would not appear here.",
+  "answer_show_lines": 36
+}

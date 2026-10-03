@@ -14,13 +14,32 @@ There are two kinds, and each says which it is:
   takes part.
 
 In both, colour codes are removed, long output is cut with a line that says
-how much was left out, and temporary folder paths are shortened. Nothing else
-is edited. Both kinds run with no Kaggle credential, so they show what anyone
-gets and nothing about an account. A session keeps only the lines of each
-output that the demo shows: the rest is other people's writing.
+how much was left out, temporary folder paths are shortened, and a block's
+opening tag is shown without its attributes (`<untrusted-content-1a2b3c4d …>`)
+so that it fits on one row. In a session the agent's answer is drawn as a
+terminal shows prose: Markdown marks are left out, a link shows as its text,
+a table row becomes a list item, and a long answer is shown a screen at a
+time with time to read each one.
+Nothing else is edited. They run with no Kaggle credential, so they show what anyone gets
+and nothing about an account; the one session that needs a credential says so
+below. A session keeps only the lines of each output that the demo shows: the
+rest is other people's writing.
 
 The screen is 48 columns wide. GitHub shrinks an image to a phone's width,
 and at 48 columns the type is still about 11 pixels tall.
+
+## What is running now
+
+Recorded agent session: [sessions/agent-competitions.json](sessions/agent-competitions.json).
+Listing competitions needs a Kaggle credential, so this one was recorded with
+one, and with `KAGGLE_SKILL_HIDE_ACCOUNT=1`, which leaves the account's
+entries and ranks out of the output.
+
+> Which Kaggle competitions with prize money are running right now? A short list with each one's deadline, prize and metric, please.
+
+![What is running now, with prizes and metrics](media/agent-competitions.gif)
+
+Source: [agent-competitions.cast](agent-competitions.cast)
 
 ## A question about a competition
 
@@ -46,9 +65,10 @@ Source: [agent-submit.cast](agent-submit.cast)
 ## What the top teams did
 
 Recorded agent session: [sessions/agent-solutions.json](sessions/agent-solutions.json).
-The GIF shows the start of the answer; the file has all of it.
+The winning techniques of a finished competition, summarized from the three
+top teams' own writeups.
 
-> What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
+> What did the top three teams of Kaggle's ARC Prize 2025 do to win? Two short lines each.
 
 ![What the top teams did](media/agent-solutions.gif)
 

@@ -40,9 +40,11 @@ python3 scripts/kaggle_skill.py writeup https://www.kaggle.com/competitions/kagg
   title, the prizes or tracks, and the URL. `--json` gives the same rows as
   JSON with `total_count`, `fetched`, and `truncated`; `--full` adds every
   field the server returns.
-- `writeup` takes a writeup id, a writeup URL, or a discussion URL, and prints
-  the title, the authors, the body once, and the links. `--full` prints the
-  server's whole answer. It tries `get_writeup`, then `get_writeup_by_topic`
+- `writeup` takes writeup ids, writeup URLs, or discussion URLs, one or
+  several, and prints each in its own block: the title, the authors, the body
+  once, and the links. A body is cut after 8,000 characters with a note;
+  `--max-chars 0` prints all of it. `--full` prints the server's whole
+  answer. It tries `get_writeup`, then `get_writeup_by_topic`
   (`--topic-id`), then `get_writeup_by_slug` (`--competition` with `--slug`).
 
 The scripts are `scripts/hackathon_overview.py`, `scripts/list_writeups.py`

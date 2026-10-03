@@ -70,6 +70,7 @@ def test_brief_needs_no_credential_and_no_package(repo_root, anonymous, blocks):
     assert result.returncode == 0, result.stderr[:300]
     [block] = blocks(result.stdout)
     assert "metric:" in block.body and "Categorization Accuracy" in block.body
+    assert "evaluation:" in block.body and "predict" in block.body
     assert "deadline:" in block.body and "pages:" in block.body and "data:" in block.body
     assert "you:" not in block.body
     assert len(result.stdout) < 2000, "a brief is short"
@@ -184,6 +185,11 @@ def test_winner_roster_and_writeup_body(repo_root, kaggle_token, blocks):
     text = blocks(writeup.stdout)[0].body
     assert text.startswith(f"# {row['title']}")
 
+    both = _run(repo_root, "writeup", str(row["writeup_id"]), str(body["rows"][-1]["writeup_id"]))
+    assert both.returncode == 0 and len(blocks(both.stdout)) == 2, (
+        "several writeups, one block each"
+    )
+
     full = _run(repo_root, "writeup", str(row["writeup_id"]), "--full")
     data = blocks(full.stdout)[0].json()["data"]
     assert data["message"]["raw_markdown"]
@@ -203,8 +209,17 @@ def test_competition_listing_is_short_and_real(repo_root, kaggle_token, blocks):
     result = _run(repo_root, "competitions", "--days", "30", "--limit", "10")
     assert result.returncode == 0, result.stderr[:300]
     lines = blocks(result.stdout)[0].body.splitlines()
-    assert "competitions in the last 30 days" in lines[0]
-    assert 2 < len(lines) <= 12 and all(len(line) < 160 for line in lines)
+    assert "competitions running or ended in the last 30 days" in lines[0]
+    # Two lines for each competition: the deadline and title, then the facts.
+    assert 2 < len(lines) <= 21 and all(len(line) < 200 for line in lines)
+    assert all("metric: " in line and " teams · " in line for line in lines[2::2])
+
+
+def test_hide_account_removes_your_entries_from_the_listing(repo_root, kaggle_token, blocks):
+    env = {**os.environ, "KAGGLE_SKILL_HIDE_ACCOUNT": "1"}
+    result = _run(repo_root, "competitions", "--mine", "--limit", "5", env=env)
+    assert result.returncode == 0, result.stderr[:300]
+    assert "· entered" not in blocks(result.stdout)[0].body
 
 
 def test_status_and_leaderboard_read_the_account(repo_root, kaggle_token, blocks, tmp_path):
@@ -228,7 +243,9 @@ def test_submit_dry_run_reads_the_limits_and_sends_nothing(repo_root, kaggle_tok
         repo_root, "submit", "titanic", str(submission), "-m", "live dry run", cwd=tmp_path
     )
     assert result.returncode == 0, result.stderr[:300]
-    assert result.stdout.startswith("Dry run. Nothing was sent to Kaggle.")
+    # The file is checked against the sample first, then the plan is printed.
+    assert "Dry run. Nothing was sent to Kaggle." in result.stdout
+    assert "file check:" in result.stdout and "gender_submission.csv" in result.stdout
     assert "submissions left today" in result.stdout or "submissions a day" in result.stdout
     assert not (tmp_path / ".kaggle-skill").exists(), "a dry run records nothing"
 

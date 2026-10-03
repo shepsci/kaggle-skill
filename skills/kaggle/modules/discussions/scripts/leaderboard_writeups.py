@@ -31,7 +31,7 @@ MAX_PREVIEW_REDIRECTS = 3
 SKILL_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials, net, script, untrusted  # noqa: E402
+from shared import competition, credentials, net, script, untrusted  # noqa: E402
 from shared.mcp_client import extract_text as mcp_extract_text  # noqa: E402
 from shared.mcp_client import mcp_call  # noqa: E402
 
@@ -103,6 +103,11 @@ def _absolute_kaggle_url(url: str) -> str:
     if url.startswith("/"):
         return f"{KAGGLE_BASE}{url}"
     return f"{KAGGLE_BASE}/{url}"
+
+
+def board_of(payload: dict[str, Any]) -> str:
+    """Which leaderboard the ranks and scores come from: the private one once it is out."""
+    return "private" if payload.get("privateLeaderboard") else "public"
 
 
 def extract_writeup_links(
@@ -309,8 +314,45 @@ def _get(url: str, *, headers: dict[str, str] | None = None, opener: Any = None)
     raise ValueError("too many redirects")
 
 
+_WRITEUP_PATH_RE = re.compile(r"/competitions/([^/?#]+)/writeups/([^/?#]+)")
+
+
+def writeup_body_preview(url: str, max_chars: int = 360) -> dict[str, str] | None:
+    """A preview from the writeup itself, read from the MCP server with no credential.
+
+    A writeup page shows little before its scripts run (often only the title),
+    so the body is read where it is kept. None when the URL is not a writeup
+    address or the server has no body for it.
+    """
+    match = _WRITEUP_PATH_RE.search(url)
+    if not match or not net.is_kaggle_url(url):
+        return None
+    resp = mcp_call(
+        "get_writeup_by_slug",
+        {"request": {"competitionName": match.group(1), "slug": match.group(2)}},
+        token="",
+    )
+    try:
+        payload = json.loads(mcp_extract_text(resp) or "")
+    except (TypeError, ValueError):
+        return None
+    message = payload.get("message") if isinstance(payload, dict) else None
+    body = message.get("raw_markdown") if isinstance(message, dict) else None
+    if not body:
+        return None
+    title = _collapse_text(str(payload.get("title") or ""))
+    subtitle = _collapse_text(str(payload.get("subtitle") or ""))
+    return {
+        "title": f"{title}: {subtitle}" if title and subtitle else title or "Kaggle writeup",
+        "excerpt": competition.page_summary({"content": body}, limit=max_chars),
+    }
+
+
 def fetch_writeup_preview(url: str, max_chars: int = 360) -> dict[str, str]:
-    """Fetch and preview one Kaggle writeup page, without credentials."""
+    """Preview one Kaggle writeup without credentials: its body, else its page."""
+    from_body = writeup_body_preview(url, max_chars=max_chars)
+    if from_body and from_body["excerpt"]:
+        return from_body
     response = _get(url, headers={"Accept": "text/html,application/xhtml+xml"})
     if response.status != 200:
         raise KaggleRequestFailed(f"HTTP {response.status}")
@@ -502,7 +544,11 @@ def text_lines(result: dict[str, Any]) -> list[str]:
     writeups = result["writeups"]
     lines: list[str] = []
     if writeups and result["source"] == "leaderboard":
-        lines.append(f"{len(writeups)} solution writeups linked from the {slug} leaderboard:")
+        board = result.get("board")
+        which = f" ({board} leaderboard ranks and scores)" if board else ""
+        lines.append(
+            f"{len(writeups)} solution writeups linked from the {slug} leaderboard{which}:"
+        )
     elif writeups:
         lines.append(
             f"The {slug} leaderboard links no writeups. "
@@ -597,6 +643,7 @@ def main(argv: list[str] | None = None) -> int:
     result: dict[str, Any] = {
         "competition": slug,
         "source": "leaderboard",
+        "board": board_of(payload),
         "writeups": writeups,
     }
     if not writeups:

@@ -24,8 +24,12 @@ import argparse
 import sys
 from pathlib import Path
 
-SKILL_ROOT = Path(__file__).resolve().parents[3]
+SCRIPT_DIR = Path(__file__).resolve().parent
+SKILL_ROOT = SCRIPT_DIR.parents[2]
 sys.path.insert(0, str(SKILL_ROOT))
+sys.path.insert(0, str(SCRIPT_DIR))
+
+import competition_validate  # noqa: E402
 
 from shared import (  # noqa: E402
     competition,
@@ -48,6 +52,25 @@ def already_sent(slug: str, sha256: str) -> dict | None:
     return None
 
 
+def file_check(slug: str, path: Path, sample: str | None) -> tuple[str, str]:
+    """Run validate's checks for the dry run. Returns ``(detail line, state)``.
+
+    The checks themselves are printed in a block: they quote column names and
+    ids. The detail line is the skill's own words only.
+    """
+    checks, sample_name, why = competition_validate.check_against_sample(slug, path, sample)
+    if checks is None:
+        return f"not run: {why}. Add --sample PATH to check against a file", "not run"
+    competition_validate.print_checks(slug, str(path), sample_name, checks)
+    failed = sum(1 for passed, _ in checks if passed is False)
+    warned = sum(1 for passed, _ in checks if passed is None)
+    if failed:
+        return f"{failed} of {len(checks)} FAILED (above): Kaggle may reject the file", "failed"
+    if warned:
+        return f"passed, with {warned} warning(s) to read above", "warned"
+    return f"all {len(checks)} passed", "passed"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Submit to a Kaggle competition: a dry run first, and a record of what "
@@ -67,6 +90,11 @@ def main(argv: list[str] | None = None) -> int:
         type=float,
         metavar="SCORE",
         help="The score you expect, for the ledger. The watch command reports the gap",
+    )
+    parser.add_argument(
+        "--sample",
+        metavar="PATH",
+        help="The sample submission to check the file against (default: found or downloaded)",
     )
     script.add_yes(parser)
     args = script.parse(parser, argv)
@@ -106,6 +134,12 @@ def main(argv: list[str] | None = None) -> int:
         details.append(("expected", f"{args.expect:g}"))
 
     credentials.load_configured_env_file()
+    checked = ""
+    if not args.notebook and Path(file_name).suffix.lower() == ".csv":
+        # The same checks as validate, so one command shows the file and the plan.
+        line, checked = file_check(slug, Path(file_name), args.sample)
+        details.append(("file check", line))
+        record["file_check"] = checked
     # What the competition takes. The call is public; a failure only skips the checks.
     facts_result = competition.fetch_facts(slug, token="")
     info = (
@@ -155,8 +189,6 @@ def main(argv: list[str] | None = None) -> int:
     if gate is not None:
         if blockers:
             return script.EXIT_USAGE
-        if gate == script.EXIT_OK and not args.notebook:
-            print(f"Check the file first: validate {slug} {file_name}")
         return gate
 
     if not kaggle_cli.installed():

@@ -57,7 +57,10 @@ README = REPO_ROOT / "README.md"
 COLS, ROWS = 48, 20
 FONT_SIZE = 20
 TYPING_CHUNK = 9  # characters per typing frame
+TYPING_FRAMES = 24  # a longer command is typed in bigger chunks, so it takes under 2 s
 SCROLL_LINES = 3  # lines of output per frame
+READING_SECONDS = 0.33  # per line of an answer: a page is held long enough to read
+LAST_FRAME_SECONDS = 6.0
 ANSI_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 
@@ -181,14 +184,28 @@ class Recorder:
 
     def type(self, text: str, prefix: str = "$ ") -> None:
         self.emit(prefix, 0.15)
-        for start in range(0, len(text), TYPING_CHUNK):
-            self.emit(text[start : start + TYPING_CHUNK], 0.07)
+        chunk = max(TYPING_CHUNK, -(-len(text) // TYPING_FRAMES))
+        for start in range(0, len(text), chunk):
+            self.emit(text[start : start + chunk], 0.07)
         self.emit("\n", 0.35)
+
+    def hold(self, seconds: float) -> None:
+        """Keep the screen still: time to read what was just shown."""
+        self.clock += seconds
 
     def scroll(self, text: str, pace: float = 0.16) -> None:
         lines = text.splitlines()
         for start in range(0, len(lines), SCROLL_LINES):
             self.emit("\n".join(lines[start : start + SCROLL_LINES]) + "\n", pace)
+
+
+# An opening block tag with its attributes runs over three rows of a 48-column
+# screen. The demos show the tag and its random suffix, without the attributes.
+_OPEN_TAG_RE = re.compile(r"<(untrusted-content-[0-9a-f]{8})\s[^>\n]*>")
+
+
+def short_tags(text: str) -> str:
+    return _OPEN_TAG_RE.sub(r"<\1 …>", text)
 
 
 def build_events(cast: Cast, replacements: dict[str, str]) -> list[list] | None:
@@ -204,7 +221,7 @@ def build_events(cast: Cast, replacements: dict[str, str]) -> list[list] | None:
             print(f"  skipped {cast.name}: `{step.needs}` is not installed", file=sys.stderr)
             return None
         rec.type(step.shown)
-        rec.scroll(output)
+        rec.scroll(short_tags(output))
         rec.emit("\n", 0.5)
     if cast.outro:
         rec.say("\n".join(cast.outro), 1.5)
@@ -223,11 +240,82 @@ def wrap(text: str, width: int = COLS - 2, indent: str = "  ") -> str:
         if not paragraph.strip():
             out.append("")
             continue
-        hanging = indent + ("  " if paragraph.lstrip().startswith(("- ", "* ")) else "")
+        hanging = indent + ("  " if paragraph.lstrip().startswith(("- ", "* ", "• ")) else "")
         out += textwrap.wrap(
             paragraph.strip(), width=width, initial_indent=indent, subsequent_indent=hanging
         ) or [""]
     return "\n".join(out)
+
+
+_MD_HEADING_RE = re.compile(r"^\s*#{1,6}\s+")
+_MD_BULLET_RE = re.compile(r"^(\s*)[-*]\s+")
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+_MD_TABLE_RULE_RE = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")
+
+
+def render_answer(markdown: str) -> str:
+    """An answer as a terminal shows prose: no ** or `, links as their text, • for bullets.
+
+    The session file keeps the answer as it was given; this is only how the
+    GIF draws it.
+    """
+    lines = []
+    in_table = False
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            if _MD_TABLE_RULE_RE.match(stripped):
+                continue
+            cells = [cell.strip() for cell in stripped.strip("|").split("|")]
+            if in_table:
+                # A table row reads as a list item on a narrow screen: the first
+                # cell, then the others.
+                rest = " · ".join(cells[1:])
+                line = f"- {cells[0]}: {rest}" if rest else f"- {cells[0]}"
+            else:
+                line = " · ".join(cells)  # the header names the columns
+            in_table = True
+        else:
+            in_table = False
+        line = _MD_HEADING_RE.sub("", line)
+        line = _MD_BULLET_RE.sub(r"\1• ", line)
+        line = _MD_IMAGE_RE.sub("", line)
+        line = _MD_LINK_RE.sub(r"\1", line)
+        lines.append(line.replace("**", "").replace("__", "").replace("`", ""))
+    return "\n".join(lines)
+
+
+def paginate(lines: list[str], capacity: int) -> list[list[str]]:
+    """Pages of at most ``capacity`` lines that end where a paragraph ends.
+
+    A paragraph with its heading stays on one screen when it fits; only a
+    paragraph longer than the screen is split.
+    """
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in lines:
+        current.append(line)
+        if not line.strip():
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    pages: list[list[str]] = []
+    page: list[str] = []
+    for block in blocks:
+        if len(page) + len(block) <= capacity:
+            page += block
+            continue
+        if page:
+            pages.append(page)
+        while len(block) > capacity:
+            pages.append(block[:capacity])
+            block = block[capacity:]
+        page = list(block)
+    if page:
+        pages.append(page)
+    return pages
 
 
 def load_session(path: Path) -> dict:
@@ -248,16 +336,25 @@ def session_events(session: dict) -> list[list]:
         rec.say(f"{session.get('agent_short', 'Agent')} runs", 0.3)
         rec.type(step["command"], prefix="  $ ")
         output = shorten(clean(step["output"]), int(step.get("show_lines", 10)), 200)
-        rec.scroll("\n".join("  " + line for line in output.splitlines()))
+        rec.scroll("\n".join("  " + line for line in short_tags(output).splitlines()))
         rec.emit("\n", 0.5)
     rec.say(session.get("agent_short", "Agent"), 0.3)
-    # A terminal draws no bold: the markers would show as asterisks.
-    answer = wrap(session["answer"].replace("**", "")).splitlines()
+    answer = wrap(render_answer(session["answer"])).splitlines()
     limit = int(session.get("answer_show_lines") or len(answer))
+    note = ""
     if len(answer) > limit:
         # A long answer is cut on screen; the session file holds all of it.
-        answer = [*answer[:limit], f"  … ({len(answer) - limit} more lines in the session file)"]
-    rec.scroll("\n".join(answer), 0.3)
+        note = f"  … ({len(answer) - limit} more lines in the session file)"
+        answer = answer[:limit]
+    # One screen at a time, each held long enough to read, instead of a scroll.
+    pages = paginate(answer, ROWS - 1) or [[]]
+    if note:
+        pages[-1] = [*pages[-1], note]
+    for number, lines in enumerate(pages, 1):
+        # A blank line that ends a page is kept: splitlines would drop it.
+        rec.scroll("\n".join(lines) + ("\n" if lines and lines[-1] == "" else ""), 0.12)
+        if number < len(pages):
+            rec.hold(max(3.0, READING_SECONDS * len(lines)))
     return rec.events
 
 
@@ -292,7 +389,7 @@ def write_cast(name: str, title: str, events: list[list]) -> Path:
         "width": COLS,
         "height": ROWS,
         "timestamp": int(time.time()),
-        "idle_time_limit": 1.5,
+        "idle_time_limit": 8,
         "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"},
         "title": title,
     }
@@ -430,8 +527,9 @@ def render_gif(cast_path: Path) -> Path:
             draw.text((pad, pad + row * cell_h), line, font=font, fill=colour)
         frames.append(image.quantize(palette=palette, dither=Image.Dither.NONE))
         following = events[index + 1][0] if index + 1 < len(events) else stamp + 3.0
-        durations.append(int(max(0.06, min(following - stamp, 2.0)) * 1000))
-    durations[-1] = 3500
+        # A pause the recorder asked for (a page of an answer) is kept; others stay short.
+        durations.append(int(max(0.06, min(following - stamp, 8.0)) * 1000))
+    durations[-1] = int(LAST_FRAME_SECONDS * 1000)
 
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     gif_path = MEDIA_DIR / f"{cast_path.stem}.gif"
@@ -557,9 +655,12 @@ def sessions() -> list[dict]:
 
 # ── the README's demo blocks ─────────────────────────────────────────────────
 
+COMPETITIONS_SESSION = "agent-competitions"
 HERO_SESSION = "agent-brief"
 DRY_RUN_SESSION = "agent-submit"
 SOLUTIONS_SESSION = "agent-solutions"
+# The README's first screen is the first of these that has been recorded.
+HERO_ORDER = (COMPETITIONS_SESSION, HERO_SESSION, SOLUTIONS_SESSION, DRY_RUN_SESSION)
 
 
 def _replace_block(text: str, name: str, body: str) -> str:
@@ -571,19 +672,43 @@ def _replace_block(text: str, name: str, body: str) -> str:
     return f"{head}{start}\n{body.strip()}\n{end}{tail}"
 
 
+def _session_block(recorded: dict[str, dict], name: str, alt: str, lead: str = "") -> list[str]:
+    """A recorded session for the README: the question, the GIF, one caption line."""
+    session = recorded.get(name)
+    if not session or not (MEDIA_DIR / f"{name}.gif").exists():
+        return []
+    return [
+        f"> **You:** {session['question']}",
+        "",
+        f"![{alt}](docs/demo/media/{name}.gif)",
+        "",
+        lead + session_caption(session, name),
+        "",
+    ]
+
+
 def readme_blocks(recorded: dict[str, dict]) -> dict[str, str]:
-    """What goes between the markers in README.md, from the demos that exist."""
-    hero = recorded.get(HERO_SESSION)
-    if hero and (MEDIA_DIR / f"{HERO_SESSION}.gif").exists():
-        hero_body = "\n".join(
-            [
-                f"> **You:** {hero['question']}",
-                "",
-                f"![The agent's answer, recorded](docs/demo/media/{HERO_SESSION}.gif)",
-                "",
-                session_caption(hero, HERO_SESSION),
-            ]
-        )
+    """What goes between the markers in README.md, from the demos that exist.
+
+    The first screen is the first recorded session there is, in the order of
+    HERO_ORDER; the rest follow under "See it work".
+    """
+    blocks = {
+        COMPETITIONS_SESSION: _session_block(
+            recorded, COMPETITIONS_SESSION, "What is running now, with prizes and metrics"
+        ),
+        HERO_SESSION: _session_block(recorded, HERO_SESSION, "A question about one competition"),
+        SOLUTIONS_SESSION: _session_block(recorded, SOLUTIONS_SESSION, "What the top teams did"),
+        DRY_RUN_SESSION: _session_block(
+            recorded,
+            DRY_RUN_SESSION,
+            "A submission is a dry run first",
+            "The agent checks the file, shows the dry run, and asks before it submits. ",
+        ),
+    }
+    present = [name for name in HERO_ORDER if blocks[name]]
+    if present:
+        hero_body = "\n".join(blocks[present[0]]).rstrip()
     else:
         hero_body = "\n".join(
             [
@@ -595,28 +720,9 @@ def readme_blocks(recorded: dict[str, dict]) -> dict[str, str]:
         )
 
     parts = ["## See it work", ""]
-    dry_run = recorded.get(DRY_RUN_SESSION)
-    if dry_run and (MEDIA_DIR / f"{DRY_RUN_SESSION}.gif").exists():
-        parts += [
-            f"> **You:** {dry_run['question']}",
-            "",
-            f"![A submission is a dry run first](docs/demo/media/{DRY_RUN_SESSION}.gif)",
-            "",
-            "The agent checks the file, shows the dry run, and asks before it submits. "
-            + session_caption(dry_run, DRY_RUN_SESSION),
-            "",
-        ]
-    solutions = recorded.get(SOLUTIONS_SESSION)
-    if solutions and (MEDIA_DIR / f"{SOLUTIONS_SESSION}.gif").exists():
-        parts += [
-            f"> **You:** {solutions['question']}",
-            "",
-            f"![What the top teams did](docs/demo/media/{SOLUTIONS_SESSION}.gif)",
-            "",
-            session_caption(solutions, SOLUTIONS_SESSION),
-            "",
-        ]
-    else:
+    for name in present[1:]:
+        parts += blocks[name]
+    if not blocks[SOLUTIONS_SESSION]:
         parts += [
             "Solution writeups of the top teams, by rank "
             "([cast](docs/demo/vesuvius-top-writeups.cast)):",
@@ -624,13 +730,19 @@ def readme_blocks(recorded: dict[str, dict]) -> dict[str, str]:
             "![Solution writeups of the top teams](docs/demo/media/vesuvius-top-writeups.gif)",
             "",
         ]
+    if len(present) < 4:
+        # Four sessions fill the README; with fewer, the install demo has room.
+        parts += [
+            "Install in Claude Code and run a first command "
+            "([cast](docs/demo/install-and-demo.cast)):",
+            "",
+            "![Install and first command](docs/demo/media/install-and-demo.gif)",
+            "",
+        ]
     parts += [
-        "Install in Claude Code and run a first command ([cast](docs/demo/install-and-demo.cast)):",
-        "",
-        "![Install and first command](docs/demo/media/install-and-demo.gif)",
-        "",
-        "The sessions are recorded as they ran, with no Kaggle credential configured; the "
-        "[demo library](docs/demo/README.md) says how each demo is made.",
+        "The sessions are recorded as they ran, read-only, and show nothing about an account; "
+        "the [demo library](docs/demo/README.md) has the install demos and says how each one "
+        "is made.",
     ]
     return {"hero": hero_body, "demos": "\n".join(parts)}
 

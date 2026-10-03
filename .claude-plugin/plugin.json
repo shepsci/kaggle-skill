@@ -2,7 +2,7 @@
   "name": "kaggle",
   "displayName": "Kaggle (unofficial)",
   "description": "Independent, unofficial Kaggle.com plugin: research a competition, see where you stand, check and submit with a dry run first, read solution writeups and discussions, and work with datasets, models and notebooks. Not affiliated with, endorsed by, or sponsored by Kaggle or Google.",
-  "version": "3.0.0",
+  "version": "3.0.1",
   "author": {
     "name": "shepsci"
   },

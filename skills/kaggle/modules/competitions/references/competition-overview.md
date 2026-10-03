@@ -23,8 +23,10 @@ python3 scripts/kaggle_skill.py pages titanic
 python3 scripts/kaggle_skill.py pages titanic --page rules
 ```
 
-- `brief`: the facts on one screen (metric, deadline, prize, limits, data
-  size) and the names of the pages. Start here.
+- `brief`: the facts on one screen (metric, how the evaluation page starts,
+  deadline, the host's timeline, prize, limits, data size) and the names of
+  the pages. Start here. Several competitions at once: `brief a b c`, one
+  block each.
 - `pages` with no option: one line per page with its length and how it
   starts.
 - `--page NAME`: the text of the page with that name, or else the first page
@@ -91,7 +93,7 @@ get_competition_data_files_summary   {"request": {"competitionName": "<slug>"}}
 All three answer without a credential for public competitions. The first
 gives the deadline, category, reward, team count, and submission limits; the
 third the number of files and their total size. `brief` makes these three
-calls. `list_competition_pages` also takes `pageName` and then returns that
+calls and quotes the start of the evaluation page from the second. `list_competition_pages` also takes `pageName` and then returns that
 page alone.
 
 ## Things to watch

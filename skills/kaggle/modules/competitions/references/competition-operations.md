@@ -49,7 +49,8 @@ command is written below.
    one of the day's slots.
 
 5. **Tell the user** which file, which competition, what message, and how
-   many slots remain. The dry run prints exactly that:
+   many slots remain. The dry run prints exactly that, and runs step 4's
+   checks again (`--sample PATH` names the sample):
 
    ```bash
    python3 scripts/kaggle_skill.py submit <slug> ./submission.csv -m "what changed" --expect 0.81

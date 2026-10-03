@@ -14,11 +14,11 @@ Codex and other agents that load `SKILL.md` packages. Not affiliated with,
 endorsed by, or sponsored by Kaggle or Google.
 
 <!-- hero:start -->
-> **You:** What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3?
+> **You:** Which Kaggle competitions with prize money are running right now? A short list with each one's deadline, prize and metric, please.
 
-![The agent's answer, recorded](docs/demo/media/agent-brief.gif)
+![What is running now, with prizes and metrics](docs/demo/media/agent-competitions.gif)
 
-A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief` and `pages`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
+A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `competitions`, then answered. [The whole answer](docs/demo/sessions/agent-competitions.json), [cast](docs/demo/agent-competitions.cast).
 <!-- hero:end -->
 
 ## What you need
@@ -59,6 +59,7 @@ plugin, which is why there are two commands.
 
 ## What you can ask
 
+- "Which Kaggle competitions with prize money are running, and what are their metrics?"
 - "What is the metric, the deadline and the prize of this Kaggle competition?"
 - "Summarize the rules that matter: team size, external data, submission limits."
 - "What did the top teams do? Preview their solution writeups."
@@ -84,7 +85,9 @@ plugin, which is why there are two commands.
 | Store a credential on disk | No: a dry run first | A file in `~/.kaggle` |
 | Run a badge phase | No: a dry run first | Notebooks, datasets and submissions on your account |
 
-`KAGGLE_SKILL_READ_ONLY=1` in the environment makes every write refuse.
+`KAGGLE_SKILL_READ_ONLY=1` in the environment makes every write refuse, and
+`KAGGLE_SKILL_HIDE_ACCOUNT=1` leaves your entries and ranks out of listings
+and briefs, for screen sharing and recordings.
 Text that comes from Kaggle is marked as data, which lowers the risk that an
 instruction hidden in a forum post or a writeup is followed. The skill keeps
 a local record of what it submitted and how it scored in `./.kaggle-skill/`;
@@ -108,23 +111,25 @@ CLI and kagglehub, not the commands that read your standing.
 <!-- demos:start -->
 ## See it work
 
+> **You:** What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3?
+
+![A question about one competition](docs/demo/media/agent-brief.gif)
+
+A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
+
+> **You:** What did the top three teams of Kaggle's ARC Prize 2025 do to win? Two short lines each.
+
+![What the top teams did](docs/demo/media/agent-solutions.gif)
+
+A real session, recorded 2026-10-03 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `solutions` and `writeup`, then answered. [The whole answer](docs/demo/sessions/agent-solutions.json), [cast](docs/demo/agent-solutions.cast).
+
 > **You:** Submit ./submission.csv to the Titanic competition on Kaggle.
 
 ![A submission is a dry run first](docs/demo/media/agent-submit.gif)
 
-The agent checks the file, shows the dry run, and asks before it submits. A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `validate` and `submit`, then answered. [The whole answer](docs/demo/sessions/agent-submit.json), [cast](docs/demo/agent-submit.cast).
+The agent checks the file, shows the dry run, and asks before it submits. A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `submit`, then answered. [The whole answer](docs/demo/sessions/agent-submit.json), [cast](docs/demo/agent-submit.cast).
 
-> **You:** What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
-
-![What the top teams did](docs/demo/media/agent-solutions.gif)
-
-A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `solutions` and `writeup`, then answered. [The whole answer](docs/demo/sessions/agent-solutions.json), [cast](docs/demo/agent-solutions.cast).
-
-Install in Claude Code and run a first command ([cast](docs/demo/install-and-demo.cast)):
-
-![Install and first command](docs/demo/media/install-and-demo.gif)
-
-The sessions are recorded as they ran, with no Kaggle credential configured; the [demo library](docs/demo/README.md) says how each demo is made.
+The sessions are recorded as they ran, read-only, and show nothing about an account; the [demo library](docs/demo/README.md) has the install demos and says how each one is made.
 <!-- demos:end -->
 
 ## Update and uninstall

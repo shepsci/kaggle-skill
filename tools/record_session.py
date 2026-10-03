@@ -10,6 +10,9 @@ the question, each command with the start of its output, and the agent's
 answer, as they were. tools/build_casts.py then turns the file into a cast
 and a GIF.
 
+After a recording the tool lists every number in the answer that no command
+printed, so that a made-up figure is caught before the session is committed.
+
 Only the lines a demo shows are kept from each output, with a count of the
 rest: ten lines, or six for a command that prints someone's text (a writeup,
 a topic, a page), which is the title, the author and the address. The whole
@@ -27,9 +30,10 @@ Kaggle MCP servers are switched off, so the agent uses the skill's commands.
 The skill's commands see no Kaggle credential: they run with HOME set to an
 empty folder (through CLAUDE_ENV_FILE, which Claude Code sources before each
 shell command) and without KAGGLE_* variables, so a demo shows what a new
-user gets and no account data. --with-credential keeps your credential; read
-the file before committing it then, because the output can hold account
-details.
+user gets and no account data. --with-credential keeps your credential, for
+a command that needs one (listing competitions); the session then runs with
+KAGGLE_SKILL_HIDE_ACCOUNT=1, which leaves your entries and ranks out of the
+output. Read the file before committing it all the same.
 """
 
 from __future__ import annotations
@@ -94,6 +98,8 @@ def session_env(empty_home: Path | None) -> dict[str, str]:
     """The session's environment: read-only, and with no Kaggle credential unless asked."""
     env = {key: value for key, value in os.environ.items() if not key.startswith("KAGGLE_")}
     env["KAGGLE_SKILL_READ_ONLY"] = "1"
+    # Your entries and ranks stay out of a demo even when a credential is used.
+    env["KAGGLE_SKILL_HIDE_ACCOUNT"] = "1"
     if empty_home is not None:
         # Claude Code keeps its own sign-in under the real HOME; only the shell
         # commands the agent runs get the empty one.
@@ -195,6 +201,13 @@ def to_session(
     answer = str(result.get("result") or "").strip()
     if not answer:
         raise SystemExit("error: the session ended without an answer")
+    unsupported = unsupported_numbers(answer, list(outputs.values()))
+    if unsupported:
+        print(
+            "check these numbers by hand: the answer has them, no command printed them: "
+            + ", ".join(unsupported),
+            file=sys.stderr,
+        )
 
     def short(text: str) -> str:
         # The skill's folder, the working folder and the session's scratch folder
@@ -223,6 +236,32 @@ def to_session(
         # The demo shows this many lines of the answer; the file keeps all of it.
         session["answer_show_lines"] = answer_lines
     return session
+
+
+_NUMBER_RE = re.compile(r"\d[\d,]*(?:\.\d+)?")
+
+
+def _digits(number: str) -> str:
+    return re.sub(r"\D", "", number)
+
+
+def unsupported_numbers(answer: str, outputs: list[str]) -> list[str]:
+    """Numbers in the answer that no command printed: a prompt to check, not a verdict.
+
+    A number of three digits or more counts as supported when a number in the
+    output has the same digits or starts with them (the answer may round
+    103253 to 103k, or 2026-11-02 to "Nov 2"). Anything this lists has to be
+    looked up by a person before the session is committed.
+    """
+    printed = {_digits(found) for output in outputs for found in _NUMBER_RE.findall(output)}
+    missing = []
+    for found in _NUMBER_RE.findall(answer):
+        digits = _digits(found)
+        if len(digits) < 3 or digits in printed:
+            continue
+        if not any(number.startswith(digits) for number in printed):
+            missing.append(found)
+    return list(dict.fromkeys(missing))
 
 
 def step(command: str, output: str, shown_lines: int = SHOWN_LINES) -> dict:

@@ -2,6 +2,39 @@
 
 All notable changes to this project are documented in this file.
 
+## 3.0.1 - 2026-10-03
+
+Fewer steps for the questions people ask most. Recording the README's demo
+sessions showed where the agent had to work around the skill; each of those
+places is now one command.
+
+### Changed
+
+- `brief` quotes the start of the evaluation page next to the metric's name
+  and lists the dated lines of the Timeline page (entry, team merger and
+  final deadlines in the host's words), so "what is the metric and the
+  deadline?" is answered by one command. It takes several competitions at
+  once, one block each. "entry closes" is now "join by".
+- `competitions` shows each competition's metric and the last day to join
+  (or "submissions closed"), in two short lines per competition.
+- `KAGGLE_SKILL_HIDE_ACCOUNT=1` leaves your entries and ranks out of
+  `competitions` and `brief`, for screen sharing and recordings.
+- `writeup` takes several ids or URLs and prints each in its own block. A
+  body is cut after 8,000 characters with a note (`--max-chars 0` for all of
+  it), so an agent no longer pipes it through `head`.
+- `solutions` says whether its ranks and scores are from the private or the
+  public leaderboard, and `--preview` shows how each writeup's body starts,
+  read from the MCP server with no credential. Writeup pages show little before their
+  scripts run, so the old previews were often the title alone.
+- The `submit` dry run runs `validate`'s checks on the file and shows them
+  with the plan (`--sample PATH` names the sample). The separate "check the
+  file first" step is gone.
+- The demo GIFs draw an answer as prose (no Markdown marks), show it a screen
+  at a time with time to read, type long commands faster, and show block tags
+  without their attributes. A new session lists the competitions running
+  now with their prizes and metrics; the other three were recorded again
+  with 3.0.1.
+
 ## 3.0.0 - 2026-10-02
 
 The first run works with nothing installed, the output is short enough to

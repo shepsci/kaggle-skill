@@ -118,7 +118,7 @@ def text_lines(report: dict) -> list[str]:
     }[report["direction"]]
     rows: list[tuple[str, str]] = [("deadline", text.when(info.get("deadline"), now))]
     if info.get("entry_deadline"):
-        rows.append(("entry closes", text.when(info["entry_deadline"], now)))
+        rows.append(("join by", text.when(info["entry_deadline"], now)))
     rows.append(("metric", f"{info['metric'] or 'not given'} ({direction})"))
     rows.append(
         ("submit with", "a notebook (code competition)" if info["notebook_only"] else "a file")

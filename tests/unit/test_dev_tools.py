@@ -233,7 +233,7 @@ def test_a_recorded_session_becomes_events_without_running_anything(monkeypatch)
     assert text.startswith("You\n  What is the metric")
     assert "Claude runs\n  $ python3 scripts/kaggle_skill.py brief titanic\n" in text
     assert "  line 2\n  … (27 more lines)\n  </untrusted-content-0a1b2c3d>" in text
-    assert "  - It is the share of passengers" in text and text.rstrip().endswith("correctly.")
+    assert "  • It is the share of passengers" in text and text.rstrip().endswith("correctly.")
     stamps = [event[0] for event in events]
     assert stamps == sorted(stamps) and stamps[-1] <= 15
 
@@ -547,3 +547,76 @@ def test_a_recorded_session_sees_no_kaggle_credential(tmp_path, monkeypatch):
     assert script.strip() == f"export HOME={tmp_path}"
     kept = record_session.session_env(None)
     assert "CLAUDE_ENV_FILE" not in kept and kept["KAGGLE_SKILL_READ_ONLY"] == "1"
+    assert env["KAGGLE_SKILL_HIDE_ACCOUNT"] == kept["KAGGLE_SKILL_HIDE_ACCOUNT"] == "1"
+
+
+def test_an_answer_is_drawn_as_plain_prose():
+    import build_casts
+
+    answer = (
+        "## Top three\n"
+        "1. **NVARC** (24.03) — [writeup](https://www.kaggle.com/x)\n"
+        "- uses `gpt-oss-120b` ![](a.png)\n"
+        "| Rank | Team |\n|---|---|\n| 1 | NVARC |"
+    )
+    assert build_casts.render_answer(answer).splitlines() == [
+        "Top three",
+        "1. NVARC (24.03) — writeup",
+        "• uses gpt-oss-120b ",
+        "Rank · Team",
+        "• 1: NVARC",
+    ]
+
+
+def test_block_tags_are_shown_without_their_attributes():
+    import build_casts
+
+    tag = '<untrusted-content-0a1b2c3d source="kaggle-mcp" tool="get_competition" competition="x">'
+    assert build_casts.short_tags(tag + "\nbody") == "<untrusted-content-0a1b2c3d …>\nbody"
+
+
+def test_a_long_answer_is_shown_a_page_at_a_time_with_time_to_read():
+    import build_casts
+
+    long = {**SESSION, "answer": "\n".join(f"point {n}" for n in range(40))}
+    events = build_casts.session_events(long)
+    gaps = [later[0] - earlier[0] for earlier, later in zip(events, events[1:])]
+    assert max(gaps) >= build_casts.READING_SECONDS * 13, "a page is held for its length"
+    assert sum(1 for gap in gaps if gap >= 2.5) == 2, "pages 1 and 2 of 3 are held"
+
+
+def test_answer_pages_end_where_a_paragraph_ends():
+    import build_casts
+
+    team = ["1. Team", "- did this", "- and that", ""]
+    pages = build_casts.paginate(team * 6, 10)
+    assert [len(page) for page in pages] == [8, 8, 8], "two whole paragraphs on each page"
+    assert all(page[0] == "1. Team" for page in pages), "a heading is never left behind"
+    assert build_casts.paginate(["x"] * 25, 10) == [["x"] * 10, ["x"] * 10, ["x"] * 5]
+    assert build_casts.paginate([], 10) == []
+
+
+def test_a_long_command_is_typed_quickly():
+    import build_casts
+
+    rec = build_casts.Recorder()
+    rec.type("x" * 600)
+    assert len(rec.events) <= build_casts.TYPING_FRAMES + 3
+
+
+def test_a_blank_line_at_the_end_of_a_page_is_kept():
+    import build_casts
+
+    # 30 lines make two pages of 15: the blank line is the last line of the first.
+    lines = [f"line {n}" for n in range(14)] + [""] + [f"more {n}" for n in range(15)]
+    events = build_casts.session_events({**SESSION, "answer": "\n".join(lines)})
+    text = "".join(event[2] for event in events).replace("\r\n", "\n")
+    assert "line 13\n\n  more 0" in text
+
+
+def test_numbers_the_commands_did_not_print_are_listed():
+    """A figure the agent made up must not reach a demo unnoticed."""
+    outputs = ["deadline: 2026-11-02 23:59 UTC\nprize: 850,000 USD\nwe had 103253 puzzles, 24.03"]
+    answer = "The prize is $850,000, 103k puzzles, score 24.03%, due Nov 2, 2026. 77,000 teams."
+    assert record_session.unsupported_numbers(answer, outputs) == ["77,000"]
+    assert record_session.unsupported_numbers("Only 12 of them.", outputs) == []

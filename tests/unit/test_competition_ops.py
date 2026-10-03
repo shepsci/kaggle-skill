@@ -245,7 +245,7 @@ def test_status_counts_todays_submissions_when_the_cli_gives_no_count(
     ]
     fake_mcp(_status_answers(submissions), token="tok")
     body = blocks(run_main(load("competition_status"), "rsna-knee")[1])[0].body
-    assert "submissions:  1 today, about 4 left of 5 a day (estimated; counted since" in body
+    assert "submissions: 1 today, about 4 left of 5 a day (estimated; counted since" in body
 
 
 def test_status_uses_kaggles_own_count_when_the_cli_answers(
@@ -256,7 +256,7 @@ def test_status_uses_kaggles_own_count_when_the_cli_answers(
     fake_mcp(_status_answers([_submission(1, "0.9", days_ago=1)]), token="tok")
     mod = load("competition_status")
     body = blocks(run_main(mod, "rsna-knee")[1])[0].body
-    assert "submissions:  3 today, 2 left of 5 a day (Kaggle's count)" in body
+    assert "submissions: 3 today, 2 left of 5 a day (Kaggle's count)" in body
     report = blocks(run_main(mod, "rsna-knee", "--json")[1])[0].json()
     assert report["counts"] == {
         "today": 3,
@@ -279,8 +279,8 @@ def test_status_survives_a_section_that_cannot_be_read(
     code, out, _ = run_main(load("competition_status"), "rsna-knee")
     body = blocks(out)[0].body
     assert code == 0
-    assert "your rank:    you have not entered this competition" in body
-    assert "submissions:  not available (" in body and "quota: not available (" in body
+    assert "your rank:   you have not entered this competition" in body
+    assert "submissions: not available (" in body and "quota: not available (" in body
 
 
 def test_status_exit_codes(load, fake_mcp, run_main, mcp_response):
@@ -636,12 +636,36 @@ def test_submit_is_a_dry_run_by_default(load, run_main, fake_mcp, kaggle_calls, 
         "sha256:",
         "message:     baseline",
         "expected:    0.77",
+        "file check:  not run: no credential to list the competition's files with. "
+        "Add --sample PATH",
         "cost:        1 of 5 submissions a day",
         "Show this to the user and wait for their yes. Then run it again with --yes.",
-        "Check the file first: validate titanic",
     ):
         assert expected in out, expected
+    assert "Check the file first" not in out
     assert not Path(".kaggle-skill").exists()
+
+
+def test_the_submit_dry_run_checks_the_file(
+    load, run_main, fake_mcp, kaggle_calls, tmp_path, monkeypatch, blocks
+):
+    """One command shows the file's checks and the plan; the checks quote the file, so a block."""
+    monkeypatch.chdir(tmp_path)
+    calls = kaggle_calls()
+    fake_mcp({"get_competition": {**FACTS, "is_kernels_submissions_only": False}})
+    Path("downloads/titanic").mkdir(parents=True)
+    _csv(Path("downloads/titanic/gender_submission.csv"), SAMPLE)
+    _csv(Path("good.csv"), "id,target\n1,0.1\n2,0.2\n3,0.3\n")
+    _csv(Path("short.csv"), "id,target\n1,0.1\n")
+    mod = load("competition_submit")
+    code, out, _ = run_main(mod, "titanic", "good.csv", "-m", "x")
+    assert code == 0 and calls() == []
+    assert "PASS  rows: 3" in blocks(out)[0].body
+    assert "file check:  all 5 passed" in out
+    code, out, _ = run_main(mod, "titanic", "short.csv", "-m", "x")
+    assert code == 0 and "file check:  2 of 5 FAILED (above): Kaggle may reject the file" in out
+    code, out, _ = run_main(mod, "titanic", "short.csv", "-m", "x", "--sample", "good.csv")
+    assert "Checked short.csv against the sample good.csv" in blocks(out)[0].body
 
 
 def test_submit_with_yes_submits_and_records(
