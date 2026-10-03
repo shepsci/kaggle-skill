@@ -31,8 +31,9 @@ empty roster, and do not try to get the same data another way.
    size of the whole roster.
 4. `get_writeup` with `writeUpId` for each row.
 
-The scripts in `../scripts/` do this: `hackathon_overview.py`,
-`list_writeups.py`, `fetch_writeup.py`.
+The commands `hackathon`, `writeups` and `writeup` do this (the scripts
+`hackathon_overview.py`, `list_writeups.py`, `fetch_writeup.py` in
+`../scripts/`).
 
 ## The roster
 

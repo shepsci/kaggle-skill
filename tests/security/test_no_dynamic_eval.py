@@ -37,7 +37,7 @@ SHELL_FILES = _files("*.sh")
 def test_the_scan_finds_the_skill_code():
     names = {p.name for p in PYTHON_FILES}
     assert {"mcp_client.py", "untrusted.py", "orchestrator.py", "forums.py"} <= names
-    assert {p.name for p in SHELL_FILES} >= {"lib.sh", "setup_env.sh", "cli_submit.sh"}
+    assert {"kaggle_skill.py", "competition_submit.py", "notebook_run.py"} <= names
 
 
 @pytest.mark.parametrize("py_file", PYTHON_FILES, ids=lambda p: str(p.relative_to(REPO_ROOT)))

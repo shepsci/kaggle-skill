@@ -2,7 +2,7 @@
 
 **kaggle-skill**: agent skill and plugin
 
-*Last updated: 2026-09-30*
+*Last updated: 2026-10-02*
 
 ## Summary
 
@@ -21,13 +21,13 @@ The skill reads Kaggle credentials from the places the Kaggle CLI uses:
 
 A `.env` file is read only when `KAGGLE_ENV_FILE` names it, and only its
 credential lines (`KAGGLE_API_TOKEN`, `KAGGLE_USERNAME`, `KAGGLE_KEY`,
-`KAGGLE_CONFIG_DIR`).
+`KAGGLE_CONFIG_DIR`, `KAGGLE_MCP_TOKEN`).
 
 Credentials are sent only to `www.kaggle.com` and `api.kaggle.com`. They are
-not logged, printed, or placed on a command line. One script,
-`setup_env.sh`, writes a credential to disk, and only when you run it: it
-copies the value from your environment to `~/.kaggle` with owner-only
-permissions. The credential checker only reads.
+not logged, printed, or placed on a command line. One command,
+`save-credentials`, writes a credential to disk, and only when you run it
+with `--yes`: it copies the value from your environment to `~/.kaggle` with
+owner-only permissions. `doctor` and `credentials` only read.
 
 The bundled MCP server entry contains a URL and, for Claude Code, a public
 OAuth client ID. It contains no credential. Signing in to it is handled by
@@ -35,11 +35,11 @@ your agent, not by this skill.
 
 ## Network requests
 
-The skill's own scripts connect to:
+The skill's own commands connect to:
 
 | Host | For |
 |---|---|
-| `www.kaggle.com` | The MCP server, leaderboard data, and writeup previews |
+| `www.kaggle.com` | The MCP server (competition facts and pages, discussions, your submissions and quota), leaderboard data, and writeup previews |
 | `api.kaggle.com` | The Kaggle CLI and `kagglehub` |
 | `storage.googleapis.com` | Dataset, model, and competition file downloads, through the Kaggle tools |
 
@@ -62,13 +62,29 @@ subject to Kaggle's terms and privacy policy:
 - https://www.kaggle.com/privacy
 
 Submissions, uploads, notebook runs, and badge activity change your Kaggle
-account. The skill asks the agent to get your go-ahead before any of them.
+account. The skill asks the agent to get your go-ahead before any of them,
+and its submission, publish, notebook and badge commands do nothing until
+`--yes` is given.
 
 ## Data on your machine
 
-Downloads, reports, and the badge progress file are stored where you run the
-scripts. Nothing is uploaded unless you ask for a publish or a submission.
-The publish scripts refuse a folder that contains a credential file.
+Downloads and reports are stored where you run the commands. The badge
+progress file, `badge-progress.json`, is stored in the skill folder unless
+`KAGGLE_BADGES_STATE_DIR` names another. Three commands keep a local record
+in `./.kaggle-skill/`, in the folder you run them from:
+
+- `submit` and `watch` add lines to `ledger.jsonl`: the competition, the
+  submission file's name, size and SHA-256, your message, the score you
+  expected, and the score Kaggle reported.
+- `leaderboard` saves a snapshot of the leaderboard, which holds team names
+  and scores, so that the next run can say what moved.
+
+These files are yours. They are not uploaded, and you can delete them at any
+time. `KAGGLE_SKILL_DIR` moves the folder.
+
+Nothing is uploaded unless you ask for a publish or a submission, and each of
+those is a dry run until you confirm. The publish commands refuse a folder
+that contains a credential file or a link to a file outside it.
 
 ## Children
 

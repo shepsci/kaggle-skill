@@ -1,0 +1,21 @@
+{
+  "name": "agent-brief",
+  "title": "kaggle-skill - ask about a competition",
+  "recorded": "2026-10-02",
+  "agent": "Claude Code 2.1.286 (claude-opus-5-5)",
+  "agent_short": "Claude",
+  "question": "What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3?",
+  "steps": [
+    {
+      "command": "python3 scripts/kaggle_skill.py brief arc-prize-2026-arc-agi-3",
+      "output": "<untrusted-content-698ad5af source=\"kaggle-mcp\" tool=\"get_competition\" competition=\"arc-prize-2026-arc-agi-3\">\nARC Prize 2026 - ARC-AGI-3\nCreate an AI capable of fluid intelligence\n  url:          https://www.kaggle.com/competitions/arc-prize-2026-arc-agi-3\n  host:         Abstraction and Reasoning Corpus\n  category:     Featured\n  metric:       ARC-AGI-3 Metric\n  prize:        850,000 USD\n  deadline:     2026-11-02 23:59 UTC (in 31 d 1 h)\n  entry closes: 2026-10-26 11:59 UTC (in 23 d 13 h)\n… (8 more lines)\n</untrusted-content-698ad5af>",
+      "show_lines": 12
+    },
+    {
+      "command": "python3 scripts/kaggle_skill.py pages arc-prize-2026-arc-agi-3 --page Evaluation; python3 scripts/kaggle_skill.py pages arc-prize-2026-arc-agi-3 --page Timeline",
+      "output": "<untrusted-content-6a20fa63 source=\"kaggle-mcp\" tool=\"list_competition_pages\" competition=\"arc-prize-2026-arc-agi-3\">\n## Evaluation\n\nScores for individual game range from 0 to 100%. A score of 100% represents an agent matching human-level performance, meaning it beat every game while matching the number of actions humans took. Whi…\n\n## Submission File\n… (15 more lines)\n</untrusted-content-6a20fa63>",
+      "show_lines": 8
+    }
+  ],
+  "answer": "**ARC Prize 2026 - ARC-AGI-3** (per the Kaggle competition pages, fetched today, 2026-10-02):\n\n**Deadline**\n- **Final submission: November 2, 2026, 23:59 UTC** (about 31 days from now).\n- **Entry and team merger: October 26, 2026.** You must accept the rules by then to compete. The Timeline page says deadlines are 11:59 PM UTC, but the competition metadata shows entry closing at 11:59 UTC, so accept the rules well before that day.\n- Winners are announced December 4, 2026. Both optional milestone deadlines (June 30 and September 30) have passed.\n\n**Metric: \"ARC-AGI-3 Metric\"** (custom)\n- Each game is scored from 0 to 100%.\n- 100% means human-level performance: the agent beat every game using the same number of actions humans took.\n- Using fewer actions than humans does not score above 100%; scores are capped there.\n- The final score \"averages individual game scores across levels\", in the Evaluation page's wording.\n- The full methodology is at https://docs.arcprize.org/methodology.\n\nThis is a code competition: you submit a notebook, limited to 1 submission a day, and the submission file is generated automatically once the agent acts on any game."
+}

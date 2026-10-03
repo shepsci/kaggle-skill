@@ -40,3 +40,6 @@ tests/test-*-report-*.md
 .DS_Store
 .ipynb_checkpoints/
 .claude/settings.local.json
+
+# Local records the skill's commands write where they are run
+.kaggle-skill/

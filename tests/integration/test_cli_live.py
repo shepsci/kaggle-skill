@@ -84,7 +84,7 @@ def test_community_competitions_are_a_group():
 
 def test_submission_limits_command_exists_and_answers():
     result = _run("competitions", "submission-limits", "titanic")
-    assert result.returncode == 0, "the pre-submit check in cli_submit.sh depends on this"
+    assert result.returncode == 0, "the submit dry run and the status command depend on this"
 
 
 def test_kernel_status_line_has_the_quoted_enum_the_scripts_parse():

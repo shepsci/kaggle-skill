@@ -49,9 +49,11 @@ or runs commands.
 Submissions, dataset, model and notebook publishing, benchmark task creation,
 and badge phases change the Kaggle account. The skill pre-approves only read
 tools (`Read`, `Grep`, `Glob`), so the agent has to ask before it runs a
-script. `cli_submit.sh` is a dry run unless `--yes` is given. The badge
-orchestrator has a `--dry-run`; once a phase is started it does not ask
-again.
+command. `submit`, `dataset-publish`, `model-publish`, `notebook-push`,
+`notebook-run`, `save-credentials` and an account-changing `cli --` command
+are dry runs unless `--yes` is given, and `KAGGLE_SKILL_READ_ONLY=1` makes
+them refuse. The badge orchestrator has a `--dry-run`; once a phase is
+started it does not ask again.
 
 ## Known limits in the Kaggle tools
 

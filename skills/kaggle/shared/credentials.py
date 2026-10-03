@@ -38,9 +38,10 @@ ENV_FILE_KEYS = frozenset(
         "KAGGLE_MCP_TOKEN",
     }
 )
-_HEX32_RE = re.compile(r"^[0-9a-f]{32}$")
+# Matched with fullmatch: "$" would also match before a final line break.
+_HEX32_RE = re.compile(r"[0-9a-f]{32}")
 # A bearer token is one run of printable ASCII: no spaces, no line breaks.
-_BEARER_RE = re.compile(r"^[\x21-\x7e]+$")
+_BEARER_RE = re.compile(r"[\x21-\x7e]+")
 
 
 @dataclass(frozen=True)
@@ -111,8 +112,8 @@ def legacy_key() -> Credential | None:
     if username and key:
         return Credential("legacy_key", "KAGGLE_USERNAME + KAGGLE_KEY", username, key)
     data = _read_kaggle_json()
-    username = str(data.get("username") or username)
-    key = str(data.get("key") or key)
+    username = str(data.get("username") or username).strip()
+    key = str(data.get("key") or key).strip()
     if username and key:
         return Credential("legacy_key", "kaggle.json", username, key)
     return None
@@ -141,13 +142,18 @@ def resolve() -> Credential | None:
     return found[0] if found else None
 
 
+def kagglehub_ready() -> bool:
+    """True when kagglehub has a credential: it reads API tokens and legacy keys, not OAuth."""
+    return any(credential.kind != "oauth" for credential in discover())
+
+
 def usable_bearer(value: str) -> str:
     """``value`` when it can go into an HTTP header as it is, otherwise ``""``.
 
     A value with a space or a line break is not a token. Sending it would make
     the HTTP library raise an error whose text quotes the value.
     """
-    return value if _BEARER_RE.match(value) else ""
+    return value if _BEARER_RE.fullmatch(value) else ""
 
 
 def oauth_access_token() -> str:
@@ -194,7 +200,7 @@ def describe_token(value: str) -> str:
         return "API token"
     if value.startswith("KGRT_"):
         return "OAuth refresh token"
-    if _HEX32_RE.match(value):
+    if _HEX32_RE.fullmatch(value):
         return "legacy API key"
     return "token"
 

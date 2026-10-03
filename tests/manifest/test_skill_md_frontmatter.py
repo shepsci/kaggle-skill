@@ -76,9 +76,13 @@ def test_openclaw_metadata_is_in_the_documented_place():
 def test_compatibility_names_the_dependency_floors():
     compatibility = frontmatter(KAGGLE_SKILL)["compatibility"]
     pyproject = (REPO_ROOT / "pyproject.toml").read_text(encoding="utf-8")
-    for requirement in ("kaggle>=2.2.4", "kagglehub>=1.0.2", "requests>=2.32.4"):
+    for requirement in ("kaggle>=2.2.4", "kagglehub>=1.0.2"):
         assert requirement in compatibility
         assert f'"{requirement}"' in pyproject
+    assert "requests" not in compatibility and '"requests' not in pyproject, (
+        "the skill's own code uses the standard library for HTTP"
+    )
+    assert "Public reads need nothing else" in compatibility
 
 
 def test_skill_body_is_short_enough_to_load_whole():

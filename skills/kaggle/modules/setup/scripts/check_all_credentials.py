@@ -17,9 +17,11 @@ Usage:
 Finding a credential does not prove the server accepts it. --verify makes one
 call that needs a signed-in account (`kaggle quota`) and reports the account.
 
+For the packages, the CLI and the network as well, run doctor.py.
+
 Exit codes:
     0  a credential was found (and accepted, with --verify)
-    1  no credential was found, or --verify failed
+    2  no credential was found, or --verify failed
 """
 
 from __future__ import annotations
@@ -33,7 +35,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials  # noqa: E402
+from shared import credentials, script  # noqa: E402
 
 LABELS = {
     "api_token": "API token",
@@ -160,10 +162,10 @@ def main(argv: list[str] | None = None) -> int:
         print_report(report)
 
     if not report["credentials"]:
-        return 1
+        return script.EXIT_NO_CREDENTIAL
     if args.verify and not report["verified"]:
-        return 1
-    return 0
+        return script.EXIT_NO_CREDENTIAL
+    return script.EXIT_OK
 
 
 if __name__ == "__main__":

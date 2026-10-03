@@ -55,7 +55,7 @@ exists. New datasets are private. Unlike model uploads, dataset uploads take no
 license argument: passing `license_name` raises `TypeError`.
 
 Everything in the folder is uploaded except what `ignore_patterns` matches.
-The skill's `kagglehub_publish.py` refuses a folder that holds a credential
+The skill's `dataset-publish` command refuses a folder that holds a credential
 file.
 
 ## dataset_load()

@@ -28,7 +28,17 @@ if classify_result(response) == "ok":
         print(episode["id"], episode["state"], [a["reward"] for a in episode["agents"]])
 ```
 
-To save a replay or a log to disk, the Kaggle CLI is simpler:
+The skill's `episodes` command does this without code:
+
+```bash
+python3 scripts/kaggle_skill.py episodes 12345678
+python3 scripts/kaggle_skill.py episodes --replay 87654321
+python3 scripts/kaggle_skill.py episodes --logs 87654321 --agent 0
+```
+
+The first prints a summary and the latest games, a line each. The other two
+save the file under `./downloads/episodes/` with the Kaggle CLI, because the
+MCP tools return only a file descriptor. The same in the CLI:
 
 ```bash
 kaggle competitions episodes 12345678 --format json

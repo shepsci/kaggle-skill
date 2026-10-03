@@ -1,17 +1,18 @@
 [project]
 name = "kaggle-skill"
-version = "2.5.1"
-description = "Unified Kaggle skill for agentic systems: CLI, MCP, forums, writeups, benchmarks, notebooks, datasets, competitions, and badges"
+version = "3.0.0"
+description = "Unofficial Kaggle skill for coding agents: competition research and operations, writeups, discussions, datasets, models, notebooks"
 readme = "README.md"
 requires-python = ">=3.11"
 license = { text = "MIT" }
 
-# What the skill's scripts import or call. The same floors are in the
-# compatibility field of skills/kaggle/SKILL.md.
+# What the skill's commands call for downloads, submissions, notebooks and
+# publishing. Public reads need none of them: the skill's own HTTP code uses
+# the standard library. The same floors are in the compatibility field of
+# skills/kaggle/SKILL.md.
 dependencies = [
     "kaggle>=2.2.4",
     "kagglehub>=1.0.2",
-    "requests>=2.32.4",
 ]
 
 [project.optional-dependencies]

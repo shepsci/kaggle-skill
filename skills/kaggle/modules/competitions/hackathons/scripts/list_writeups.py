@@ -1,18 +1,20 @@
 #!/usr/bin/env python3
-"""Enumerate writeup submissions for a Kaggle hackathon.
+"""List the writeups submitted to a Kaggle hackathon, a few lines each.
 
-Calls `list_hackathon_write_ups` paginated, then `list_hackathon_tracks` once
-to resolve numeric track and prize ids to titles. Prints one JSON object per
-writeup row (or a single JSON object with --array), inside one
-untrusted-content block.
+    list_writeups.py kaggle-measuring-agi --winners
+    list_writeups.py kaggle-measuring-agi --json
 
-Each row has `writeup_id` and `slug`, the two identifiers fetch_writeup.py
-takes. Roster rows do not include a forum topic id, so `topic_id` is null.
+Calls `list_hackathon_write_ups` page by page, and `list_hackathon_tracks`
+once to turn track and prize ids into titles. Each row gives the writeup id,
+which fetch_writeup.py takes.
 
 The roster needs a credential and is role-gated: the server answers only for
 hosts, judges and teammates of the hackathon. A denial is reported as a denial
-(exit 3), never as an empty roster. Use fetch_writeup.py for full writeup
-bodies; published writeups are public.
+(exit 3), never as an empty roster. Published writeups themselves are public:
+read one with the writeup command.
+
+--json prints the same short rows as JSON. --full prints every field of every
+row, which is about three times the size: collaborators, ids, and owners.
 """
 
 from __future__ import annotations
@@ -24,7 +26,7 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials, untrusted  # noqa: E402
+from shared import credentials, script, text, untrusted  # noqa: E402
 from shared.mcp_client import (  # noqa: E402
     classify_result,
     extract_json,
@@ -135,25 +137,67 @@ def normalize_row(
     }
 
 
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--competition", required=True)
-    parser.add_argument("--page-size", type=int, default=DEFAULT_PAGE_SIZE)
-    parser.add_argument("--max-pages", type=int, default=100)
-    parser.add_argument(
-        "--winner-only", action="store_true", help="Only writeups marked as winners"
+def brief(row: dict) -> dict:
+    """A roster row without the profile data and the internal ids."""
+    return {
+        "writeup_id": row["writeup_id"],
+        "slug": row["slug"],
+        "title": row["title"],
+        "subtitle": row["subtitle"],
+        "team_name": row["team_name"],
+        "authors": row["authors"],
+        "tracks": row["track_titles"],
+        "prizes": row["awarded_prizes"],
+        "url": row["url"],
+    }
+
+
+def text_lines(rows: list[dict]) -> list[str]:
+    lines: list[str] = []
+    for row in rows:
+        team = row["team_name"] or row["authors"] or "(no team name)"
+        title = text.shorten(text.collapse(str(row["title"] or "")), 70)
+        lines.append(f"  {str(row['writeup_id']):>8}  {team} — {title}")
+        if row["awarded_prizes"]:
+            lines.append(f"            won: {'; '.join(row['awarded_prizes'])}")
+        elif row["track_titles"]:
+            lines.append(f"            track: {'; '.join(row['track_titles'])}")
+        if row["url"]:
+            lines.append(f"            {row['url']}")
+    return lines
+
+
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="List the writeups submitted to a Kaggle hackathon, a few lines each.",
+        epilog="Needs a credential, and answers only for hosts, judges and teammates.",
     )
+    script.add_competition(parser)
     parser.add_argument(
-        "--array",
+        "--winners",
+        "--winner-only",
+        dest="winner_only",
         action="store_true",
-        help="Emit a single JSON object with a rows array instead of one object per line",
+        help="Only the writeups marked as winners",
     )
-    args = parser.parse_args()
+    parser.add_argument(
+        "--page-size", type=script.positive_int, default=DEFAULT_PAGE_SIZE, help="Rows per call"
+    )
+    parser.add_argument(
+        "--max-pages", type=script.positive_int, default=100, help="Stop after this many calls"
+    )
+    script.add_limit(parser, 50, "writeups in the text output")
+    script.add_json(parser)
+    script.add_full(parser)
+    # The older name for --full.
+    parser.add_argument("--array", dest="full", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    (competition,) = script.positionals(parser, args)
 
     credentials.load_configured_env_file()
     token = resolve_token()
 
-    tracks = fetch_track_list(args.competition, token)
+    tracks = fetch_track_list(competition, token)
     track_titles = track_titles_by_id(tracks)
     prize_titles = prize_titles_by_id(tracks)
 
@@ -164,7 +208,7 @@ def main() -> int:
     failed: dict | None = None
     while True:
         rows, next_token, page_total, failed = fetch_writeups_page(
-            args.competition,
+            competition,
             token,
             args.page_size,
             page_token,
@@ -183,31 +227,37 @@ def main() -> int:
 
     if failed is not None and not all_rows:
         # Nothing was retrieved: report the denial or error, not an empty roster.
-        return print_failure(failed, tool=TOOL, had_token=bool(token), competition=args.competition)
+        return print_failure(failed, tool=TOOL, had_token=bool(token), competition=competition)
 
     truncated = failed is not None or (total is not None and len(all_rows) < total)
 
     # Writeup titles, subtitles, and collaborator names are participant-supplied
     # text: they stay inside one untrusted block.
-    with untrusted.Block(source=SOURCE, tool=TOOL, competition=args.competition) as block:
-        if args.array:
+    with untrusted.Block(source=SOURCE, tool=TOOL, competition=competition) as block:
+        if args.full or args.json:
             block.write_json(
                 {
-                    "competition": args.competition,
+                    "competition": competition,
                     "total_count": total,
                     "fetched": len(all_rows),
                     "truncated": truncated,
-                    "rows": all_rows,
+                    "rows": all_rows if args.full else [brief(row) for row in all_rows],
                 },
-                indent=2,
+                indent=2 if (args.full or args.pretty) else None,
             )
         else:
-            for row in all_rows:
-                block.write_json(row)
+            kind = "winning writeups" if args.winner_only else "writeups"
+            block.write(f"{len(all_rows)} {kind} in {competition}:")
+            for line in text_lines(all_rows[: args.limit]):
+                block.write(line)
+    if not (args.full or args.json):
+        if len(all_rows) > args.limit:
+            print(f"Showing {args.limit} of {len(all_rows)}. Add --limit {len(all_rows)} for all.")
+        if all_rows:
+            print("Read one with: writeup <writeup id>")
 
-    print(f"# fetched {len(all_rows)} writeups (total_count={total})", file=sys.stderr)
     if failed is not None:
-        print_failure(failed, tool=TOOL, had_token=bool(token), competition=args.competition)
+        print_failure(failed, tool=TOOL, had_token=bool(token), competition=competition)
         print(
             f"error: stopped after {pages_fetched} page(s); the roster is incomplete",
             file=sys.stderr,

@@ -11,13 +11,13 @@ Kaggle CLI docs at https://github.com/Kaggle/kaggle-cli/tree/main/docs.
 Collect before you conclude:
 
 - The overview pages: rules, evaluation, data, timeline, prizes
-  (`competition_pages.py`).
-- Solution writeups linked from the leaderboard (`leaderboard_writeups.py`).
+  (`brief`, then `pages --page NAME`).
+- Solution writeups linked from the leaderboard (`solutions --preview`).
 - Discussion topics, sorted by recent and by top, and searched for
   "solution", "approach", "leak", "baseline", and the metric's name
-  (`forums.py`).
+  (`topics --competition`, then `topic`).
 - Public notebooks for the competition, by votes and by recent activity
-  (`competition_details.py`, or `kaggle kernels list --competition <slug>`).
+  (`details`, or `kaggle kernels list --competition <slug>`).
 - The datasets and models the leading notebooks depend on.
 - The submission limit and the GPU quota, before recommending a plan.
 

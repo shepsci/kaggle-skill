@@ -83,3 +83,24 @@ def test_main_usage(tmp_path, capsys):
     assert preflight.main(["--help"]) == 0
     assert preflight.main([]) == 2
     assert preflight.main([str(_tree(tmp_path, ["a.csv"]))]) == 0
+
+
+def test_links_to_outside_the_folder_are_refused(tmp_path, capsys):
+    """The uploaders follow links, so a harmless name can carry a credential."""
+    secrets = _tree(tmp_path / "home", [".env", "kaggle.json"])
+    upload = _tree(tmp_path / "upload", ["train.csv"])
+    (upload / "project").symlink_to(secrets, target_is_directory=True)
+    (upload / "notes.txt").symlink_to(secrets / "kaggle.json")
+    (upload / "copy.csv").symlink_to(upload / "train.csv")  # inside: fine
+    assert preflight.find_secret_files(upload) == [
+        "notes.txt (a link to something outside the folder)",
+        "project (a link to something outside the folder)",
+    ]
+    assert preflight.check(upload) == 5
+    assert "link outside" in capsys.readouterr().err
+
+
+def test_an_upload_folder_that_is_itself_a_link_is_checked_inside(tmp_path):
+    real = _tree(tmp_path / "real", ["train.csv", ".env"])
+    (tmp_path / "linked").symlink_to(real, target_is_directory=True)
+    assert preflight.find_secret_files(tmp_path / "linked") == [".env"]

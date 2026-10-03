@@ -298,6 +298,75 @@ def mcp_response(fixtures_dir: Path):
     return _load
 
 
+def mcp_answer(payload, *, error: bool = False) -> dict:
+    """An MCP response whose text is ``payload``: JSON for a dict or list, else the string."""
+    text = payload if isinstance(payload, str) else json.dumps(payload)
+    return {
+        "jsonrpc": "2.0",
+        "id": 1,
+        "result": {"content": [{"type": "text", "text": text}], "isError": error},
+    }
+
+
+@pytest.fixture
+def fake_mcp(monkeypatch):
+    """Answer MCP calls from a table instead of the network.
+
+    ``state = fake_mcp({"get_competition": payload}, token="")`` installs the
+    answers. A payload is a dict or list (sent as JSON text), a full response
+    dict with a ``result`` or ``error`` key, a list of those to return in turn,
+    or a function of the request. A tool with no answer gets "Not found".
+    ``state.calls`` records ``(tool, request, token)``.
+    """
+    from types import SimpleNamespace
+
+    from shared import mcp_client
+
+    state = SimpleNamespace(calls=[], answers={}, token="")
+
+    def _respond(answer, request):
+        if callable(answer):
+            answer = answer(request)
+        if isinstance(answer, dict) and ("result" in answer or "error" in answer):
+            return answer
+        return mcp_answer(answer)
+
+    def _call(tool, arguments, token="", timeout=30, endpoint=None):
+        request = arguments.get("request", arguments) if isinstance(arguments, dict) else {}
+        state.calls.append(SimpleNamespace(tool=tool, request=request, token=token))
+        if tool not in state.answers:
+            return mcp_answer("Not found", error=True)
+        answer = state.answers[tool]
+        if isinstance(answer, list):
+            answer = answer.pop(0) if len(answer) > 1 else answer[0]
+        return _respond(answer, request)
+
+    monkeypatch.setattr(mcp_client, "mcp_call", _call)
+    monkeypatch.setattr(mcp_client, "resolve_token", lambda: state.token)
+
+    def _install(answers: dict | None = None, token: str = ""):
+        state.answers.update(answers or {})
+        state.token = token
+        return state
+
+    return _install
+
+
+@pytest.fixture
+def run_main(capsys):
+    """Run a loaded script's ``main(argv)``: returns ``(exit code, stdout, stderr)``."""
+
+    def _run(module, *argv: str):
+        try:
+            code = module.main(list(argv))
+        except SystemExit as exc:  # argparse
+            code = exc.code
+        captured = capsys.readouterr()
+        return code, captured.out, captured.err
+
+    return _run
+
+
 @pytest.fixture
 def kaggle_token() -> Secret:
     """Bearer token from the shared resolver, or skip when none is configured."""

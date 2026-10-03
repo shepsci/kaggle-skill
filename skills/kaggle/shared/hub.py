@@ -1,6 +1,6 @@
 """Shared setup for the scripts that call kagglehub.
 
-kagglehub is a library, so the checks the shell wrappers get from
+kagglehub is a library, so the checks that CLI-backed commands get from
 ``kaggle_cli.py`` are done here: the environment is cleaned, the library's
 log lines (which carry file names from the server) are switched off, an
 output folder is never emptied by accident, and a failure is reported without
@@ -17,14 +17,17 @@ from typing import Any
 if __package__ in (None, ""):
     sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from shared import credentials, kaggle_cli, untrusted  # noqa: E402
+from shared import credentials, kaggle_cli, script, untrusted  # noqa: E402
 
-EXIT_FAILED = 1
-EXIT_REFUSED = 5
+EXIT_FAILED = script.EXIT_FAILED
+EXIT_REFUSED = script.EXIT_REFUSED
 
 
 def load() -> Any:
-    """Import kagglehub with a clean environment. Exits with a hint when it is missing."""
+    """Import kagglehub with a clean environment.
+
+    Exits with status 127 and the install command when it is not installed.
+    """
     credentials.load_configured_env_file()
     kaggle_cli.scrub_process_env()
     # At its default level kagglehub logs "Downloading to <path>" on standard
@@ -32,11 +35,9 @@ def load() -> Any:
     os.environ.setdefault("KAGGLEHUB_VERBOSITY", "error")
     try:
         import kagglehub  # type: ignore
-    except ModuleNotFoundError as exc:
-        raise SystemExit(
-            "error: kagglehub is required. "
-            "Install it with `python3 -m pip install 'kagglehub>=1.0.2'`."
-        ) from exc
+    except ModuleNotFoundError:
+        script.missing_package("kagglehub", "this command; or add --via cli to use the Kaggle CLI")
+        raise SystemExit(script.EXIT_NOT_INSTALLED) from None
     return kagglehub
 
 

@@ -1,12 +1,13 @@
 #!/usr/bin/env python3
-"""Fetch the overview pages for a Kaggle hackathon.
+"""Read the overview pages of a Kaggle hackathon: rules, requirements, judging.
 
-Returns the full `pages` array (rules, eligibility, rubric, prizes) from the
-`get_hackathon_overview` MCP endpoint. Output is JSON inside one
-untrusted-content block; use --pretty for indented output.
+    hackathon_overview.py kaggle-measuring-agi                    list the pages
+    hackathon_overview.py kaggle-measuring-agi --page evaluation  print one page
+    hackathon_overview.py kaggle-measuring-agi --all              print every page
 
-The overview is public: no credentials are needed. A token, when one is
-configured, is sent as well.
+Calls `get_hackathon_overview`. The overview is public: no credential is
+needed. A token, when one is configured, is sent as well. The options are the
+same as competition_pages.py, which reads any competition.
 """
 
 from __future__ import annotations
@@ -18,83 +19,26 @@ from pathlib import Path
 SKILL_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials, untrusted  # noqa: E402
-from shared.mcp_client import (  # noqa: E402
-    classify_result,
-    extract_json,
-    mcp_call,
-    print_failure,
-    resolve_token,
-)
+from shared import competition, credentials, script  # noqa: E402
 
-SOURCE = "kaggle-mcp"
 TOOL = "get_hackathon_overview"
 
 
-def fetch_overview(competition: str, token: str = "") -> dict:
-    resp = mcp_call(TOOL, {"request": {"competitionName": competition}}, token=token)
-    status = classify_result(resp)
-    if status != "ok":
-        return {"status": status, "raw": resp}
-    payload = extract_json(resp) or {}
-    return {"status": "ok", "competition": competition, "data": payload}
-
-
-def find_page(pages: list[dict], *needles: str) -> dict | None:
-    """Return the first page whose `name` contains any of the needles (case-insensitive)."""
-    for page in pages or []:
-        name = (page.get("name") or "").lower()
-        if any(n.lower() in name for n in needles):
-            return page
-    return None
-
-
-def main() -> int:
-    parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
-    parser.add_argument("--competition", required=True, help="Hackathon competition slug")
-    parser.add_argument("--pretty", action="store_true", help="Indent JSON output")
-    parser.add_argument(
-        "--summary",
-        action="store_true",
-        help="Print a one-line-per-page summary instead of full JSON",
+def main(argv: list[str] | None = None) -> int:
+    parser = argparse.ArgumentParser(
+        description="Read the overview pages of a Kaggle hackathon: rules, requirements, judging.",
+        epilog="No credential is needed.",
     )
-    args = parser.parse_args()
+    script.add_competition(parser)
+    competition.add_page_arguments(parser)
+    args = parser.parse_args(argv)
+    (slug,) = script.positionals(parser, args)
 
     credentials.load_configured_env_file()
-    token = resolve_token()
-
-    result = fetch_overview(args.competition, token)
-    if result["status"] != "ok":
-        return print_failure(
-            result["raw"],
-            tool=TOOL,
-            had_token=bool(token),
-            competition=args.competition,
-            indent=2 if args.pretty else None,
-        )
-
-    # Overview pages are host-authored markdown: everything stays inside one
-    # untrusted block so the agent reads it as data.
-    with untrusted.Block(source=SOURCE, tool=TOOL, competition=args.competition) as block:
-        if args.summary:
-            pages = (result.get("data") or {}).get("pages") or []
-            block.write(f"competition: {args.competition}")
-            block.write(f"page count: {len(pages)}")
-            for p in pages:
-                name = p.get("name", "<unnamed>")
-                content = p.get("content") or ""
-                preview = content[:80].replace("\n", " ")
-                block.write(f"  - {name}: {preview}")
-            rules = find_page(pages, "rule", "official")
-            rubric = find_page(pages, "rubric", "judging", "criteria", "evaluation")
-            eligibility = find_page(pages, "eligib", "entry", "submission requirements")
-            block.write("\nKey pages:")
-            block.write(f"  rules:       {'found' if rules else 'MISSING'}")
-            block.write(f"  rubric:      {'found' if rubric else 'MISSING'}")
-            block.write(f"  eligibility: {'found' if eligibility else 'MISSING'}")
-        else:
-            block.write_json(result, indent=2 if args.pretty else None)
-    return 0
+    result = competition.fetch_pages(slug, tool=TOOL)
+    if not result.ok:
+        return result.fail(competition=slug, indent=2 if args.pretty else None)
+    return competition.print_pages(args, slug, result, tool=TOOL)
 
 
 if __name__ == "__main__":

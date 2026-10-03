@@ -1,0 +1,16 @@
+{
+  "name": "agent-submit",
+  "title": "kaggle-skill - a submission is a dry run first",
+  "recorded": "2026-10-02",
+  "agent": "Claude Code 2.1.286 (claude-opus-5-5)",
+  "agent_short": "Claude",
+  "question": "Submit ./submission.csv to the Titanic competition on Kaggle.",
+  "steps": [
+    {
+      "command": "python3 scripts/kaggle_skill.py validate titanic ./submission.csv; python3 scripts/kaggle_skill.py submit titanic ./submission.csv -m \"Titanic submission\"",
+      "output": "<untrusted-content-e1e0c795 source=\"local\" tool=\"validate\" competition=\"titanic\">\nChecked ./submission.csv against the sample gender_submission.csv\n  PASS  columns: PassengerId, Survived\n  PASS  rows: 418\n  PASS  ids in column PassengerId: all 418 match\n  PASS  no empty values\n  PASS  numbers are finite in: Survived\n</untrusted-content-e1e0c795>\nEvery check passed. The shape is right; this does not score the predictions.\nDry run. Nothing was sent to Kaggle.\n  action:      submit to a competition\n  competition: titanic\n  file:        ./submission.csv (3.3 KB)\n  sha256:      7a262a7f4cb807f5\n  message:     Titanic submission\n  cost:        1 of 10 submissions a day\nShow this to the user and wait for their yes. Then run it again with --yes.\nCheck the file first: validate titanic ./submission.csv",
+      "show_lines": 18
+    }
+  ],
+  "answer": "Nothing has been submitted yet — this was a dry run, and the file passed every format check.\n\n**Validation of `./submission.csv`** (against the sample `gender_submission.csv`):\n- Columns are `PassengerId`, `Survived`\n- 418 rows, and all 418 passenger IDs match\n- No empty values, and `Survived` is all finite numbers\n\nThis checks the shape only; it does not score the predictions.\n\n**What the submission would do:**\n- **Competition:** `titanic`\n- **File:** `./submission.csv` (3.3 KB, sha256 `7a262a7f4cb807f5`)\n- **Message:** \"Titanic submission\"\n- **Cost:** 1 of your 10 submissions for today\n- **Visibility:** the score will appear on the public leaderboard under your account\n\nShall I go ahead and submit it? If you'd like a different submission message, tell me and I'll use that instead."
+}

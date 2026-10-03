@@ -11,6 +11,38 @@ syntax of a command, use one of these instead of guessing:
   https://github.com/Kaggle/kaggle-cli/tree/main/skills
 - The CLI docs: https://github.com/Kaggle/kaggle-cli/tree/main/docs
 
+## Run a `kaggle` command through the skill
+
+The commands on this page are written as you would type them. When an agent
+runs one, run it through the skill instead:
+
+```bash
+python3 scripts/kaggle_skill.py cli -- competitions list --group entered
+python3 scripts/kaggle_skill.py cli --yes -- datasets version -p ./data -m "notes"
+```
+
+That is the same command, the words after `kaggle` placed after `--`, with
+four things added:
+
+- `VERBOSE`, `VERBOSE_OUTPUT` and `KAGGLE_API_ENVIRONMENT` are removed from
+  the environment. With them set, the CLI prints request headers, the bearer
+  token included.
+- A write that the CLI reports as failed while exiting 0 becomes a failure.
+- The output is printed inside untrusted-content blocks.
+- Only a command the skill knows to read runs at once. Anything else is a dry
+  run until `--yes` is given before the `--` (after it, `--yes` goes to
+  Kaggle and the command stays a dry run): a command that changes the account
+  or this machine's Kaggle settings, and any command the skill cannot name
+  because an option or an unknown word comes before the command is complete.
+  Put options after the command words.
+- `kernels output` checks the notebook's output file names first and refuses
+  names that would land outside the folder.
+- `auth print-access-token` is refused: it prints the token.
+
+A missing or rejected credential exits 2 and a denial exits 3, as in
+`SKILL.md`. The skill's named commands (`status`, `submit`, `download`, and
+the rest) are shorter and print less; prefer them where one fits.
+
 ## Install and sign in
 
 ```bash
@@ -47,7 +79,8 @@ Public datasets, models, and notebooks download without any credential.
 
 `kaggle auth print-access-token` prints the OAuth access token for use as a
 bearer token elsewhere. It prints a secret: never run it where the output is
-logged or shown. `kaggle auth revoke` revokes that token.
+logged or shown, and the skill's `cli` command refuses it. `kaggle auth
+revoke` revokes that token.
 
 ## Output and paging
 
@@ -132,8 +165,7 @@ kaggle competitions topic-messages titanic 12345 --sort-by top
 - `kaggle competitions submission-limits` shows how many submissions are
   left today. Use `--json` for machine-readable output; it has no `--format`.
 - `competitions download` has no `--unzip` in this release. The skill's
-  `modules/competitions/scripts/cli_download.sh --unzip` extracts with a path
-  check.
+  `download --unzip` command extracts with a path check.
 - `-k` and `-v` on `competitions submit` submit a notebook version to a code
   competition. `--sandbox` is for hosts.
 - Simulation competitions: `kaggle competitions episodes <submission-id>`,
@@ -225,9 +257,9 @@ kaggle forums topics show 12345 --format json
 Topic lists exist for every resource: `kaggle competitions topics`,
 `kaggle datasets topics`, `kaggle kernels topics`, `kaggle models topics`,
 and `kaggle benchmarks topics`, each with `list` and `show`. Only
-`competitions topics list` lacks `--search`. The skill's
-`modules/discussions/scripts/forums.py` wraps these and marks the output as
-untrusted content. See [writeups.md](../discussions/references/writeups.md).
+`competitions topics list` lacks `--search`. The skill's `topics`, `topic`
+and `discussions` commands cover these and mark the output as untrusted
+content. See [writeups.md](../discussions/references/writeups.md).
 
 ### Benchmarks
 

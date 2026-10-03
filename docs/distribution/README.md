@@ -1,11 +1,12 @@
 # Distribution
 
 Where `kaggle-skill` is published, what each place serves, and how a release
-is made. Current version: 2.5.1.
+is made. Current version: 3.0.0.
 
 The project is independent and unofficial. It is not affiliated with,
-endorsed by, or sponsored by Kaggle or Google, and it is not listed in
-Anthropic's or OpenAI's plugin directories.
+endorsed by, or sponsored by Kaggle or Google. It is not listed in OpenAI's
+plugin directory, and its submission to Anthropic's is in review; it does
+not claim to be listed in either.
 
 ## Where it is published
 
@@ -14,7 +15,7 @@ Anthropic's or OpenAI's plugin directories.
 | This repository, as a Claude Code marketplace | `.claude-plugin/marketplace.json` | `/plugin marketplace add shepsci/kaggle-skill`, then `/plugin install kaggle@shepsci` |
 | This repository, as a Codex marketplace | `.agents/plugins/marketplace.json`, `.codex-plugin/plugin.json` | `codex plugin marketplace add shepsci/kaggle-skill --ref main`, then `codex plugin add kaggle@shepsci` |
 | skills.sh | Reads `skills/kaggle/` from this repository | `npx skills add shepsci/kaggle-skill` |
-| ClawHub | Published by hand from `skills/kaggle/` | `clawhub install kaggle` |
+| ClawHub | Published by hand from a `git archive` of `skills/kaggle/` | `clawhub install kaggle` |
 | Agent Plugins format | Root `plugin.json` | For hosts that read that format |
 
 The plugin and the skill are both named `kaggle`; the selector is
@@ -34,7 +35,7 @@ The plugin and the skill are both named `kaggle`; the selector is
 
    ```bash
    python3 -m pytest -q
-   ruff check .
+   ruff check . && ruff format --check .
    claude plugin validate .claude-plugin/plugin.json --strict
    claude plugin validate .claude-plugin/marketplace.json --strict
    agentskills validate skills/kaggle
@@ -49,7 +50,33 @@ The plugin and the skill are both named `kaggle`; the selector is
    ```
 
 5. Merge, tag `v<version>`, and publish the GitHub release.
-6. Publish to ClawHub from `skills/kaggle/`, then run its scan.
+6. Publish to ClawHub, then read its scan. Publish from an export of the tag,
+   never from a working checkout, so that an untracked file cannot be
+   uploaded:
+
+   ```bash
+   D=$(mktemp -d)
+   git archive v<version> skills/kaggle | tar -x -C "$D"
+   clawhub skill publish "$D/skills/kaggle" --slug kaggle --name "Kaggle" --version <version>
+   ```
+
+## The plugin-only build
+
+The repository root is the plugin root, so an install from `main` also
+carries the tests, the tools and the demo media. `tools/build_plugin.py`
+writes the plugin alone, about 100 files:
+
+```bash
+python3 tools/build_plugin.py /tmp/kaggle-plugin
+claude plugin validate /tmp/kaggle-plugin/.claude-plugin/plugin.json --strict
+```
+
+CI builds and validates it on every pull request. Publishing that folder as a
+branch, and pointing the Claude directory's tracked branch at it, gives the
+directory a smaller thing to scan without a new submission. The directory
+does not allow the branch to change while a submission is in review, and a
+different folder in the same branch would need a new submission, so this is a
+step for after the review.
 
 ## ClawHub
 
@@ -96,8 +123,9 @@ control of the server's domain. Codex users install from this repository.
 
 ## Checks that run by themselves
 
-- **Every pull request**: the offline tests on Python 3.11 to 3.13, `ruff`,
-  `shellcheck`, the skill and plugin validators, and the version rule.
+- **Every pull request**: the offline tests on Python 3.11 to 3.14, `ruff`,
+  the skill and plugin validators, the plugin-only build, and the version
+  rule.
 - **Weekly**: Kaggle's MCP tool list, the Kaggle packages on PyPI, the Kaggle
   CLI's command tree, and Kaggle's answer to an OAuth client registration are
   compared with the snapshots in `tests/fixtures/`. A difference opens an

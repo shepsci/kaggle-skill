@@ -1,7 +1,8 @@
 # Hackathons
 
-Retrieve a hackathon's overview pages, its roster of writeups, and each
-writeup in full, through the Kaggle MCP server.
+A hackathon is a competition judged from writeups. Read its overview pages,
+its roster of writeups, and each writeup in full, through the Kaggle MCP
+server.
 
 ## When to use
 
@@ -19,29 +20,33 @@ writeup in full, through the Kaggle MCP server.
 | The roster | Yes, and only for hosts, judges, and teammates of that hackathon |
 | Resolved links, CSV export | Hosts and judges |
 
-Check credentials with `python3 modules/setup/scripts/check_all_credentials.py
---verify` when a step is refused.
+Run `python3 scripts/kaggle_skill.py credentials --verify` when a step is
+refused.
 
-## Scripts
+## Commands
 
 ```bash
-python3 modules/competitions/hackathons/scripts/hackathon_overview.py --competition kaggle-measuring-agi --summary
-python3 modules/competitions/hackathons/scripts/hackathon_overview.py --competition kaggle-measuring-agi --pretty
-python3 modules/competitions/hackathons/scripts/list_writeups.py --competition kaggle-measuring-agi --array
-python3 modules/competitions/hackathons/scripts/list_writeups.py --competition kaggle-measuring-agi --winner-only --array
-python3 modules/competitions/hackathons/scripts/fetch_writeup.py --writeup-id 123456
-python3 modules/competitions/hackathons/scripts/fetch_writeup.py --competition kaggle-measuring-agi --slug my-team-writeup
+python3 scripts/kaggle_skill.py hackathon kaggle-measuring-agi
+python3 scripts/kaggle_skill.py hackathon kaggle-measuring-agi --page evaluation
+python3 scripts/kaggle_skill.py writeups kaggle-measuring-agi --winners
+python3 scripts/kaggle_skill.py writeup 71617
+python3 scripts/kaggle_skill.py writeup https://www.kaggle.com/competitions/kaggle-measuring-agi/writeups/metacognition-benchmark-do-ai-models-know-what-th
 ```
 
-- `hackathon_overview.py` prints the overview pages. `--summary` lists them
-  and says whether the rules, rubric, and eligibility pages were found.
-- `list_writeups.py` prints one JSON object per writeup, or one object with a
-  `rows` array with `--array`. Each row has `row_id`, `writeup_id`, `slug`,
-  `url`, `title`, `authors`, `team_name`, track titles, and awarded prizes.
-  `--array` also reports `total_count`, `fetched`, and `truncated`.
-- `fetch_writeup.py` tries `get_writeup` (with `--writeup-id`), then
-  `get_writeup_by_topic` (`--topic-id`), then `get_writeup_by_slug`
-  (`--competition` with `--slug`), and prints the first that succeeds.
+- `hackathon` lists the overview pages with their sizes; `--page NAME` prints
+  one as text. The options are those of `pages`, which also works for a
+  hackathon.
+- `writeups` prints a few lines per writeup: the writeup id, the team, the
+  title, the prizes or tracks, and the URL. `--json` gives the same rows as
+  JSON with `total_count`, `fetched`, and `truncated`; `--full` adds every
+  field the server returns.
+- `writeup` takes a writeup id, a writeup URL, or a discussion URL, and prints
+  the title, the authors, the body once, and the links. `--full` prints the
+  server's whole answer. It tries `get_writeup`, then `get_writeup_by_topic`
+  (`--topic-id`), then `get_writeup_by_slug` (`--competition` with `--slug`).
+
+The scripts are `scripts/hackathon_overview.py`, `scripts/list_writeups.py`
+and `scripts/fetch_writeup.py`.
 
 ## Exit status
 

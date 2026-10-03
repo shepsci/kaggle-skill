@@ -1,5 +1,19 @@
 #!/usr/bin/env python3
-"""Discover leaderboard solution writeup links for a Kaggle competition."""
+"""Find the solution writeups of a Kaggle competition, by leaderboard rank.
+
+    leaderboard_writeups.py titanic
+    leaderboard_writeups.py https://www.kaggle.com/competitions/titanic --top 10 --preview
+    leaderboard_writeups.py arc-prize-2025 --fallback-search --preview
+
+Teams can link a solution writeup to their leaderboard row. This script reads
+the public leaderboard from kaggle.com and lists those links in rank order.
+--preview adds the title and the first lines of each writeup page. When the
+leaderboard holds no links, --fallback-search looks for writeup-like
+discussion topics instead.
+
+No credential and no Python package are needed for a public leaderboard. A
+token, when one is configured, is sent to www.kaggle.com only.
+"""
 
 from __future__ import annotations
 
@@ -10,18 +24,14 @@ import re
 import sys
 from pathlib import Path
 from typing import Any
-from urllib.parse import unquote, urlparse
-
-import requests
-from urllib3.util import parse_url
+from urllib.parse import unquote
 
 KAGGLE_BASE = "https://www.kaggle.com"
-KAGGLE_HOSTS = {"www.kaggle.com", "kaggle.com"}
 MAX_PREVIEW_REDIRECTS = 3
 SKILL_ROOT = Path(__file__).resolve().parents[3]
 sys.path.insert(0, str(SKILL_ROOT))
 
-from shared import credentials, untrusted  # noqa: E402
+from shared import credentials, net, script, untrusted  # noqa: E402
 from shared.mcp_client import extract_text as mcp_extract_text  # noqa: E402
 from shared.mcp_client import mcp_call  # noqa: E402
 
@@ -43,19 +53,7 @@ def resolve_token() -> str | None:
 
 def competition_slug(value: str) -> str:
     """Normalize a competition slug or URL to the plain competition slug."""
-    text = value.strip()
-    parsed = urlparse(text)
-    path = parsed.path if parsed.scheme else text
-    parts = [part for part in path.split("/") if part]
-    if "competitions" in parts:
-        idx = parts.index("competitions")
-        if idx + 1 < len(parts):
-            return parts[idx + 1]
-    if "c" in parts:
-        idx = parts.index("c")
-        if idx + 1 < len(parts):
-            return parts[idx + 1]
-    return parts[-1] if parts else text
+    return script.competition_slug(value)
 
 
 def _iter_dicts(value: Any):
@@ -283,44 +281,40 @@ def extract_writeup_preview(html_text: str, max_chars: int = 360) -> dict[str, s
     return {"title": title, "excerpt": excerpt}
 
 
+class KaggleRequestFailed(RuntimeError):
+    """kaggle.com did not give a usable answer. ``detail`` is safe to print."""
+
+    def __init__(self, detail: str) -> None:
+        super().__init__(detail)
+        self.detail = detail
+
+
 def is_kaggle_https_url(url: str) -> bool:
-    """True only for an https URL whose real destination is kaggle.com.
-
-    The check runs on the URL as requests will send it, because
-    ``urllib.parse`` and requests disagree about inputs such as
-    ``https://evil.example\\@www.kaggle.com/x``.
-    """
-    if "\\" in url:
-        return False
-    try:
-        prepared = requests.Request("GET", url).prepare().url or ""
-        parts = parse_url(prepared)
-    except (requests.RequestException, ValueError):
-        return False
-    host = (parts.host or "").lower()
-    return parts.scheme == "https" and parts.auth is None and host in KAGGLE_HOSTS
+    """True only for an https URL whose destination is kaggle.com."""
+    return net.is_kaggle_url(url)
 
 
-def fetch_writeup_preview(
-    session: requests.Session,
-    url: str,
-    max_chars: int = 360,
-) -> dict[str, str]:
-    """Fetch and preview one Kaggle writeup page.
+def _get(url: str, *, headers: dict[str, str] | None = None, opener: Any = None) -> net.Response:
+    """GET a kaggle.com URL. Redirects are followed by hand, so every hop is checked.
 
-    Previews are fetched without credentials and only from kaggle.com.
-    Redirects are followed by hand so every hop gets the same check.
+    Raises ValueError when a hop leaves kaggle.com or there are too many.
     """
     for _ in range(MAX_PREVIEW_REDIRECTS + 1):
-        if not is_kaggle_https_url(url):
-            raise ValueError("not an https kaggle.com URL")
-        resp = session.get(url, timeout=30, allow_redirects=False)
-        if resp.status_code in (301, 302, 303, 307, 308) and resp.headers.get("Location"):
-            url = requests.compat.urljoin(url, resp.headers["Location"])
-            continue
-        resp.raise_for_status()
-        return extract_writeup_preview(resp.text, max_chars=max_chars)
+        response = net.request(
+            "GET", net.kaggle_url(url), headers=headers, opener=opener, timeout=30
+        )
+        if not response.location:
+            return response
+        url = response.location
     raise ValueError("too many redirects")
+
+
+def fetch_writeup_preview(url: str, max_chars: int = 360) -> dict[str, str]:
+    """Fetch and preview one Kaggle writeup page, without credentials."""
+    response = _get(url, headers={"Accept": "text/html,application/xhtml+xml"})
+    if response.status != 200:
+        raise KaggleRequestFailed(f"HTTP {response.status}")
+    return extract_writeup_preview(response.text, max_chars=max_chars)
 
 
 def add_writeup_previews(
@@ -333,8 +327,6 @@ def add_writeup_previews(
     ``token`` is accepted for backward compatibility and is not used: the
     preview requests carry no Authorization header.
     """
-    session = requests.Session()
-    session.headers.update({"Accept": "text/html,application/xhtml+xml"})
     previewed: list[dict[str, Any]] = []
     for row in rows:
         item = dict(row)
@@ -345,12 +337,13 @@ def add_writeup_previews(
         url = item.get("writeup_url")
         if isinstance(url, str) and url:
             try:
-                item["preview"] = fetch_writeup_preview(session, url, max_chars=max_chars)
+                item["preview"] = fetch_writeup_preview(url, max_chars=max_chars)
             except ValueError as exc:
                 item["preview_skipped"] = str(exc)
-            except requests.RequestException as exc:
-                status = getattr(getattr(exc, "response", None), "status_code", None)
-                item["preview_error"] = f"HTTP {status}" if status else type(exc).__name__
+            except KaggleRequestFailed as exc:
+                item["preview_error"] = exc.detail
+            except net.RequestError as exc:
+                item["preview_error"] = exc.detail or exc.kind
         previewed.append(item)
     return previewed
 
@@ -407,9 +400,9 @@ def search_public_writeup_topics(
         token=token,
         timeout=30,
     )
-    text = mcp_extract_text(resp)
+    answer = mcp_extract_text(resp)
     try:
-        payload = json.loads(text)
+        payload = json.loads(answer)
     except (TypeError, json.JSONDecodeError):
         return []
 
@@ -447,10 +440,24 @@ def search_public_writeup_topics(
     return rows
 
 
-def _post_json(session: requests.Session, path: str, body: dict[str, Any]) -> dict[str, Any]:
-    resp = session.post(f"{KAGGLE_BASE}{path}", json=body, timeout=60)
-    resp.raise_for_status()
-    return resp.json()
+def _post_json(opener: Any, path: str, body: dict[str, Any], headers: dict) -> dict[str, Any]:
+    response = net.request(
+        "POST",
+        f"{KAGGLE_BASE}{path}",
+        headers=headers,
+        data=json.dumps(body).encode("utf-8"),
+        opener=opener,
+        timeout=60,
+    )
+    if response.status != 200:
+        raise KaggleRequestFailed(f"HTTP {response.status}")
+    try:
+        payload = response.json()
+    except ValueError:
+        raise KaggleRequestFailed("the answer was not JSON") from None
+    if not isinstance(payload, dict):
+        raise KaggleRequestFailed("the answer was not a JSON object")
+    return payload
 
 
 def fetch_leaderboard_payload(slug: str, token: str | None = None) -> dict[str, Any]:
@@ -459,66 +466,128 @@ def fetch_leaderboard_payload(slug: str, token: str | None = None) -> dict[str, 
     Public leaderboards answer without credentials. The token, when there is
     one, goes only to www.kaggle.com.
     """
-    session = requests.Session()
-    session.headers.update({"Content-Type": "application/json", "Accept": "application/json"})
+    opener = net.make_opener(cookies=True)
+    headers = {"Accept": "application/json"}
     if token:
-        session.headers["Authorization"] = f"Bearer {token}"
-    home = session.get(KAGGLE_BASE, timeout=30)
-    home.raise_for_status()
-    xsrf = session.cookies.get("XSRF-TOKEN")
+        headers["Authorization"] = f"Bearer {token}"
+    # The first request collects the cookie that the two calls below must echo.
+    home = _get(KAGGLE_BASE, headers=headers, opener=opener)
+    if home.status != 200:
+        raise KaggleRequestFailed(f"HTTP {home.status}")
+    post_headers = {**headers, "Content-Type": "application/json"}
+    xsrf = net.cookie(opener, "XSRF-TOKEN")
     if xsrf:
-        session.headers["X-XSRF-TOKEN"] = unquote(xsrf)
+        post_headers["X-XSRF-TOKEN"] = unquote(xsrf)
 
     competition_payload = _post_json(
-        session,
+        opener,
         "/api/i/competitions.CompetitionService/GetCompetition",
         {"competitionName": slug},
+        post_headers,
     )
     competition_id = _extract_competition_id(competition_payload)
     leaderboard = _post_json(
-        session,
+        opener,
         "/api/i/competitions.LeaderboardService/GetLeaderboard",
         {"competitionId": competition_id},
+        post_headers,
     )
     leaderboard["_competition_id"] = competition_id
     return leaderboard
 
 
+def text_lines(result: dict[str, Any]) -> list[str]:
+    """The result as a few lines per team."""
+    slug = result["competition"]
+    writeups = result["writeups"]
+    lines: list[str] = []
+    if writeups and result["source"] == "leaderboard":
+        lines.append(f"{len(writeups)} solution writeups linked from the {slug} leaderboard:")
+    elif writeups:
+        lines.append(
+            f"The {slug} leaderboard links no writeups. "
+            f"{len(writeups)} discussion topics that look like writeups, found by search:"
+        )
+    elif result["source"] == "content-search-fallback":
+        lines.append(
+            f"The {slug} leaderboard links no solution writeups, and a search of its "
+            "discussions found none."
+        )
+    else:
+        lines.append(f"The {slug} leaderboard links no solution writeups.")
+    for row in writeups:
+        rank = f"#{row['rank']}" if row.get("rank") else "-"
+        score = f" · score {row['score']}" if row.get("score") not in (None, "") else ""
+        lines.append(f"  {rank:>5}  {row.get('team_name') or '(no team name)'}{score}")
+        lines.append(f"         {row['writeup_url']}")
+        preview = row.get("preview")
+        if isinstance(preview, dict):
+            title, excerpt = preview.get("title", ""), preview.get("excerpt", "")
+            # A page that shows nothing before its scripts run gives only its title.
+            shown = title if excerpt in ("", title) else f"{title}: {excerpt}"
+            lines.append(f"         {shown}")
+        elif row.get("preview_error") or row.get("preview_skipped"):
+            reason = row.get("preview_error") or row.get("preview_skipped")
+            lines.append(f"         (no preview: {reason})")
+    top = result.get("leaderboard_top") or []
+    if top and not writeups:
+        lines.append(f"Top of the leaderboard ({len(top)} rows):")
+        for row in top:
+            rank = f"#{row['rank']}" if row.get("rank") else "-"
+            lines.append(f"  {rank:>5}  {row.get('team_name') or ''} · {row.get('score') or ''}")
+    return lines
+
+
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
-    parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("competition", help="Competition slug or Kaggle competition URL")
-    parser.add_argument("--top-k", type=int, default=20, help="Return only the first K links")
-    parser.add_argument("--preview", action="store_true", help="Fetch title/excerpt previews")
+    parser = argparse.ArgumentParser(
+        description="Find the solution writeups of a Kaggle competition, by leaderboard rank.",
+        epilog="No credential is needed for a public leaderboard.",
+    )
+    script.add_competition(parser)
     parser.add_argument(
-        "--preview-chars", type=int, default=360, help="Maximum preview excerpt length"
+        "--top",
+        "--top-k",
+        dest="top_k",
+        type=script.positive_int,
+        default=20,
+        metavar="N",
+        help="Print at most N writeups (default: 20)",
+    )
+    parser.add_argument(
+        "--preview", action="store_true", help="Add the title and first lines of each writeup"
+    )
+    parser.add_argument(
+        "--preview-chars", type=int, default=360, help="Longest preview, in characters"
     )
     parser.add_argument(
         "--fallback-search",
         action="store_true",
-        help="Search public Kaggle discussions when the leaderboard exposes no writeup URLs",
+        help="When the leaderboard links no writeups, search public discussions for them",
     )
-    parser.add_argument("--pretty", action="store_true", help="Pretty-print JSON")
-    parser.add_argument(
-        "--raw-json",
-        action="store_true",
-        help="Emit bare JSON for a program to parse. The values are still Kaggle-supplied data",
-    )
-    return parser.parse_args(argv)
+    script.add_json(parser)
+    # Older releases printed bare JSON here; it now means --json, inside a block.
+    parser.add_argument("--raw-json", action="store_true", help=argparse.SUPPRESS)
+    args = parser.parse_args(argv)
+    (args.competition,) = script.positionals(parser, args)
+    return args
 
 
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
-    slug = competition_slug(args.competition)
+    slug = args.competition
     credentials.load_configured_env_file()
     token = resolve_token()
 
     try:
         payload = fetch_leaderboard_payload(slug, token)
-    except requests.RequestException as exc:
-        # The exception text is not printed: for a malformed header it quotes the header.
-        status = getattr(getattr(exc, "response", None), "status_code", None)
-        detail = f"HTTP {status}" if status else type(exc).__name__
-        print(f"error: the request to Kaggle failed ({detail})", file=sys.stderr)
+    except net.RequestError as exc:
+        # Only the kind of failure is printed: a library message can quote a header.
+        print(f"error: the request to Kaggle failed ({exc.detail or exc.kind})", file=sys.stderr)
+        if exc.kind == "certificate":
+            print(net.CERTIFICATE_HINT, file=sys.stderr)
+        return 1
+    except KaggleRequestFailed as exc:
+        print(f"error: the request to Kaggle failed ({exc.detail})", file=sys.stderr)
         return 1
     except ValueError:
         print("error: Kaggle's answer did not contain the competition", file=sys.stderr)
@@ -531,7 +600,7 @@ def main(argv: list[str] | None = None) -> int:
         "writeups": writeups,
     }
     if not writeups:
-        result["leaderboard_top"] = extract_ranked_teams(payload, top_k=args.top_k)
+        result["leaderboard_top"] = extract_ranked_teams(payload, top_k=min(args.top_k, 10))
     if args.fallback_search and not writeups and isinstance(payload.get("_competition_id"), int):
         result["source"] = "content-search-fallback"
         result["note"] = (
@@ -552,17 +621,15 @@ def main(argv: list[str] | None = None) -> int:
             max_chars=args.preview_chars,
         )
     indent = 2 if args.pretty else None
-    if args.raw_json:
-        print(untrusted.dumps(result, indent=indent, sort_keys=args.pretty))
+    attrs = {"source": "kaggle-web", "tool": "leaderboard_writeups", "competition": slug}
+    if args.json or args.raw_json:
+        untrusted.emit_json(result, indent=indent, sort_keys=args.pretty, **attrs)
     else:
-        untrusted.emit_json(
-            result,
-            source="kaggle-web",
-            tool="leaderboard_writeups",
-            competition=slug,
-            indent=indent,
-            sort_keys=args.pretty,
-        )
+        with untrusted.Block(**attrs) as block:
+            for line in text_lines(result):
+                block.write(line)
+        if not result["writeups"] and not args.fallback_search:
+            print("Add --fallback-search to look for writeups among the discussion topics.")
     return 0
 
 
