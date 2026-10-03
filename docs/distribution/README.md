@@ -1,7 +1,7 @@
 # Distribution
 
 Where `kaggle-skill` is published, what each place serves, and how a release
-is made. Current version: 3.0.0.
+is made. Current version: 3.1.0.
 
 The project is independent and unofficial. It is not affiliated with,
 endorsed by, or sponsored by Kaggle or Google. It is not listed in OpenAI's

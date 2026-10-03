@@ -104,6 +104,10 @@ def fact_lines(
         ("host", info["host"] or "not given"),
         ("category", info["category"] or "not given"),
         ("metric", info["metric"] or "not given (read the evaluation page)"),
+    ]
+    if info.get("evaluation"):
+        rows.append(("evaluation", info["evaluation"]))
+    rows += [
         ("prize", info["reward"] or "not given"),
         ("deadline", text.when(info.get("deadline"), now)),
     ]
@@ -160,6 +164,27 @@ def find_page(pages: list[dict] | None, *needles: str) -> dict | None:
         if any(needle in name for needle in wanted):
             return page
     return None
+
+
+def page_summary(page: dict | None, limit: int = 300) -> str:
+    """The start of a page as one line: its first sentences, about ``limit`` characters.
+
+    Headings and images are skipped, so the line starts with what the page says.
+    """
+    if not page:
+        return ""
+    body = text.to_text(str(page.get("content") or ""))
+    kept = [
+        line
+        for line in body.splitlines()
+        if line.strip() and not line.lstrip().startswith(("#", "!["))
+    ]
+    flat = text.collapse(text.plain(" ".join(kept)))
+    if len(flat) <= limit:
+        return flat
+    cut = flat[:limit]
+    end = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
+    return cut[: end + 1] if end > limit // 3 else cut.rstrip() + "…"
 
 
 def page_listing(pages: list[dict]) -> list[str]:

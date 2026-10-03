@@ -265,6 +265,41 @@ def compare(submission: Path, sample: Path) -> list[tuple[bool | None, str]]:
     return checks
 
 
+def print_checks(slug: str, file_name: str, sample_name: str, checks: list) -> None:
+    """The checks, inside a block: column names and ids come from files Kaggle supplied."""
+    labels = {True: "PASS", False: "FAIL", None: "WARN"}
+    with untrusted.Block(source="local", tool="validate", competition=slug) as block:
+        block.write(f"Checked {file_name} against the sample {sample_name}")
+        for passed, message in checks:
+            block.write(f"  {labels[passed]}  {message}")
+
+
+def check_against_sample(
+    slug: str, submission: Path, sample: str | None = None
+) -> tuple[list | None, str, str]:
+    """Find the sample (given, local, or downloaded) and compare.
+
+    Returns ``(checks, sample name, why not)``; ``checks`` is None when there
+    was no sample to compare with or a file could not be read.
+    """
+    with tempfile.TemporaryDirectory() as scratch:
+        if sample:
+            found: Path | None = Path(sample)
+            why = "" if found.is_file() else f"the sample file was not found: {sample}"
+            found = found if found.is_file() else None
+        else:
+            found = find_local_sample(slug, submission)
+            why = ""
+            if found is None:
+                found, why = download_sample(slug, Path(scratch))
+        if found is None:
+            return None, "", why or "no sample submission was found"
+        try:
+            return compare(submission, found), found.name, ""
+        except (OSError, UnicodeDecodeError, csv.Error) as exc:
+            return None, found.name, f"a file could not be read as CSV ({type(exc).__name__})"
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
         description="Check a submission file against the sample submission, before it uses a slot.",
@@ -282,33 +317,19 @@ def main(argv: list[str] | None = None) -> int:
         return script.fail("only CSV submissions can be checked", script.EXIT_USAGE)
 
     credentials.load_configured_env_file()
-    with tempfile.TemporaryDirectory() as scratch:
-        if args.sample:
-            sample = Path(args.sample)
-            if not sample.is_file():
-                return script.fail(f"the sample file was not found: {args.sample}", 2)
-        else:
-            sample = find_local_sample(slug, submission)
-            if sample is None:
-                sample, why = download_sample(slug, Path(scratch))
-                if sample is None:
-                    print(f"error: no sample submission to compare with: {why}.", file=sys.stderr)
-                    print("       Download it and pass --sample PATH.", file=sys.stderr)
-                    return script.EXIT_UNAVAILABLE
-        try:
-            checks = compare(submission, sample)
-        except (OSError, UnicodeDecodeError, csv.Error) as exc:
-            return script.fail(f"a file could not be read as CSV ({type(exc).__name__})", 1)
-        sample_name = sample.name
+    if args.sample and not Path(args.sample).is_file():
+        return script.fail(f"the sample file was not found: {args.sample}", 2)
+    checks, sample_name, why = check_against_sample(slug, submission, args.sample)
+    if checks is None and sample_name:
+        return script.fail(why, script.EXIT_FAILED)
+    if checks is None:
+        print(f"error: no sample submission to compare with: {why}.", file=sys.stderr)
+        print("       Download it and pass --sample PATH.", file=sys.stderr)
+        return script.EXIT_UNAVAILABLE
 
     failed = sum(1 for passed, _ in checks if passed is False)
     warned = sum(1 for passed, _ in checks if passed is None)
-    labels = {True: "PASS", False: "FAIL", None: "WARN"}
-    # Column names and ids come from the files, and the sample comes from Kaggle.
-    with untrusted.Block(source="local", tool="validate", competition=slug) as block:
-        block.write(f"Checked {file_name} against the sample {sample_name}")
-        for passed, message in checks:
-            block.write(f"  {labels[passed]}  {message}")
+    print_checks(slug, file_name, sample_name, checks)
     if failed:
         print(f"{failed} of {len(checks)} checks failed. Fix the file before submitting.")
         return script.EXIT_FAILED

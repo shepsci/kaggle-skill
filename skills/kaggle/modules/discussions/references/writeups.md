@@ -80,9 +80,12 @@ python3 scripts/kaggle_skill.py solutions titanic --fallback-search
 - The result lists rank, team, score, and writeup address for each team that
   linked one. When none did, the top of the leaderboard is shown instead.
 - `--json` prints the result as JSON inside a block.
-- `--preview` adds each writeup page's title and opening text. Preview
-  requests go only to `https://www.kaggle.com`, follow redirects only within
-  it, and carry no credential.
+- `--preview` adds each writeup's title and how its body starts, read from
+  the MCP server; a page that has no body there is read from its HTML.
+  Preview requests go only to `https://www.kaggle.com`, follow redirects only
+  within it, and carry no credential.
+- To read the top writeups in full: `writeup <url> <url> <url>`, each cut
+  after 8,000 characters (`--max-chars 0` for all).
 - `--fallback-search` searches public discussions for writeup-like topics
   when the leaderboard links none.
 - No credential is needed for a public competition.

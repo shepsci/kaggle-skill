@@ -218,6 +218,18 @@ def collapse(text: str) -> str:
     return _SPACE_RE.sub(" ", text or "").strip()
 
 
+_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+_EMPHASIS_RE = re.compile(r"(\*\*|__|`)")
+
+
+def plain(text: str) -> str:
+    """Markdown read as plain words: images dropped, links as their text, no ** or `."""
+    text = _IMAGE_RE.sub("", text)
+    text = _LINK_RE.sub(r"\1", text)
+    return _EMPHASIS_RE.sub("", text)
+
+
 def shorten(text: str, limit: int) -> str:
     """Cut ``text`` to ``limit`` characters, ending with an ellipsis when cut."""
     text = text or ""

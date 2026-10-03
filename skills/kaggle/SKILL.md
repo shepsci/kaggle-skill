@@ -5,7 +5,7 @@ license: MIT
 compatibility: "Python 3.11+. Public reads need nothing else. Downloads, submissions, notebooks and publishing need the pip packages kaggle>=2.2.4 and kagglehub>=1.0.2. Optional: kaggle-benchmarks>=0.6 for writing benchmark tasks locally. Needs outbound HTTPS to www.kaggle.com, api.kaggle.com and storage.googleapis.com."
 metadata:
   author: shepsci
-  version: "3.0.0"
+  version: "3.1.0"
   openclaw:
     homepage: https://github.com/shepsci/kaggle-skill
     primaryEnv: KAGGLE_API_TOKEN
@@ -54,10 +54,10 @@ competition is a slug (`titanic`) or its URL.
 
 | The user wants | Command |
 |---|---|
-| What a competition is: metric, deadline, prize, limits | `brief <competition>` |
+| What a competition is: metric and how it is scored, deadline, prize, limits | `brief <competition>` |
 | The rules, the evaluation page, the data description | `pages <competition> --page rules` (no `--page`: the list) |
 | What worked: solution writeups by rank | `solutions <competition> --preview` |
-| One writeup in full | `writeup <id or URL>` |
+| Writeups in full, one or several | `writeup <id or URL> [<id or URL> ...]` |
 | What people are discussing | `topics --competition <competition>`, then `topic <id>` |
 | Which competitions are running | `competitions`; `competitions --mine` |
 | Data files, top of the leaderboard, popular notebooks | `details <competition>` |
@@ -65,7 +65,7 @@ competition is a slug (`titanic`) or its URL.
 | The leaderboard, the gap to the medal lines, what moved | `leaderboard <competition>` |
 | The competition's data | `download <competition> [dir] --unzip` |
 | Whether a submission file is well formed | `validate <competition> <file>` |
-| To submit | `submit <competition> <file> -m "message"`, then `watch <competition>` |
+| To submit | `submit <competition> <file> -m "message"` (its dry run checks the file too), then `watch <competition>` |
 | What was submitted and how it scored | `ledger` |
 | A simulation submission's games | `episodes <submission id>` |
 | A hackathon's pages, its writeups | `hackathon <competition>`, `writeups <competition> --winners` |

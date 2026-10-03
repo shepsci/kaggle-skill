@@ -636,12 +636,36 @@ def test_submit_is_a_dry_run_by_default(load, run_main, fake_mcp, kaggle_calls, 
         "sha256:",
         "message:     baseline",
         "expected:    0.77",
+        "file check:  not run: no credential to list the competition's files with. "
+        "Add --sample PATH",
         "cost:        1 of 5 submissions a day",
         "Show this to the user and wait for their yes. Then run it again with --yes.",
-        "Check the file first: validate titanic",
     ):
         assert expected in out, expected
+    assert "Check the file first" not in out
     assert not Path(".kaggle-skill").exists()
+
+
+def test_the_submit_dry_run_checks_the_file(
+    load, run_main, fake_mcp, kaggle_calls, tmp_path, monkeypatch, blocks
+):
+    """One command shows the file's checks and the plan; the checks quote the file, so a block."""
+    monkeypatch.chdir(tmp_path)
+    calls = kaggle_calls()
+    fake_mcp({"get_competition": {**FACTS, "is_kernels_submissions_only": False}})
+    Path("downloads/titanic").mkdir(parents=True)
+    _csv(Path("downloads/titanic/gender_submission.csv"), SAMPLE)
+    _csv(Path("good.csv"), "id,target\n1,0.1\n2,0.2\n3,0.3\n")
+    _csv(Path("short.csv"), "id,target\n1,0.1\n")
+    mod = load("competition_submit")
+    code, out, _ = run_main(mod, "titanic", "good.csv", "-m", "x")
+    assert code == 0 and calls() == []
+    assert "PASS  rows: 3" in blocks(out)[0].body
+    assert "file check:  all 5 passed" in out
+    code, out, _ = run_main(mod, "titanic", "short.csv", "-m", "x")
+    assert code == 0 and "file check:  2 of 5 FAILED (above): Kaggle may reject the file" in out
+    code, out, _ = run_main(mod, "titanic", "short.csv", "-m", "x", "--sample", "good.csv")
+    assert "Checked short.csv against the sample good.csv" in blocks(out)[0].body
 
 
 def test_submit_with_yes_submits_and_records(

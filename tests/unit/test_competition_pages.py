@@ -251,6 +251,7 @@ def test_brief_prints_the_facts_in_a_few_hundred_characters(
     assert body.splitlines()[0] == "Titanic - Machine Learning from Disaster"
     for expected in (
         "metric:      Categorization Accuracy",
+        "evaluation:  Accuracy & speed",
         "prize:       50,000 USD",
         "deadline:    2030-01-01 00:00 UTC (in ",
         "teams:       10,615",
@@ -354,3 +355,17 @@ def test_brief_says_how_much_data_there_is(brief, fake_mcp, run_main, blocks):
     assert "  data:        819,640 files, 569.8 GB (.dcm 569.8 GB, .csv 9.2 MB)" in body
     info = blocks(run_main(brief, "rsna-knee", "--json")[1])[0].json()
     assert info["data"]["bytes"] == 569764475800 and info["data"]["types"][0]["extension"] == ".dcm"
+
+
+def test_a_page_summary_is_its_first_sentences_in_plain_words(load_script):
+    from shared import competition
+
+    page = {
+        "content": "# Evaluation\n![](chart.png)\nScores use **macro F1**, see the "
+        "[docs](https://x). " + "More detail follows here. " * 30
+    }
+    summary = competition.page_summary(page, limit=120)
+    assert summary.startswith("Scores use macro F1, see the docs.")
+    assert summary.endswith(".") and len(summary) <= 120
+    assert competition.page_summary(None) == ""
+    assert competition.page_summary({"content": "x" * 400}, limit=50) == "x" * 50 + "…"

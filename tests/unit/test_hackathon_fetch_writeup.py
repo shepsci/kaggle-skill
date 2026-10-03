@@ -259,3 +259,49 @@ def test_script_never_calls_get_hackathon_write_up(repo_root):
     text = (repo_root / SCRIPT).read_text()
     assert 'mcp_call("get_hackathon_write_up"' not in text
     assert "mcp_call('get_hackathon_write_up'" not in text
+
+
+def _writeup(n: int, words: int = 10) -> dict:
+    import json
+
+    payload = {"id": n, "title": f"Writeup {n}", "message": {"raw_markdown": "word " * words}}
+    return {"result": {"content": [{"type": "text", "text": json.dumps(payload)}]}}
+
+
+def test_several_writeups_in_one_call_each_in_its_own_block(mod, capsys, blocks):
+    """An agent comparing the top teams reads them in one command, not with `| head -c`."""
+    answers = iter([_writeup(1), _writeup(2), _writeup(3)])
+
+    def fake_mcp(tool, args, token="", **kw):
+        return next(answers)
+
+    with (
+        patch.object(sys, "argv", ["fetch_writeup.py", "1", "2", "3"]),
+        patch.object(mod, "mcp_call", side_effect=fake_mcp),
+        patch.object(mod, "resolve_token", return_value=""),
+    ):
+        rc = mod.main()
+    out = capsys.readouterr().out
+    assert rc == 0
+    assert [b.body.splitlines()[0] for b in blocks(out)] == [
+        "# Writeup 1",
+        "# Writeup 2",
+        "# Writeup 3",
+    ]
+
+
+def test_a_long_body_is_cut_by_default(mod, capsys, blocks, outside):
+    rc, out, _, _ = _run(mod, ["7"], {"get_writeup": _writeup(7, words=3000)}, capsys)
+    assert rc == 0 and len(blocks(out)[0].body) < mod.DEFAULT_MAX_CHARS + 200
+    assert "Add --max-chars 0 to read all of it." in outside(out)
+    rc, out, _, _ = _run(
+        mod, ["7", "--max-chars", "0"], {"get_writeup": _writeup(7, words=3000)}, capsys
+    )
+    assert "cut" not in outside(out) and len(blocks(out)[0].body) > 15000
+
+
+def test_options_name_one_writeup_only(mod, capsys):
+    with pytest.raises(SystemExit) as caught:
+        with patch.object(sys, "argv", ["fetch_writeup.py", "1", "2", "--topic-id", "5"]):
+            mod.main()
+    assert caught.value.code == 2

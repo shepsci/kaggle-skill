@@ -14,8 +14,12 @@ There are two kinds, and each says which it is:
   takes part.
 
 In both, colour codes are removed, long output is cut with a line that says
-how much was left out, and temporary folder paths are shortened. Nothing else
-is edited. Both kinds run with no Kaggle credential, so they show what anyone
+how much was left out, temporary folder paths are shortened, and a block's
+opening tag is shown without its attributes (`<untrusted-content-1a2b3c4d …>`)
+so that it fits on one row. In a session the agent's answer is drawn as a
+terminal shows prose: Markdown marks are left out, a link shows as its text,
+and a long answer is shown a screen at a time with time to read each one.
+Nothing else is edited. Both kinds run with no Kaggle credential, so they show what anyone
 gets and nothing about an account. A session keeps only the lines of each
 output that the demo shows: the rest is other people's writing.
 

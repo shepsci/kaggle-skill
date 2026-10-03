@@ -100,3 +100,9 @@ def test_when_and_span():
     assert text.span(timedelta(minutes=5, seconds=2)) == "5 min"
     assert text.day("2026-10-22T23:59:00Z") == "2026-10-22"
     assert text.day(None) == "-"
+
+
+def test_plain_reads_markdown_as_words():
+    assert text.plain("We **trained** a [model](https://x) with `lr=3e-4`.![](a.png)") == (
+        "We trained a model with lr=3e-4."
+    )

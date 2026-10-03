@@ -1,8 +1,9 @@
 #!/usr/bin/env python3
-"""Read one Kaggle writeup: title, authors, the body, and its links.
+"""Read Kaggle writeups: title, authors, the body, and its links.
 
     fetch_writeup.py 123456
     fetch_writeup.py https://www.kaggle.com/competitions/<competition>/writeups/<slug>
+    fetch_writeup.py <url> <url> <url>              several, one block each
     fetch_writeup.py --topic-id 654321
     fetch_writeup.py --competition <competition> --slug <slug>
 
@@ -11,9 +12,10 @@ The identifiers are tried in this order and the first that answers wins:
 `get_writeup_by_slug` (competition and slug). Published writeups are public:
 no credential is needed.
 
-The body is printed once, as Markdown. --json gives the same fields as JSON
-and --full the server's whole answer, which holds the body twice (Markdown
-and HTML) and the authors' profile data.
+The body is printed once, as Markdown, and cut after 8,000 characters with a
+note (--max-chars 0 prints it all). --json gives the same fields as JSON and
+--full the server's whole answer, which holds the body twice (Markdown and
+HTML) and the authors' profile data.
 
 `get_hackathon_write_up` is not used: it takes the roster row id (`row_id`
 from list_writeups.py), not the writeup id, and needs the competition name.
@@ -30,6 +32,8 @@ SKILL_ROOT = Path(__file__).resolve().parents[4]
 sys.path.insert(0, str(SKILL_ROOT))
 
 from shared import credentials, script, text, untrusted  # noqa: E402
+
+DEFAULT_MAX_CHARS = 8000
 from shared.mcp_client import (  # noqa: E402
     EXIT_DENIED,
     EXIT_FAILED,
@@ -152,11 +156,14 @@ def text_lines(summary: dict, max_chars: int = 0) -> tuple[list[str], int]:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="Read one Kaggle writeup: title, authors, the body, and its links.",
+        description="Read Kaggle writeups: title, authors, the body, and its links.",
         epilog="No credential is needed for a published writeup.",
     )
     parser.add_argument(
-        "target", nargs="?", help="A writeup id, a writeup URL, or a discussion URL"
+        "targets",
+        nargs="*",
+        metavar="target",
+        help="Writeup ids, writeup URLs, or discussion URLs; each is printed in its own block",
     )
     parser.add_argument("--writeup-id", type=int, help="The writeup id (get_writeup)")
     parser.add_argument("--topic-id", type=int, help="The forum topic id (get_writeup_by_topic)")
@@ -165,36 +172,58 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument(
         "--max-chars",
         type=int,
-        default=0,
+        default=DEFAULT_MAX_CHARS,
         metavar="N",
-        help="Cut the body after N characters (default: no limit)",
+        help=f"Cut each body after N characters; 0 for no limit (default: {DEFAULT_MAX_CHARS})",
     )
     script.add_json(parser)
     script.add_full(parser)
     args = parser.parse_args(argv)
 
-    if args.target:
+    wanted: list[dict] = []
+    for target in args.targets:
         try:
-            for key, value in parse_target(args.target).items():
-                if getattr(args, key) is None:
-                    setattr(args, key, value)
+            wanted.append(parse_target(target))
         except ValueError as exc:
-            parser.error(str(exc))
-    if not (args.writeup_id or args.topic_id or (args.competition and args.slug)):
+            parser.error(f"{exc}: {target}")
+    named = {
+        "writeup_id": args.writeup_id,
+        "topic_id": args.topic_id,
+        "competition": args.competition,
+        "slug": args.slug,
+    }
+    if any(value is not None for value in named.values()):
+        if len(wanted) > 1:
+            parser.error("--writeup-id, --topic-id and --slug name one writeup; give no targets")
+        # The options fill in what a single target left out.
+        first = wanted[0] if wanted else {}
+        wanted = [{**{k: v for k, v in named.items() if v is not None}, **first}]
+    if not wanted or not all(
+        ids.get("writeup_id") or ids.get("topic_id") or (ids.get("competition") and ids.get("slug"))
+        for ids in wanted
+    ):
         parser.error("give a writeup id or URL, --topic-id, or --competition with --slug")
 
     credentials.load_configured_env_file()
     token = resolve_token()
-    indent = 2 if args.pretty else None
+    worst = 0
+    for ids in wanted:
+        code = read_one(ids, token, args)
+        worst = worst or code
+    return worst
 
+
+def read_one(ids: dict, token: str, args: argparse.Namespace) -> int:
+    """Print one writeup. Returns the exit code for it."""
+    indent = 2 if args.pretty else None
     plan: list[tuple[str, object]] = []
-    if args.writeup_id:
-        plan.append(("get_writeup", lambda: fetch_by_id(args.writeup_id, token)))
-    if args.topic_id:
-        plan.append(("get_writeup_by_topic", lambda: fetch_by_topic(args.topic_id, token)))
-    if args.competition and args.slug:
+    if ids.get("writeup_id"):
+        plan.append(("get_writeup", lambda: fetch_by_id(ids["writeup_id"], token)))
+    if ids.get("topic_id"):
+        plan.append(("get_writeup_by_topic", lambda: fetch_by_topic(ids["topic_id"], token)))
+    if ids.get("competition") and ids.get("slug"):
         plan.append(
-            ("get_writeup_by_slug", lambda: fetch_by_slug(args.competition, args.slug, token))
+            ("get_writeup_by_slug", lambda: fetch_by_slug(ids["competition"], ids["slug"], token))
         )
 
     attempts: list[tuple[str, str, dict]] = []
@@ -221,7 +250,9 @@ def main(argv: list[str] | None = None) -> int:
             for line in lines:
                 block.write(line)
         if cut:
-            print(f"The body was cut: {cut:,} more characters. Drop --max-chars to read it all.")
+            print(
+                f"The body was cut: {cut:,} more characters. Add --max-chars 0 to read all of it."
+            )
         return 0
 
     last_resp = attempts[-1][2]

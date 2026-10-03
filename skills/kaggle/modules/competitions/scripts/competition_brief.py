@@ -4,13 +4,13 @@
     competition_brief.py titanic
     competition_brief.py https://www.kaggle.com/competitions/titanic --json
 
-Prints the metric, the deadline with the time left, the prize, the team size,
-the daily submission limit, whether it is a code competition, and the names of
-its pages. One call, a few hundred tokens, no credential for a public
-competition. With a credential it also says whether you have entered and your
-rank.
+Prints the metric and how the evaluation page starts, the deadline with the
+time left, the prize, the team size, the daily submission limit, whether it is
+a code competition, and the names of its pages. A few hundred tokens, no
+credential for a public competition. With a credential it also says whether
+you have entered and your rank.
 
-Read a page next with competition_pages.py --page NAME.
+Read a page next with the pages command: pages <competition> --page NAME.
 """
 
 from __future__ import annotations
@@ -80,6 +80,8 @@ def main(argv: list[str] | None = None) -> int:
     # here is not worth failing the brief for.
     pages = competition.pages_of(competition.fetch_pages(slug, token).data)
     info["pages"] = [{"name": p.get("name"), "chars": len(p.get("content") or "")} for p in pages]
+    # "What is the metric?" usually needs a sentence more than the metric's name.
+    info["evaluation"] = competition.page_summary(competition.find_page(pages, "evaluation"))
     info["data"] = data_facts(slug)
 
     if args.json:

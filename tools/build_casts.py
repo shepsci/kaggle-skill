@@ -57,7 +57,10 @@ README = REPO_ROOT / "README.md"
 COLS, ROWS = 48, 20
 FONT_SIZE = 20
 TYPING_CHUNK = 9  # characters per typing frame
+TYPING_FRAMES = 24  # a longer command is typed in bigger chunks, so it takes under 2 s
 SCROLL_LINES = 3  # lines of output per frame
+READING_SECONDS = 0.25  # per line of an answer: a page is held long enough to read
+LAST_FRAME_SECONDS = 6.0
 ANSI_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
 
@@ -181,14 +184,28 @@ class Recorder:
 
     def type(self, text: str, prefix: str = "$ ") -> None:
         self.emit(prefix, 0.15)
-        for start in range(0, len(text), TYPING_CHUNK):
-            self.emit(text[start : start + TYPING_CHUNK], 0.07)
+        chunk = max(TYPING_CHUNK, -(-len(text) // TYPING_FRAMES))
+        for start in range(0, len(text), chunk):
+            self.emit(text[start : start + chunk], 0.07)
         self.emit("\n", 0.35)
+
+    def hold(self, seconds: float) -> None:
+        """Keep the screen still: time to read what was just shown."""
+        self.clock += seconds
 
     def scroll(self, text: str, pace: float = 0.16) -> None:
         lines = text.splitlines()
         for start in range(0, len(lines), SCROLL_LINES):
             self.emit("\n".join(lines[start : start + SCROLL_LINES]) + "\n", pace)
+
+
+# An opening block tag with its attributes runs over three rows of a 48-column
+# screen. The demos show the tag and its random suffix, without the attributes.
+_OPEN_TAG_RE = re.compile(r"<(untrusted-content-[0-9a-f]{8})\s[^>\n]*>")
+
+
+def short_tags(text: str) -> str:
+    return _OPEN_TAG_RE.sub(r"<\1 …>", text)
 
 
 def build_events(cast: Cast, replacements: dict[str, str]) -> list[list] | None:
@@ -204,7 +221,7 @@ def build_events(cast: Cast, replacements: dict[str, str]) -> list[list] | None:
             print(f"  skipped {cast.name}: `{step.needs}` is not installed", file=sys.stderr)
             return None
         rec.type(step.shown)
-        rec.scroll(output)
+        rec.scroll(short_tags(output))
         rec.emit("\n", 0.5)
     if cast.outro:
         rec.say("\n".join(cast.outro), 1.5)
@@ -223,11 +240,39 @@ def wrap(text: str, width: int = COLS - 2, indent: str = "  ") -> str:
         if not paragraph.strip():
             out.append("")
             continue
-        hanging = indent + ("  " if paragraph.lstrip().startswith(("- ", "* ")) else "")
+        hanging = indent + ("  " if paragraph.lstrip().startswith(("- ", "* ", "• ")) else "")
         out += textwrap.wrap(
             paragraph.strip(), width=width, initial_indent=indent, subsequent_indent=hanging
         ) or [""]
     return "\n".join(out)
+
+
+_MD_HEADING_RE = re.compile(r"^\s*#{1,6}\s+")
+_MD_BULLET_RE = re.compile(r"^(\s*)[-*]\s+")
+_MD_IMAGE_RE = re.compile(r"!\[[^\]]*\]\([^)]*\)")
+_MD_LINK_RE = re.compile(r"\[([^\]]+)\]\([^)]*\)")
+_MD_TABLE_RULE_RE = re.compile(r"^\s*\|?[\s:|-]+\|?\s*$")
+
+
+def render_answer(markdown: str) -> str:
+    """An answer as a terminal shows prose: no ** or `, links as their text, • for bullets.
+
+    The session file keeps the answer as it was given; this is only how the
+    GIF draws it.
+    """
+    lines = []
+    for line in markdown.splitlines():
+        stripped = line.strip()
+        if stripped.startswith("|") and stripped.endswith("|"):
+            if _MD_TABLE_RULE_RE.match(stripped):
+                continue
+            line = " · ".join(cell.strip() for cell in stripped.strip("|").split("|"))
+        line = _MD_HEADING_RE.sub("", line)
+        line = _MD_BULLET_RE.sub(r"\1• ", line)
+        line = _MD_IMAGE_RE.sub("", line)
+        line = _MD_LINK_RE.sub(r"\1", line)
+        lines.append(line.replace("**", "").replace("__", "").replace("`", ""))
+    return "\n".join(lines)
 
 
 def load_session(path: Path) -> dict:
@@ -248,16 +293,21 @@ def session_events(session: dict) -> list[list]:
         rec.say(f"{session.get('agent_short', 'Agent')} runs", 0.3)
         rec.type(step["command"], prefix="  $ ")
         output = shorten(clean(step["output"]), int(step.get("show_lines", 10)), 200)
-        rec.scroll("\n".join("  " + line for line in output.splitlines()))
+        rec.scroll("\n".join("  " + line for line in short_tags(output).splitlines()))
         rec.emit("\n", 0.5)
     rec.say(session.get("agent_short", "Agent"), 0.3)
-    # A terminal draws no bold: the markers would show as asterisks.
-    answer = wrap(session["answer"].replace("**", "")).splitlines()
+    answer = wrap(render_answer(session["answer"])).splitlines()
     limit = int(session.get("answer_show_lines") or len(answer))
     if len(answer) > limit:
         # A long answer is cut on screen; the session file holds all of it.
         answer = [*answer[:limit], f"  … ({len(answer) - limit} more lines in the session file)"]
-    rec.scroll("\n".join(answer), 0.3)
+    # One screen at a time, each held long enough to read, instead of a scroll.
+    page = ROWS - 2
+    for start in range(0, len(answer), page):
+        lines = answer[start : start + page]
+        rec.scroll("\n".join(lines), 0.12)
+        if start + page < len(answer):
+            rec.hold(max(2.5, READING_SECONDS * len(lines)))
     return rec.events
 
 
@@ -292,7 +342,7 @@ def write_cast(name: str, title: str, events: list[list]) -> Path:
         "width": COLS,
         "height": ROWS,
         "timestamp": int(time.time()),
-        "idle_time_limit": 1.5,
+        "idle_time_limit": 8,
         "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"},
         "title": title,
     }
@@ -430,8 +480,9 @@ def render_gif(cast_path: Path) -> Path:
             draw.text((pad, pad + row * cell_h), line, font=font, fill=colour)
         frames.append(image.quantize(palette=palette, dither=Image.Dither.NONE))
         following = events[index + 1][0] if index + 1 < len(events) else stamp + 3.0
-        durations.append(int(max(0.06, min(following - stamp, 2.0)) * 1000))
-    durations[-1] = 3500
+        # A pause the recorder asked for (a page of an answer) is kept; others stay short.
+        durations.append(int(max(0.06, min(following - stamp, 8.0)) * 1000))
+    durations[-1] = int(LAST_FRAME_SECONDS * 1000)
 
     MEDIA_DIR.mkdir(parents=True, exist_ok=True)
     gif_path = MEDIA_DIR / f"{cast_path.stem}.gif"

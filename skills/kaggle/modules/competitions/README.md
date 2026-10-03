@@ -82,8 +82,9 @@ python3 scripts/kaggle_skill.py ledger
   ids, empty values, non-finite numbers. An empty value in a text column the
   sample never leaves empty is a warning (WARN), since some competitions take
   an empty prediction. It checks the shape, not the predictions.
-- `submit` without `--yes` prints what would be sent and how many submissions
-  are left today, and stops. With `--yes` it submits and adds a line to
+- `submit` without `--yes` runs validate's checks on the file, prints what
+  would be sent and how many submissions are left today, and stops. With
+  `--yes` it submits and adds a line to
   `./.kaggle-skill/ledger.jsonl`. A code competition takes
   `--notebook OWNER/NAME --version N` instead of a file.
 - `watch` waits until the submission is scored, prints the score, records it,

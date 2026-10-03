@@ -233,7 +233,7 @@ def test_a_recorded_session_becomes_events_without_running_anything(monkeypatch)
     assert text.startswith("You\n  What is the metric")
     assert "Claude runs\n  $ python3 scripts/kaggle_skill.py brief titanic\n" in text
     assert "  line 2\n  … (27 more lines)\n  </untrusted-content-0a1b2c3d>" in text
-    assert "  - It is the share of passengers" in text and text.rstrip().endswith("correctly.")
+    assert "  • It is the share of passengers" in text and text.rstrip().endswith("correctly.")
     stamps = [event[0] for event in events]
     assert stamps == sorted(stamps) and stamps[-1] <= 15
 
@@ -547,3 +547,46 @@ def test_a_recorded_session_sees_no_kaggle_credential(tmp_path, monkeypatch):
     assert script.strip() == f"export HOME={tmp_path}"
     kept = record_session.session_env(None)
     assert "CLAUDE_ENV_FILE" not in kept and kept["KAGGLE_SKILL_READ_ONLY"] == "1"
+
+
+def test_an_answer_is_drawn_as_plain_prose():
+    import build_casts
+
+    answer = (
+        "## Top three\n"
+        "1. **NVARC** (24.03) — [writeup](https://www.kaggle.com/x)\n"
+        "- uses `gpt-oss-120b` ![](a.png)\n"
+        "| Rank | Team |\n|---|---|\n| 1 | NVARC |"
+    )
+    assert build_casts.render_answer(answer).splitlines() == [
+        "Top three",
+        "1. NVARC (24.03) — writeup",
+        "• uses gpt-oss-120b ",
+        "Rank · Team",
+        "1 · NVARC",
+    ]
+
+
+def test_block_tags_are_shown_without_their_attributes():
+    import build_casts
+
+    tag = '<untrusted-content-0a1b2c3d source="kaggle-mcp" tool="get_competition" competition="x">'
+    assert build_casts.short_tags(tag + "\nbody") == "<untrusted-content-0a1b2c3d …>\nbody"
+
+
+def test_a_long_answer_is_shown_a_page_at_a_time_with_time_to_read():
+    import build_casts
+
+    long = {**SESSION, "answer": "\n".join(f"point {n}" for n in range(40))}
+    events = build_casts.session_events(long)
+    gaps = [later[0] - earlier[0] for earlier, later in zip(events, events[1:])]
+    assert max(gaps) >= 0.25 * (build_casts.ROWS - 2), "a full page is held"
+    assert sum(1 for gap in gaps if gap >= 2.5) == 2, "pages 1 and 2 of 3 are held"
+
+
+def test_a_long_command_is_typed_quickly():
+    import build_casts
+
+    rec = build_casts.Recorder()
+    rec.type("x" * 600)
+    assert len(rec.events) <= build_casts.TYPING_FRAMES + 3
