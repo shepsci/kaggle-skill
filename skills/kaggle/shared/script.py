@@ -33,6 +33,7 @@ EXIT_NOT_INSTALLED = 127
 
 READ_ONLY_VAR = "KAGGLE_SKILL_READ_ONLY"
 STATE_DIR_VAR = "KAGGLE_SKILL_DIR"
+HIDE_ACCOUNT_VAR = "KAGGLE_SKILL_HIDE_ACCOUNT"
 DEFAULT_STATE_DIR = ".kaggle-skill"
 
 # One part of a Kaggle slug: it starts with a letter or digit, which rules out
@@ -225,6 +226,16 @@ def add_yes(parser: argparse.ArgumentParser) -> None:
 def read_only() -> bool:
     """True when ``KAGGLE_SKILL_READ_ONLY`` forbids every write."""
     return os.environ.get(READ_ONLY_VAR, "").strip().lower() not in ("", "0", "false", "no")
+
+
+def hide_account() -> bool:
+    """True when ``KAGGLE_SKILL_HIDE_ACCOUNT`` asks to leave out your entries and ranks.
+
+    For screen sharing and recordings: listings and briefs then show only what
+    anyone would see. Commands that are about the account (status, the
+    leaderboard's "you" row) are not affected.
+    """
+    return os.environ.get(HIDE_ACCOUNT_VAR, "").strip().lower() not in ("", "0", "false", "no")
 
 
 def write_gate(

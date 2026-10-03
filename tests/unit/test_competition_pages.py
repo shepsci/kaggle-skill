@@ -281,10 +281,21 @@ def test_brief_with_a_credential_says_where_you_stand(brief, fake_mcp, run_main,
     _, out, _ = run_main(brief, "titanic")
     body = blocks(out)[0].body
     assert state.calls[0].token == "tok"
-    assert "you:          entered, rank 522" in body
-    assert "submit with:  a notebook (code competition)" in body
-    assert "medals:       awards medals and points" in body
-    assert "entry closes: 2029-12-01 00:00 UTC" in body
+    assert "you:         entered, rank 522" in body
+    assert "submit with: a notebook (code competition)" in body
+    assert "medals:      awards medals and points" in body
+    assert "join by:     2029-12-01 00:00 UTC" in body
+
+
+def test_hide_account_leaves_your_standing_out_of_the_brief(
+    brief, fake_mcp, run_main, blocks, monkeypatch
+):
+    facts = {**FACTS, "user_has_entered": True, "user_rank": 522}
+    fake_mcp({"get_competition": facts, "list_competition_pages": PAGE_SET}, token="tok")
+    monkeypatch.setenv("KAGGLE_SKILL_HIDE_ACCOUNT", "1")
+    assert "you:" not in blocks(run_main(brief, "titanic")[1])[0].body
+    info = blocks(run_main(brief, "titanic", "--json")[1])[0].json()
+    assert info["user_has_entered"] is None and info["user_rank"] is None
 
 
 def test_brief_marks_an_ended_competition_and_closed_submissions(brief, fake_mcp, run_main, blocks):
@@ -369,3 +380,49 @@ def test_a_page_summary_is_its_first_sentences_in_plain_words(load_script):
     assert summary.endswith(".") and len(summary) <= 120
     assert competition.page_summary(None) == ""
     assert competition.page_summary({"content": "x" * 400}, limit=50) == "x" * 50 + "…"
+
+
+def test_brief_takes_several_competitions_one_block_each(brief, fake_mcp, run_main, blocks):
+    """Comparing a few competitions is one command, not a shell loop."""
+    fake_mcp({"get_competition": FACTS, "list_competition_pages": PAGE_SET})
+    code, out, _ = run_main(
+        brief, "titanic", "https://www.kaggle.com/competitions/other", "titanic"
+    )
+    found = blocks(out)
+    assert code == 0 and [b.attrs["competition"] for b in found] == ["titanic", "other"]
+    code, out, _ = run_main(brief, "titanic", "other", "--json")
+    assert [b.json()["slug"] for b in blocks(out)] == ["titanic", "other"]
+
+
+def test_the_hosts_timeline_is_read_as_dated_lines():
+    from shared import competition
+
+    page = {
+        "content": "## Timeline\n\n"
+        "* **October 26, 2026** - Entry Deadline. You must accept the rules before this date.\n"
+        "* **October 26, 2026** - Team Merger Deadline. This is the last day to join or merge.\n"
+        "* **November 2, 2026** - Final Submission Deadline.\n\n"
+        "All deadlines are at 11:59 PM UTC on the corresponding day unless otherwise noted."
+    }
+    assert competition.timeline_summary(page) == (
+        "October 26, 2026 Entry Deadline; October 26, 2026 Team Merger Deadline; "
+        "November 2, 2026 Final Submission Deadline (times: 11:59 PM UTC unless noted)"
+    )
+    assert competition.timeline_summary({"content": "The competition runs until spring."}) == ""
+    assert competition.timeline_summary(None) == ""
+
+
+def test_brief_shows_the_timeline_when_the_competition_has_one(brief, fake_mcp, run_main, blocks):
+    pages = {
+        "pages": [
+            *PAGE_SET["pages"],
+            {
+                "name": "Timeline",
+                "content": "* **May 1, 2030** - Entry Deadline.\n"
+                "* **May 8, 2030** - Final Submission Deadline.",
+            },
+        ]
+    }
+    fake_mcp({"get_competition": FACTS, "list_competition_pages": pages})
+    body = blocks(run_main(brief, "titanic")[1])[0].body
+    assert "timeline:    May 1, 2030 Entry Deadline; May 8, 2030 Final Submission Deadline" in body

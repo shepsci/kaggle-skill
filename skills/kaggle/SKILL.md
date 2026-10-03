@@ -56,12 +56,12 @@ competition is a slug (`titanic`) or its URL.
 
 | The user wants | Command |
 |---|---|
-| What a competition is: metric and how it is scored, deadline, prize, limits | `brief <competition>` |
+| What a competition is: metric and how it is scored, deadline, prize, limits | `brief <competition> [<competition> ...]` |
 | The rules, the evaluation page, the data description | `pages <competition> --page rules` (no `--page`: the list) |
 | What worked: solution writeups by rank | `solutions <competition> --preview` |
 | Writeups in full, one or several | `writeup <id or URL> [<id or URL> ...]` |
 | What people are discussing | `topics --competition <competition>`, then `topic <id>` |
-| Which competitions are running | `competitions`; `competitions --mine` |
+| Which competitions are running, with each one's prize and metric | `competitions`; `competitions --mine` |
 | Data files, top of the leaderboard, popular notebooks | `details <competition>` |
 | Where they stand: time left, submissions left, scores, GPU hours | `status <competition>` |
 | The leaderboard, the gap to the medal lines, what moved | `leaderboard <competition>` |

@@ -263,7 +263,7 @@ def test_public_docs_do_not_reference_removed_module_paths():
 def test_readme_and_demo_docs_reference_rendered_gif_previews():
     readme, library = REPO_ROOT / "README.md", REPO_ROOT / "docs" / "demo" / "README.md"
     expected = {
-        readme: ["docs/demo/media/install-and-demo.gif"],
+        readme: ["docs/demo/media/agent-competitions.gif"],
         library: [
             "docs/demo/media/install-and-demo.gif",
             "docs/demo/media/vesuvius-top-writeups.gif",

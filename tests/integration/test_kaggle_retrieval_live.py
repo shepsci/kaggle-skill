@@ -209,8 +209,17 @@ def test_competition_listing_is_short_and_real(repo_root, kaggle_token, blocks):
     result = _run(repo_root, "competitions", "--days", "30", "--limit", "10")
     assert result.returncode == 0, result.stderr[:300]
     lines = blocks(result.stdout)[0].body.splitlines()
-    assert "competitions in the last 30 days" in lines[0]
-    assert 2 < len(lines) <= 12 and all(len(line) < 160 for line in lines)
+    assert "competitions running or ended in the last 30 days" in lines[0]
+    # Two lines for each competition: the deadline and title, then the facts.
+    assert 2 < len(lines) <= 21 and all(len(line) < 200 for line in lines)
+    assert all("metric: " in line and " teams · " in line for line in lines[2::2])
+
+
+def test_hide_account_removes_your_entries_from_the_listing(repo_root, kaggle_token, blocks):
+    env = {**os.environ, "KAGGLE_SKILL_HIDE_ACCOUNT": "1"}
+    result = _run(repo_root, "competitions", "--mine", "--limit", "5", env=env)
+    assert result.returncode == 0, result.stderr[:300]
+    assert "· entered" not in blocks(result.stdout)[0].body
 
 
 def test_status_and_leaderboard_read_the_account(repo_root, kaggle_token, blocks, tmp_path):

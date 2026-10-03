@@ -78,14 +78,16 @@ def test_public_docs_do_not_contain_stale_strings(stale: str):
     assert not offenders, f"{stale!r} appears in stale public docs: {offenders}"
 
 
-def test_readme_demo_links_to_committed_cast_source():
+def test_install_demo_has_a_committed_cast_and_gif_in_the_library():
+    """Four recorded sessions fill the README; the install demos are in the demo library."""
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
+    library = (REPO_ROOT / "docs" / "demo" / "README.md").read_text(encoding="utf-8")
     cast = REPO_ROOT / "docs" / "demo" / "install-and-demo.cast"
     gif = REPO_ROOT / "docs" / "demo" / "media" / "install-and-demo.gif"
 
-    assert cast.exists(), "README demo source cast must be committed"
-    assert "docs/demo/install-and-demo.cast" in readme
-    assert "docs/demo/media/install-and-demo.gif" in readme
+    assert cast.exists(), "the install demo's source cast must be committed"
+    assert "install-and-demo.cast" in library and "media/install-and-demo.gif" in library
+    assert "docs/demo/README.md" in readme, "the README points at the demo library"
     assert gif.exists() and gif.stat().st_size > 0
     assert not ASCIINEMA_RE.findall(readme), (
         "README must not link to public asciinema uploads unless the committed "
@@ -103,8 +105,13 @@ def test_readme_first_embedded_image_shows_an_answer():
         if image.startswith("docs/demo/")
     ]
     assert images, "README should embed at least one demo image"
-    session = REPO_ROOT / "docs" / "demo" / "sessions" / "agent-brief.json"
-    expected = "agent-brief" if session.exists() else "competition-brief"
+    sessions = REPO_ROOT / "docs" / "demo" / "sessions"
+    recorded = [
+        name
+        for name in ("agent-competitions", "agent-brief", "agent-solutions", "agent-submit")
+        if (sessions / f"{name}.json").exists()
+    ]
+    expected = recorded[0] if recorded else "competition-brief"
     assert images[0] == f"docs/demo/media/{expected}.gif"
     assert len(images) <= 4, "a few demos; the rest are in the demo library"
 
@@ -155,7 +162,9 @@ def test_vesuvius_demo_has_gif_preview_and_cast_source():
     assert gif.exists() and gif.stat().st_size > 0
 
 
-@pytest.mark.parametrize("name", ["agent-brief", "agent-submit", "agent-solutions"])
+@pytest.mark.parametrize(
+    "name", ["agent-competitions", "agent-brief", "agent-submit", "agent-solutions"]
+)
 def test_recorded_sessions_have_a_cast_a_gif_and_a_place_in_the_docs(name):
     readme = (REPO_ROOT / "README.md").read_text(encoding="utf-8")
     library = (REPO_ROOT / "docs" / "demo" / "README.md").read_text(encoding="utf-8")

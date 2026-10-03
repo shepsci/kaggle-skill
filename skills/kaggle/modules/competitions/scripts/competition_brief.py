@@ -3,10 +3,11 @@
 
     competition_brief.py titanic
     competition_brief.py https://www.kaggle.com/competitions/titanic --json
+    competition_brief.py titanic spaceship-titanic       several, one block each
 
 Prints the metric and how the evaluation page starts, the deadline with the
-time left, the prize, the team size, the daily submission limit, whether it is
-a code competition, and the names of its pages. A few hundred tokens, no
+time left, the host's timeline, the prize, the team size, the daily submission
+limit, whether it is a code competition, and the names of its pages. A few hundred tokens, no
 credential for a public competition. With a credential it also says whether
 you have entered and your rank.
 
@@ -54,17 +55,35 @@ def data_facts(slug: str) -> dict | None:
 
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(
-        description="The facts about a Kaggle competition on one screen.",
+        description="The facts about Kaggle competitions on one screen each.",
         epilog="No credential is needed for a public competition.",
     )
     script.add_competition(parser)
+    parser.add_argument(
+        "more", nargs="*", metavar="competition", help="More competitions, one block each"
+    )
     script.add_json(parser)
     script.add_full(parser)
     args = parser.parse_args(argv)
     (slug,) = script.positionals(parser, args)
+    slugs = [slug]
+    for value in args.more:
+        try:
+            slugs.append(script.competition_slug(value))
+        except ValueError as exc:
+            parser.error(f"{exc}: {value}")
 
     credentials.load_configured_env_file()
     token = mcp_client.resolve_token()
+    worst = script.EXIT_OK
+    for name in dict.fromkeys(slugs):
+        code = brief(name, token, args)
+        worst = worst or code
+    return worst
+
+
+def brief(slug: str, token: str, args: argparse.Namespace) -> int:
+    """Print one competition's brief. Returns its exit code."""
     result = competition.fetch_facts(slug, token)
     if not result.ok or not isinstance(result.data, dict):
         return result.fail(competition=slug)
@@ -82,8 +101,12 @@ def main(argv: list[str] | None = None) -> int:
     info["pages"] = [{"name": p.get("name"), "chars": len(p.get("content") or "")} for p in pages]
     # "What is the metric?" usually needs a sentence more than the metric's name.
     info["evaluation"] = competition.page_summary(competition.find_page(pages, "evaluation"))
+    # The host's own dates: entry, team merger and final submission deadlines.
+    info["timeline"] = competition.timeline_summary(competition.find_page(pages, "timeline"))
     info["data"] = data_facts(slug)
 
+    if script.hide_account():
+        info = {**info, "user_has_entered": None, "user_rank": None}
     if args.json:
         untrusted.emit_json(info, indent=indent, **attrs)
         return script.EXIT_OK
@@ -111,7 +134,8 @@ def main(argv: list[str] | None = None) -> int:
         block.write(info["title"])
         if info["description"]:
             block.write(info["description"])
-        for line in competition.fact_lines(info, signed_in=bool(token), extra=extra):
+        signed_in = bool(token) and not script.hide_account()
+        for line in competition.fact_lines(info, signed_in=signed_in, extra=extra):
             block.write(line)
     return script.EXIT_OK
 

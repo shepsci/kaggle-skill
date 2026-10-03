@@ -32,9 +32,11 @@ python3 scripts/kaggle_skill.py competitions --category featured,research --stat
 python3 scripts/kaggle_skill.py details titanic --top 10
 ```
 
-- `competitions` prints one line per competition: deadline, category, teams,
-  prize, slug and title. Community competitions with fewer than ten teams are
-  left out unless `--min-teams` says otherwise. `--search TEXT`, `--limit N`.
+- `competitions` prints two lines per competition: the deadline and the
+  title, then the slug, category, teams, prize and metric. Community
+  competitions with fewer than ten teams are left out unless `--min-teams`
+  says otherwise. `--search TEXT`, `--limit N`. The competitions you have
+  entered are marked, unless `KAGGLE_SKILL_HIDE_ACCOUNT=1` is set.
 - `details` prints the data files with sizes, the top of the leaderboard and
   the most-voted notebooks. A lookup that fails is reported and the others
   are still printed.

@@ -245,7 +245,7 @@ def test_status_counts_todays_submissions_when_the_cli_gives_no_count(
     ]
     fake_mcp(_status_answers(submissions), token="tok")
     body = blocks(run_main(load("competition_status"), "rsna-knee")[1])[0].body
-    assert "submissions:  1 today, about 4 left of 5 a day (estimated; counted since" in body
+    assert "submissions: 1 today, about 4 left of 5 a day (estimated; counted since" in body
 
 
 def test_status_uses_kaggles_own_count_when_the_cli_answers(
@@ -256,7 +256,7 @@ def test_status_uses_kaggles_own_count_when_the_cli_answers(
     fake_mcp(_status_answers([_submission(1, "0.9", days_ago=1)]), token="tok")
     mod = load("competition_status")
     body = blocks(run_main(mod, "rsna-knee")[1])[0].body
-    assert "submissions:  3 today, 2 left of 5 a day (Kaggle's count)" in body
+    assert "submissions: 3 today, 2 left of 5 a day (Kaggle's count)" in body
     report = blocks(run_main(mod, "rsna-knee", "--json")[1])[0].json()
     assert report["counts"] == {
         "today": 3,
@@ -279,8 +279,8 @@ def test_status_survives_a_section_that_cannot_be_read(
     code, out, _ = run_main(load("competition_status"), "rsna-knee")
     body = blocks(out)[0].body
     assert code == 0
-    assert "your rank:    you have not entered this competition" in body
-    assert "submissions:  not available (" in body and "quota: not available (" in body
+    assert "your rank:   you have not entered this competition" in body
+    assert "submissions: not available (" in body and "quota: not available (" in body
 
 
 def test_status_exit_codes(load, fake_mcp, run_main, mcp_response):

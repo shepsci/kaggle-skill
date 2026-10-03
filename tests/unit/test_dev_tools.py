@@ -547,6 +547,7 @@ def test_a_recorded_session_sees_no_kaggle_credential(tmp_path, monkeypatch):
     assert script.strip() == f"export HOME={tmp_path}"
     kept = record_session.session_env(None)
     assert "CLAUDE_ENV_FILE" not in kept and kept["KAGGLE_SKILL_READ_ONLY"] == "1"
+    assert env["KAGGLE_SKILL_HIDE_ACCOUNT"] == kept["KAGGLE_SKILL_HIDE_ACCOUNT"] == "1"
 
 
 def test_an_answer_is_drawn_as_plain_prose():
@@ -563,7 +564,7 @@ def test_an_answer_is_drawn_as_plain_prose():
         "1. NVARC (24.03) — writeup",
         "• uses gpt-oss-120b ",
         "Rank · Team",
-        "1 · NVARC",
+        "• 1: NVARC",
     ]
 
 
@@ -599,3 +600,11 @@ def test_a_blank_line_at_the_end_of_a_page_is_kept():
     events = build_casts.session_events({**SESSION, "answer": "\n".join(lines)})
     text = "".join(event[2] for event in events).replace("\r\n", "\n")
     assert f"line {build_casts.ROWS - 4}\n\n  next paragraph" in text
+
+
+def test_numbers_the_commands_did_not_print_are_listed():
+    """A figure the agent made up must not reach a demo unnoticed."""
+    outputs = ["deadline: 2026-11-02 23:59 UTC\nprize: 850,000 USD\nwe had 103253 puzzles, 24.03"]
+    answer = "The prize is $850,000, 103k puzzles, score 24.03%, due Nov 2, 2026. 77,000 teams."
+    assert record_session.unsupported_numbers(answer, outputs) == ["77,000"]
+    assert record_session.unsupported_numbers("Only 12 of them.", outputs) == []

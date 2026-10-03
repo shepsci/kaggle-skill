@@ -24,8 +24,9 @@ python3 scripts/kaggle_skill.py pages titanic --page rules
 ```
 
 - `brief`: the facts on one screen (metric, how the evaluation page starts,
-  deadline, prize, limits, data size) and the names of the pages. Start
-  here.
+  deadline, the host's timeline, prize, limits, data size) and the names of
+  the pages. Start here. Several competitions at once: `brief a b c`, one
+  block each.
 - `pages` with no option: one line per page with its length and how it
   starts.
 - `--page NAME`: the text of the page with that name, or else the first page

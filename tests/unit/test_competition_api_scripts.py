@@ -129,7 +129,7 @@ def _answers(*comps):
     return answer
 
 
-def test_default_output_is_one_short_line_per_competition(
+def test_default_output_is_two_short_lines_per_competition_with_the_metric(
     listing, fake_mcp, run_main, blocks, outside
 ):
     comps = [
@@ -151,11 +151,14 @@ def test_default_output_is_one_short_line_per_competition(
         "lookback-days": "30",
     }
     lines = block.body.splitlines()
-    assert lines[0] == "4 competitions in the last 30 days: 3 active, 1 ended."
-    slugs = [line.split(" · ")[0].split()[-1] for line in lines[2:]]
+    assert lines[0] == "4 competitions running or ended in the last 30 days: 3 active, 1 ended."
+    slugs = [line.split(" · ")[0].strip() for line in lines[2::2]]
     assert slugs == ["soon-one", "big-community", "late-one", "done-one"], "active first, by date"
-    assert "[code]" in lines[2] and "[ended, entered]" in lines[5]
-    assert "50,000 USD" in lines[2]
+    assert lines[1].split("  ", 2)[-1] == "Soon One"
+    assert lines[2].endswith(
+        "Featured · 1,200 teams · 50,000 USD · metric: Roc Auc Score · code competition"
+    )
+    assert lines[8].endswith("· ended · entered")
     assert all(len(line) < 140 for line in lines)
     assert "Predict things" not in out, "descriptions are left out of the short listing"
     note = outside(out)
@@ -186,10 +189,12 @@ def test_filters(listing, fake_mcp, run_main, blocks, outside):
     assert " b · " in body and " a · " not in body
 
     body = blocks(run_main(listing, "--status", "ended")[1])[0].body
-    assert body.splitlines()[0] == "1 competitions in the last 30 days: 0 active, 1 ended."
+    assert body.splitlines()[0] == (
+        "1 competitions running or ended in the last 30 days: 0 active, 1 ended."
+    )
 
     out = run_main(listing, "--limit", "1")[1]
-    assert len(blocks(out)[0].body.splitlines()) == 3
+    assert len(blocks(out)[0].body.splitlines()) == 3, "the header and one competition's two lines"
     assert "Showing 1 of 3. Add --limit 3 for all of them." in outside(out)
 
 
@@ -225,6 +230,8 @@ def test_json_is_compact_and_full_keeps_every_field(listing, fake_mcp, run_main,
         "reward",
         "metric",
         "code_competition",
+        "entry_deadline",
+        "submissions_closed",
         "entered",
         "url",
     }
@@ -420,3 +427,39 @@ def test_a_legacy_key_gets_a_hint_when_the_server_rejects_it(
     code, _, err = run_main(details, "titanic")
     assert code == 2
     assert "legacy API key" in err and "Generate New Token" in err
+
+
+def test_hide_account_leaves_out_what_is_about_you(
+    listing, fake_mcp, run_main, blocks, monkeypatch
+):
+    """For screen sharing and the recorded demos: only what anyone would see."""
+    comps = [_comp("mine", user_has_entered=True, user_rank=7)]
+    fake_mcp({"search_competitions": _answers(*comps)}, token="tok")
+    monkeypatch.setenv("KAGGLE_SKILL_HIDE_ACCOUNT", "1")
+    body = blocks(run_main(listing)[1])[0].body
+    assert "entered" not in body and "metric: Roc Auc Score" in body
+    rows = blocks(run_main(listing, "--json")[1])[0].json()
+    assert rows[0]["entered"] is None
+
+
+def test_the_listing_says_whether_a_newcomer_can_still_take_part(
+    listing, fake_mcp, run_main, blocks
+):
+    comps = [
+        _comp("open", deadline=_iso(20), new_entrant_deadline=_iso(13)),
+        _comp("late", deadline=_iso(21), new_entrant_deadline=_iso(-2)),
+        _comp(
+            "frozen", deadline=_iso(22), new_entrant_deadline=_iso(-9), submissions_disabled=True
+        ),
+        _comp("to-the-end", deadline=_iso(23), new_entrant_deadline=_iso(23)),
+        _comp("over", deadline=_iso(-3), new_entrant_deadline=_iso(-10)),
+    ]
+    fake_mcp({"search_competitions": _answers(*comps)}, token="tok")
+    lines = blocks(run_main(listing)[1])[0].body.splitlines()
+    titles = {line.split("  ", 2)[-1].split(" · ")[0]: line for line in lines[1::2]}
+    assert titles["Open"].endswith(f"· join by {_iso(13)[:10]}")
+    assert titles["Late"].endswith("· entry closed")
+    assert titles["Frozen"].endswith("· submissions closed")
+    assert titles["To The End"].endswith("To The End") and titles["Over"].endswith("Over")
+    rows = blocks(run_main(listing, "--json")[1])[0].json()
+    assert rows[2]["submissions_closed"] is True and rows[0]["entry_deadline"] == _iso(13)

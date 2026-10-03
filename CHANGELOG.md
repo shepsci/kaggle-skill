@@ -10,8 +10,15 @@ places is now one command.
 
 ### Changed
 
-- `brief` quotes the start of the evaluation page next to the metric's name,
-  so "what is the metric?" is answered by one command.
+- `brief` quotes the start of the evaluation page next to the metric's name
+  and lists the dated lines of the Timeline page (entry, team merger and
+  final deadlines in the host's words), so "what is the metric and the
+  deadline?" is answered by one command. It takes several competitions at
+  once, one block each. "entry closes" is now "join by".
+- `competitions` shows each competition's metric and the last day to join
+  (or "submissions closed"), in two short lines per competition.
+- `KAGGLE_SKILL_HIDE_ACCOUNT=1` leaves your entries and ranks out of
+  `competitions` and `brief`, for screen sharing and recordings.
 - `writeup` takes several ids or URLs and prints each in its own block. A
   body is cut after 8,000 characters with a note (`--max-chars 0` for all of
   it), so an agent no longer pipes it through `head`.
@@ -23,8 +30,9 @@ places is now one command.
   file first" step is gone.
 - The demo GIFs draw an answer as prose (no Markdown marks), show it a screen
   at a time with time to read, type long commands faster, and show block tags
-  without their attributes. The three sessions were recorded again with
-  3.1.0.
+  without their attributes. A new session lists the competitions running
+  now with their prizes and metrics; the other three were recorded again
+  with 3.1.0.
 
 ## 3.0.0 - 2026-10-02
 

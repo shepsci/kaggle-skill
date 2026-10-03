@@ -69,10 +69,11 @@ A session demo is a file in `sessions/`:
 }
 ```
 
-The three in this folder were recorded with these questions:
+The four in this folder were recorded with these questions:
 
 | File | Question | Run in |
 |---|---|---|
+| `agent-competitions` | Which Kaggle competitions with prize money are running right now? A short list with each one's deadline, prize and metric, please. | An empty folder, `--with-credential` |
 | `agent-brief` | What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3? | An empty folder |
 | `agent-submit` | Submit ./submission.csv to the Titanic competition on Kaggle. | A folder with `submission.csv` and `downloads/titanic/gender_submission.csv` |
 | `agent-solutions` | What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each. | An empty folder |
@@ -94,8 +95,9 @@ without rewording them. The session:
   API key is set or the sign-in is not a subscription;
 - cannot write to Kaggle: `KAGGLE_SKILL_READ_ONLY=1` is set, and the skill's
   commands see no Kaggle credential, because they run with an empty home
-  folder. `--with-credential` keeps yours; read the file before committing
-  it then, because the output can hold details of your account;
+  folder. `--with-credential` keeps yours, for a command that needs one;
+  `KAGGLE_SKILL_HIDE_ACCOUNT=1` is always set, so your entries and ranks stay
+  out of the output. Read the file before committing it all the same;
 - has Kaggle's MCP servers switched off, so the agent uses the skill's
   commands.
 

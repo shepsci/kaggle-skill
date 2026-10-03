@@ -112,9 +112,12 @@ def fact_lines(
         ("deadline", text.when(info.get("deadline"), now)),
     ]
     if info.get("entry_deadline"):
-        rows.append(("entry closes", text.when(info["entry_deadline"], now)))
+        # The last moment to accept the rules and enter; merging teams has its own deadline.
+        rows.append(("join by", text.when(info["entry_deadline"], now)))
     if info.get("team_merger_deadline"):
-        rows.append(("team merger", text.when(info["team_merger_deadline"], now)))
+        rows.append(("merge teams by", text.when(info["team_merger_deadline"], now)))
+    if info.get("timeline"):
+        rows.append(("timeline", info["timeline"]))
     rows.append(("teams", _count(info.get("team_count"))))
     if info.get("max_team_size"):
         rows.append(("team size", f"up to {info['max_team_size']}"))
@@ -185,6 +188,33 @@ def page_summary(page: dict | None, limit: int = 300) -> str:
     cut = flat[:limit]
     end = max(cut.rfind(". "), cut.rfind("? "), cut.rfind("! "))
     return cut[: end + 1] if end > limit // 3 else cut.rstrip() + "…"
+
+
+# A timeline line as hosts write it: "* **October 26, 2026** - Entry Deadline. You must ..."
+_TIMELINE_LINE_RE = re.compile(r"^\s*[*-]\s+(.{4,40}?)\s+[-–—]\s+(.+)$")
+_CLOCK_NOTE_RE = re.compile(r"\d{1,2}:\d{2}\s*(?:AM|PM)\s*UTC", re.IGNORECASE)
+
+
+def timeline_summary(page: dict | None, limit: int = 420) -> str:
+    """The dated lines of a Timeline page on one line: ``date label; date label; ...``.
+
+    Each label is the line's first sentence ("Entry Deadline", "Team Merger
+    Deadline"). Empty when the page is not a list of dated lines.
+    """
+    if not page:
+        return ""
+    body = text.plain(text.to_text(str(page.get("content") or "")))
+    entries = []
+    for line in body.splitlines():
+        match = _TIMELINE_LINE_RE.match(line)
+        if match:
+            label = match.group(2).split(". ")[0].rstrip(". ")
+            entries.append(f"{match.group(1).strip()} {label}")
+    if len(entries) < 2:
+        return ""
+    clock = _CLOCK_NOTE_RE.search(body)
+    summary = "; ".join(entries) + (f" (times: {clock.group(0)} unless noted)" if clock else "")
+    return summary if len(summary) <= limit else summary[: limit - 1].rstrip() + "…"
 
 
 def page_listing(pages: list[dict]) -> list[str]:

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""List recent and running Kaggle competitions, one line each.
+"""List recent and running Kaggle competitions: two short lines each, with the metric.
 
     list_competitions.py                         the last 30 days
     list_competitions.py --days 90 --category featured,research
@@ -9,8 +9,13 @@
 Reads `search_competitions` on the Kaggle MCP server, which needs a credential
 (an API token or `kaggle auth login`). No Python package is needed.
 
+Each competition's first line is its deadline and title, with the last day
+to join (or "submissions closed"); the second its slug, category, teams,
+prize and metric.
+
 Community competitions with fewer than ten teams are left out unless
---min-teams says otherwise: most are class exercises.
+--min-teams says otherwise: most are class exercises. With
+KAGGLE_SKILL_HIDE_ACCOUNT=1 the competitions you have entered are not marked.
 """
 
 from __future__ import annotations
@@ -64,6 +69,8 @@ def to_row(comp: dict) -> dict:
         "reward": competition.money(comp.get("reward")),
         "team_count": int(comp.get("team_count") or 0),
         "deadline": comp.get("deadline"),
+        "entry_deadline": comp.get("new_entrant_deadline"),
+        "submissions_disabled": bool(comp.get("submissions_disabled")),
         "date_created": comp.get("enabled_date") or comp.get("date_created"),
         "tags": [tag for tag in tags if tag],
         "is_kernels_submissions_only": bool(comp.get("is_kernels_submissions_only")),
@@ -155,6 +162,7 @@ def fetch(queries: list[dict], token: str, max_pages: int) -> tuple[list[dict], 
 
 
 def compact(row: dict) -> dict:
+    hide = script.hide_account()
     return {
         "slug": row["slug"],
         "title": row["title"],
@@ -165,35 +173,62 @@ def compact(row: dict) -> dict:
         "reward": row["reward"],
         "metric": row["evaluation_metric"],
         "code_competition": row["is_kernels_submissions_only"],
-        "entered": row["user_has_entered"],
+        "entry_deadline": row["entry_deadline"],
+        "submissions_closed": row["submissions_disabled"],
+        "entered": None if hide else row["user_has_entered"],
         "url": row["url"],
     }
 
 
+def entry_note(row: dict, now=None) -> str:
+    """Whether a newcomer can still take part: ``join by <day>``, or why not."""
+    if row["status"] == "completed":
+        return ""
+    if row["submissions_disabled"]:
+        return "submissions closed"
+    closes = text.parse_time(row.get("entry_deadline"))
+    if closes is None:
+        return ""
+    if closes < (now or text.now_utc()):
+        return "entry closed"
+    if text.day(row["entry_deadline"]) == text.day(row["deadline"]):
+        return ""  # open until the end: the deadline already says it
+    return f"join by {text.day(row['entry_deadline'])}"
+
+
 def text_lines(rows: list[dict]) -> list[str]:
-    lines = [f"  {'deadline':<10}  {'category':<15}  {'teams':>6}  {'prize':<12}  slug · title"]
+    """Two lines per competition: the deadline and the title, then the facts and the metric."""
+    hide = script.hide_account()
+    lines = []
     for row in rows:
         marks = [
             mark
             for mark, on in (
                 ("ended", row["status"] == "completed"),
-                ("code", row["is_kernels_submissions_only"]),
-                ("entered", row["user_has_entered"]),
+                ("code competition", row["is_kernels_submissions_only"]),
+                ("entered", row["user_has_entered"] and not hide),
             )
             if on
         ]
-        tail = f"  [{', '.join(marks)}]" if marks else ""
+        facts = [
+            row["category"] or "?",
+            f"{row['team_count']:,} teams",
+            text.shorten(row["reward"], 16) or "no prize",
+            f"metric: {row['evaluation_metric'] or 'not given'}",
+            *marks,
+        ]
+        note = entry_note(row)
         lines.append(
-            f"  {text.day(row['deadline']):<10}  {row['category'][:15]:<15}  "
-            f"{row['team_count']:>6,}  {text.shorten(row['reward'], 12):<12}  "
-            f"{row['slug']} · {text.shorten(row['title'], 48)}{tail}"
+            f"  {text.day(row['deadline'])}  {text.shorten(row['title'], 70)}"
+            + (f" · {note}" if note else "")
         )
+        lines.append(f"              {row['slug']} · {' · '.join(facts)}")
     return lines
 
 
 def parse_args(argv: list[str] | None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(
-        description="List recent and running Kaggle competitions, one line each.",
+        description="List recent and running Kaggle competitions: two lines each, with the metric.",
         epilog="Needs a Kaggle credential: an API token or `kaggle auth login`.",
     )
     parser.add_argument(
@@ -301,7 +336,7 @@ def main(argv: list[str] | None = None) -> int:
             elif args.search:
                 scope = "matching the search"
             else:
-                scope = f"in the last {args.days} days"
+                scope = f"running or ended in the last {args.days} days"
             block.write(f"{total} competitions {scope}: {active} active, {total - active} ended.")
             if shown:
                 for line in text_lines(shown):
