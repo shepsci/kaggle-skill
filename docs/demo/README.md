@@ -65,9 +65,10 @@ Source: [agent-submit.cast](agent-submit.cast)
 ## What the top teams did
 
 Recorded agent session: [sessions/agent-solutions.json](sessions/agent-solutions.json).
-The GIF shows the start of the answer; the file has all of it.
+The winning techniques of a finished competition, summarized from the three
+top teams' own writeups.
 
-> What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
+> What did the top three teams of Kaggle's ARC Prize 2025 do to win? Two short lines each.
 
 ![What the top teams did](media/agent-solutions.gif)
 

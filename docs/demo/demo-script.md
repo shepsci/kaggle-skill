@@ -76,7 +76,7 @@ The four in this folder were recorded with these questions:
 | `agent-competitions` | Which Kaggle competitions with prize money are running right now? A short list with each one's deadline, prize and metric, please. | An empty folder, `--with-credential` |
 | `agent-brief` | What's the deadline and the metric of kaggle.com/competitions/arc-prize-2026-arc-agi-3? | An empty folder |
 | `agent-submit` | Submit ./submission.csv to the Titanic competition on Kaggle. | A folder with `submission.csv` and `downloads/titanic/gender_submission.csv` |
-| `agent-solutions` | What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each. | An empty folder |
+| `agent-solutions` | What did the top three teams of Kaggle's ARC Prize 2025 do to win? Two short lines each. | An empty folder |
 
 To record one:
 

@@ -1,4 +1,4 @@
-{"version": 2, "width": 48, "height": 20, "timestamp": 1790995410, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - ask about a competition"}
+{"version": 2, "width": 48, "height": 20, "timestamp": 1791038487, "idle_time_limit": 8, "env": {"SHELL": "/bin/bash", "TERM": "xterm-256color"}, "title": "kaggle-skill - ask about a competition"}
 [0.2, "o", "You\r\n"]
 [0.5, "o", "  What's the deadline and the metric of\r\n  kaggle.com/competitions/arc-prize-2026-arc-\r\n  agi-3?\r\n"]
 [0.85, "o", "\r\n"]
@@ -25,7 +25,8 @@
 [5.04, "o", "  • Entry and team merger deadline: October\r\n    26, 2026. You must have joined by then.\r\n  • Winners announced: December 4, 2026.\r\n"]
 [5.16, "o", "\r\n  One inconsistency on the entry cutoff:\r\n  Kaggle's structured field says 11:59 UTC on\r\n"]
 [5.28, "o", "  October 26, while the timeline page says\r\n  times are 11:59 PM UTC. Treat the earlier\r\n  time as the safe one.\r\n"]
-[5.4, "o", "\r\n  Metric: \"ARC-AGI-3 Metric\" (custom)\r\n  • Each game is scored from 0 to 100%.\r\n"]
-[10.02, "o", "  • 100% means human-level performance: the\r\n    agent beat every game while matching the\r\n    number of actions humans took.\r\n"]
-[10.14, "o", "  • Using fewer actions than humans does not\r\n    earn extra, because scores are capped at\r\n    100%.\r\n"]
-[10.26, "o", "\r\n  It is a code competition (you submit a\r\n  notebook), limited to 1 submission per day.\r\n"]
+[5.4, "o", "\r\n"]
+[10.8, "o", "  Metric: \"ARC-AGI-3 Metric\" (custom)\r\n  • Each game is scored from 0 to 100%.\r\n  • 100% means human-level performance: the\r\n"]
+[10.92, "o", "    agent beat every game while matching the\r\n    number of actions humans took.\r\n  • Using fewer actions than humans does not\r\n"]
+[11.04, "o", "    earn extra, because scores are capped at\r\n    100%.\r\n\r\n"]
+[11.16, "o", "  It is a code competition (you submit a\r\n  notebook), limited to 1 submission per day.\r\n"]

@@ -105,6 +105,11 @@ def _absolute_kaggle_url(url: str) -> str:
     return f"{KAGGLE_BASE}/{url}"
 
 
+def board_of(payload: dict[str, Any]) -> str:
+    """Which leaderboard the ranks and scores come from: the private one once it is out."""
+    return "private" if payload.get("privateLeaderboard") else "public"
+
+
 def extract_writeup_links(
     payload: dict[str, Any], top_k: int | None = None
 ) -> list[dict[str, Any]]:
@@ -539,7 +544,11 @@ def text_lines(result: dict[str, Any]) -> list[str]:
     writeups = result["writeups"]
     lines: list[str] = []
     if writeups and result["source"] == "leaderboard":
-        lines.append(f"{len(writeups)} solution writeups linked from the {slug} leaderboard:")
+        board = result.get("board")
+        which = f" ({board} leaderboard ranks and scores)" if board else ""
+        lines.append(
+            f"{len(writeups)} solution writeups linked from the {slug} leaderboard{which}:"
+        )
     elif writeups:
         lines.append(
             f"The {slug} leaderboard links no writeups. "
@@ -634,6 +643,7 @@ def main(argv: list[str] | None = None) -> int:
     result: dict[str, Any] = {
         "competition": slug,
         "source": "leaderboard",
+        "board": board_of(payload),
         "writeups": writeups,
     }
     if not writeups:

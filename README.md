@@ -117,11 +117,11 @@ CLI and kagglehub, not the commands that read your standing.
 
 A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `brief`, then answered. [The whole answer](docs/demo/sessions/agent-brief.json), [cast](docs/demo/agent-brief.cast).
 
-> **You:** What did the top three teams of Kaggle's ARC Prize 2025 do? A few lines each.
+> **You:** What did the top three teams of Kaggle's ARC Prize 2025 do to win? Two short lines each.
 
 ![What the top teams did](docs/demo/media/agent-solutions.gif)
 
-A real session, recorded 2026-10-02 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `solutions` and `writeup`, then answered. [The whole answer](docs/demo/sessions/agent-solutions.json), [cast](docs/demo/agent-solutions.cast).
+A real session, recorded 2026-10-03 in Claude Code 2.1.286 (claude-opus-5-5): the agent ran `solutions` and `writeup`, then answered. [The whole answer](docs/demo/sessions/agent-solutions.json), [cast](docs/demo/agent-solutions.cast).
 
 > **You:** Submit ./submission.csv to the Titanic competition on Kaggle.
 

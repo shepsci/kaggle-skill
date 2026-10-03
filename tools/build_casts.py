@@ -59,7 +59,7 @@ FONT_SIZE = 20
 TYPING_CHUNK = 9  # characters per typing frame
 TYPING_FRAMES = 24  # a longer command is typed in bigger chunks, so it takes under 2 s
 SCROLL_LINES = 3  # lines of output per frame
-READING_SECONDS = 0.25  # per line of an answer: a page is held long enough to read
+READING_SECONDS = 0.33  # per line of an answer: a page is held long enough to read
 LAST_FRAME_SECONDS = 6.0
 ANSI_RE = re.compile(r"\x1b(?:[@-Z\\-_]|\[[0-?]*[ -/]*[@-~]|\][^\x07]*(?:\x07|\x1b\\))")
 CONTROL_RE = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
@@ -286,6 +286,38 @@ def render_answer(markdown: str) -> str:
     return "\n".join(lines)
 
 
+def paginate(lines: list[str], capacity: int) -> list[list[str]]:
+    """Pages of at most ``capacity`` lines that end where a paragraph ends.
+
+    A paragraph with its heading stays on one screen when it fits; only a
+    paragraph longer than the screen is split.
+    """
+    blocks: list[list[str]] = []
+    current: list[str] = []
+    for line in lines:
+        current.append(line)
+        if not line.strip():
+            blocks.append(current)
+            current = []
+    if current:
+        blocks.append(current)
+    pages: list[list[str]] = []
+    page: list[str] = []
+    for block in blocks:
+        if len(page) + len(block) <= capacity:
+            page += block
+            continue
+        if page:
+            pages.append(page)
+        while len(block) > capacity:
+            pages.append(block[:capacity])
+            block = block[capacity:]
+        page = list(block)
+    if page:
+        pages.append(page)
+    return pages
+
+
 def load_session(path: Path) -> dict:
     session = json.loads(path.read_text(encoding="utf-8"))
     for key in ("name", "title", "recorded", "agent", "question", "steps", "answer"):
@@ -315,15 +347,14 @@ def session_events(session: dict) -> list[list]:
         note = f"  … ({len(answer) - limit} more lines in the session file)"
         answer = answer[:limit]
     # One screen at a time, each held long enough to read, instead of a scroll.
-    page = ROWS - 2
-    pages = [answer[start : start + page] for start in range(0, len(answer), page)] or [[]]
+    pages = paginate(answer, ROWS - 1) or [[]]
     if note:
         pages[-1] = [*pages[-1], note]
     for number, lines in enumerate(pages, 1):
         # A blank line that ends a page is kept: splitlines would drop it.
         rec.scroll("\n".join(lines) + ("\n" if lines and lines[-1] == "" else ""), 0.12)
         if number < len(pages):
-            rec.hold(max(2.5, READING_SECONDS * len(lines)))
+            rec.hold(max(3.0, READING_SECONDS * len(lines)))
     return rec.events
 
 

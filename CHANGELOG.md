@@ -22,8 +22,9 @@ places is now one command.
 - `writeup` takes several ids or URLs and prints each in its own block. A
   body is cut after 8,000 characters with a note (`--max-chars 0` for all of
   it), so an agent no longer pipes it through `head`.
-- `solutions --preview` shows how each writeup's body starts, read from the
-  MCP server with no credential. Writeup pages show little before their
+- `solutions` says whether its ranks and scores are from the private or the
+  public leaderboard, and `--preview` shows how each writeup's body starts,
+  read from the MCP server with no credential. Writeup pages show little before their
   scripts run, so the old previews were often the title alone.
 - The `submit` dry run runs `validate`'s checks on the file and shows them
   with the plan (`--sample PATH` names the sample). The separate "check the
