@@ -20,7 +20,7 @@ benchmarks = [
     "kaggle-benchmarks>=0.6",
 ]
 dev = [
-    "ruff>=0.16.9,<0.17",
+    "ruff>=0.16.9,<0.18",
     "pytest>=8.0",
     "pyyaml>=6.0",
     "pillow>=10.0",
